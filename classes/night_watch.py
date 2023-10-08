@@ -5,6 +5,7 @@ from playwright.async_api import Page
 from playwright.async_api import Browser
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
+import requests
 
 
 class NightWatch:
@@ -15,6 +16,8 @@ class NightWatch:
         self.browser = Browser
         self.wath_loop = False
         self.bookmark_list = []
+        self.backend_url = "teemo-world.link"
+        self.backend_port = "3000"
 
     async def create_playwright(self):
         """playwright 객체 생성"""
@@ -153,7 +156,14 @@ class NightWatch:
                 asyncio.sleep(0.1)
             self.bookmark_list.clear()
             live_users = await self.get_user_status()
+            idle_users = requests.get(
+                f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
+                timeout=5,
+            )  # pylint: disable=W3101
+            print(idle_users)
+
             print(live_users)
+
             await asyncio.sleep(10)
 
     async def get_user_status(self):

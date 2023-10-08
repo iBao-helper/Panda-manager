@@ -50,7 +50,7 @@ async def userlist():
 @app.get("/test")
 async def test():
     """테스트"""
-    asyncio.create_task(night_watch.test2())
+    # asyncio.create_task(night_watch.test2())
     return {"message": "test"}
 
 
@@ -127,10 +127,12 @@ async def check_manager_login(id: str, pw: str, response: Response):
                 raise Exception("stt 실패")  # pylint: disable=W0719
         else:
             print("로그인 성공")
+            await browser.close()
+
     except Exception as e:  # pylint: disable=C0103,W0718
         print(e)
         response.status_code = status.HTTP_404_NOT_FOUND
-        # await browser.close()
+        await browser.close()
     return {"message": "ok"}
 
 
