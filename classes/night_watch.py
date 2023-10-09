@@ -5,6 +5,7 @@ from playwright.async_api import Page
 from playwright.async_api import Browser
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
+import requests
 
 
 class NightWatch:
@@ -15,6 +16,8 @@ class NightWatch:
         self.browser = Browser
         self.wath_loop = False
         self.bookmark_list = []
+        self.backend_url = "teemo-world.link"
+        self.backend_port = "3000"
 
     async def create_playwright(self):
         """playwright 객체 생성"""
@@ -152,13 +155,25 @@ class NightWatch:
                 await self.set_book_mark(book_mark_id, True)
                 asyncio.sleep(0.1)
             self.bookmark_list.clear()
-            live_users = await self.get_user_status()
-            print(live_users)
+            live_users, idle_users = await self.get_user_status()
+            backend_live_users = requests.get(
+                f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
+                timeout=5,
+            ).json()
+            backend_idle_users = requests.get(
+                f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
+                timeout=5,
+            ).json()
+            wanted_play_list = self.filter_dict_by_list(idle_users, backend_idle_users)
+            wanted_stop_list = self.filter_dict_by_list(live_users, backend_live_users)
+
             await asyncio.sleep(10)
+            await self.refresh()
 
     async def get_user_status(self):
         """유저 상태"""
-        ret_list = []
+        live_users = {}
+        idle_users = {}
         if self.page.url != "https://www.pandalive.co.kr/pick#bookmark":
             print("북마크 페이지가 아닙니다. 북마크 페이지로 이동합니다.")
             await self.goto_url("https://www.pandalive.co.kr/pick#bookmark")
@@ -175,10 +190,21 @@ class NightWatch:
                 nickname = nickname.replace(" ", "").replace("\n", "")
                 print(nickname)
                 if live_span:
-                    ret_list.append(nickname)
+                    live_users[nickname] = True
+                else:
+                    idle_users[nickname] = False
         except Exception as e:
             print("what the fuck")
             print(e)
+        return live_users, idle_users
+
+    def filter_dict_by_list(self, my_dict, my_list):
+        """list중 dict안에 존재하는 요소만 반납"""
+        ret_list = []
+        for user in my_list:
+            print(user["nickname"])
+            if user["nickname"] in my_dict:
+                ret_list.append(user["panda_id"])
         return ret_list
 
     async def set_book_mark(self, panda_id: str, state: bool):
