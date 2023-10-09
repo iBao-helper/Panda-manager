@@ -40,13 +40,6 @@ async def night_watch_stop():
     return {"message": "NightWatch"}
 
 
-@app.get("/userlist")
-async def userlist():
-    """유저리스트"""
-    asyncio.create_task(night_watch.get_user_status())
-    return {"message": "userlist"}
-
-
 @app.get("/test")
 async def test():
     """테스트"""
@@ -56,7 +49,7 @@ async def test():
 
 @app.get("/check-manager", status_code=status.HTTP_200_OK)
 async def check_manager_login(id: str, pw: str, response: Response):
-    """매니저 로그인 확인"""
+    """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
     print(id)
     print(pw)
     apw = await async_playwright().start()
@@ -137,8 +130,8 @@ async def check_manager_login(id: str, pw: str, response: Response):
 
 
 @app.get("/panda-nickname", status_code=status.HTTP_200_OK)
-async def get(id: str, response: Response):
-    """매니저 로그인 확인"""
+async def get_panda_nickname(id: str, response: Response):
+    """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
     apw = await async_playwright().start()
     browser = await apw.chromium.launch(headless=False)
     page = await browser.new_page()
