@@ -6,8 +6,7 @@ from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
 import time
-import urllib
-import os
+from classes.panda_manager import PandaManager
 
 from stt import sample_recognize
 
