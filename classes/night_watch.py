@@ -1,11 +1,12 @@
 """ this is night wiath.py"""
 import asyncio
+import requests
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
+from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
-import requests
 
 
 class NightWatch:
@@ -14,26 +15,24 @@ class NightWatch:
     def __init__(self) -> None:
         self.page: Page
         self.browser = Browser
-        self.wath_loop = False
+        self.watch_loop = False
         self.bookmark_list = []
         self.backend_url = "teemo-world.link"
         self.backend_port = "3000"
 
     async def create_playwright(self):
         """playwright 객체 생성"""
-        apw = await async_playwright().start()
-        self.browser = await apw.chromium.launch(
-            headless=False,
-            # proxy={"server": "13.125.205.153:8888"}
-            # headless=False
-        )
-        context = await self.browser.new_context(
-            viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
-        )
-        self.page = await context.new_page()
-        await self.page.goto("http://pandalive.co.kr")
-        print(await self.page.title())
-        # await self.page.get_by_role("button", name="닫기").click()
+        try:
+            apw = await async_playwright().start()
+            self.browser = await apw.chromium.launch(headless=False)
+            context = await self.browser.new_context(
+                viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
+            )
+            self.page = await context.new_page()
+            await self.page.goto("http://pandalive.co.kr")
+            print(await self.page.title())
+        except Exception as e:
+            raise ex.PlayWrightException(ex.PWEEnum.NW_CREATE_ERROR) from e
         return
 
     async def login(self, login_id: str = "xptmxmdyd123", login_pw: str = "Adkflfkd1"):
@@ -47,8 +46,6 @@ class NightWatch:
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
         await self.page.get_by_role("link", name="로그인").click()
-        # await self.page.get_by_role("textbox").nth(1).fill("siveriness0")
-        # await self.page.get_by_role("textbox").nth(2).fill("dkflfkd12#")
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
         await asyncio.sleep(2)
@@ -61,8 +58,7 @@ class NightWatch:
         ).is_visible()
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
-            # raise error
-            return False
+            raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW)
         invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
         invalid_label_pw = await self.page.get_by_label(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
@@ -70,8 +66,7 @@ class NightWatch:
         if invalid_label_id or invalid_label_pw:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
-            # raise error
-            return False
+            raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW)
         invalid_login_detect = await self.page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
         ).is_visible()
@@ -109,6 +104,7 @@ class NightWatch:
                 await self.page.wait_for_selector("div.profile_img")
             else:
                 print("stt 실패")
+                raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_STT_FAILED)
         else:
             print("로그인 성공")
             return True
@@ -125,48 +121,43 @@ class NightWatch:
         """remove Video box"""
         await self.page.evaluate("document.querySelector('div.player-box').remove()")
 
-    # async def chatting_example(self):
-    #     """테스트용"""
-    #     while True:
-    #         cast_chat = self.page.locator(".castChat")
-    #         chat_l_elements = await self.page.query_selector_all(".cht_l")
-    #         for chat_l in chat_l_elements:
-    #             userinner = await chat_l.query_selector(".nickname")
-    #             chatinner = await chat_l.query_selector(".message")
-    #             user = await userinner.inner_text()
-    #             user = user.replace(":", "").strip()
-    #             chat = await chatinner.inner_text()
-    #             chat = chat.strip()
-    #             print(user)
-    #             print(chat)
-    #             # if user == "크기가전부는아니자나여" or user == "24K™":
-    #             #     await self.page.get_by_placeholder("채팅하기").fill(chat)
-    #             #     await self.page.get_by_role("button", name="보내기").click()
-    #             await chat_l.evaluate("(element) => element.remove()")
-    #         await asyncio.sleep(0.1)
-    #     return "haha"
-
     #######  night watch 관련 함수들 #######
     async def start_night_watch(self):
         """nightWatch 시작 함수"""
-        self.wath_loop = True
-        while self.wath_loop:
+        self.watch_loop = True
+        while self.watch_loop:
             for book_mark_id in self.bookmark_list:
                 await self.set_book_mark(book_mark_id, True)
                 asyncio.sleep(0.1)
             self.bookmark_list.clear()
-            live_users, idle_users = await self.get_user_status()
+            idle_users, live_users = await self.get_user_status()
             backend_live_users = requests.get(
-                f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
+                url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
                 timeout=5,
             ).json()
             backend_idle_users = requests.get(
                 f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
                 timeout=5,
             ).json()
-            wanted_play_list = self.filter_dict_by_list(idle_users, backend_idle_users)
-            wanted_stop_list = self.filter_dict_by_list(live_users, backend_live_users)
-
+            print(idle_users)
+            print("==" * 10)
+            print(backend_idle_users)
+            print("==" * 10)
+            wanted_play_list = self.filter_dict_by_list(live_users, backend_idle_users)
+            wanted_stop_list = self.filter_dict_by_list(idle_users, backend_live_users)
+            print(wanted_play_list)
+            if len(wanted_play_list) > 0:
+                requests.post(
+                    url=f"http://{self.backend_url}:{self.backend_port}/proxy/increase",
+                    json={"panda_ids": wanted_play_list},
+                    timeout=5,
+                )
+            if len(wanted_stop_list) > 0:
+                requests.post(
+                    url=f"http://{self.backend_url}:{self.backend_port}/proxy/decrease",
+                    json={"panda_ids": wanted_stop_list},
+                    timeout=5,
+                )
             await asyncio.sleep(10)
             await self.refresh()
 
@@ -196,7 +187,7 @@ class NightWatch:
         except Exception as e:
             print("what the fuck")
             print(e)
-        return live_users, idle_users
+        return idle_users, live_users
 
     def filter_dict_by_list(self, my_dict, my_list):
         """list중 dict안에 존재하는 요소만 반납"""
@@ -228,4 +219,8 @@ class NightWatch:
 
     async def stop(self):
         """awef"""
-        self.wath_loop = False
+        self.watch_loop = False
+
+    async def destroy(self):
+        """free memory"""
+        await self.browser.close()
