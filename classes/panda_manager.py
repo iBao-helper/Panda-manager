@@ -140,7 +140,8 @@ class PandaManager:
 
     async def chatting_example(self, commands: list):
         """테스트용"""
-        while True:
+        self.loop = True
+        while self.loop:
             try:
                 chat_l_elements = await self.page.query_selector_all(".cht_l")
                 for chat_l in chat_l_elements:
@@ -218,4 +219,5 @@ class PandaManager:
 
     async def destroy(self):
         """free memory"""
+        self.loop = False
         await self.browser.close()
