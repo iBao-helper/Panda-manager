@@ -17,5 +17,6 @@ class PWEEnum(Enum):
 class PlayWrightException(Exception):
     """Base exception for all PlayWright exceptions."""
 
-    def __init__(self, description: PWEEnum) -> None:
+    def __init__(self, description: PWEEnum, panda_id: str = "") -> None:
         self.description = description
+        self.panada_id = panda_id

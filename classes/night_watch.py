@@ -1,5 +1,7 @@
 """ this is night wiath.py"""
 import asyncio
+import os
+import aiofiles
 import requests
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
@@ -88,6 +90,11 @@ class NightWatch:
                     )
             await click_frame.get_by_label("로봇이 아닙니다.").click()
             await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
+            retry_detect = show_frame.get_by_text("나중에 다시 시도해 주세요")
+            print("retry_detect", await retry_detect.is_visible())
+            if retry_detect:
+                print("잦은 재시도 탐지에 걸림")
+                raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_STT_FAILED)
             test = await show_frame.get_by_role(
                 "link", name="또는 오디오를 MP3로 다운로드하세요."
             ).get_attribute("href")
@@ -126,40 +133,47 @@ class NightWatch:
         """nightWatch 시작 함수"""
         self.watch_loop = True
         while self.watch_loop:
-            for book_mark_id in self.bookmark_list:
-                await self.set_book_mark(book_mark_id, True)
-                asyncio.sleep(0.1)
-            self.bookmark_list.clear()
-            idle_users, live_users = await self.get_user_status()
-            backend_live_users = requests.get(
-                url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
-                timeout=5,
-            ).json()
-            backend_idle_users = requests.get(
-                f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
-                timeout=5,
-            ).json()
-            print(idle_users)
-            print("==" * 10)
-            print(backend_idle_users)
-            print("==" * 10)
-            wanted_play_list = self.filter_dict_by_list(live_users, backend_idle_users)
-            wanted_stop_list = self.filter_dict_by_list(idle_users, backend_live_users)
-            print(wanted_play_list)
-            if len(wanted_play_list) > 0:
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/proxy/increase",
-                    json={"panda_ids": wanted_play_list},
+            try:
+                for book_mark_id in self.bookmark_list:
+                    await self.set_book_mark(book_mark_id, True)
+                    asyncio.sleep(0.1)
+                self.bookmark_list.clear()
+                idle_users, live_users = await self.get_user_status()
+                backend_live_users = requests.get(
+                    url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
                     timeout=5,
-                )
-            if len(wanted_stop_list) > 0:
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/proxy/decrease",
-                    json={"panda_ids": wanted_stop_list},
+                ).json()
+                backend_idle_users = requests.get(
+                    f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
                     timeout=5,
+                ).json()
+                wanted_play_list = self.filter_dict_by_list(
+                    live_users, backend_idle_users
                 )
-            await asyncio.sleep(10)
-            await self.refresh()
+                wanted_stop_list = self.filter_dict_by_list(
+                    idle_users, backend_live_users
+                )
+                print(f"watned play lsit = {wanted_play_list}")
+                print(f"watend stop list = {wanted_stop_list}")
+                if len(wanted_play_list) > 0:
+                    requests.post(
+                        url=f"http://{self.backend_url}:{self.backend_port}/proxy/increase",
+                        json={"panda_ids": wanted_play_list},
+                        timeout=5,
+                    )
+                if len(wanted_stop_list) > 0:
+                    requests.post(
+                        url=f"http://{self.backend_url}:{self.backend_port}/proxy/decrease",
+                        json={"panda_ids": wanted_stop_list},
+                        timeout=5,
+                    )
+                await asyncio.sleep(10)
+                await self.refresh()
+            except Exception as e:  # pylint: disable=W0718
+                file_path = os.path.join(os.getcwd(), "logs", "nw.log")
+                async with aiofiles.open(file_path, "a") as out:
+                    await out.write(str(e))
+                    await out.flush()
 
     async def get_user_status(self):
         """유저 상태"""
@@ -171,7 +185,6 @@ class NightWatch:
         tmp = self.page.locator("div.pickList ul")
 
         try:
-            print(tmp)
             lists = await tmp.locator("li").element_handles()
             for lists_li in lists:
                 photo = await lists_li.query_selector("div.photo")
@@ -179,7 +192,6 @@ class NightWatch:
                 live_span = await photo.query_selector("span")
                 nickname = await infor.text_content()
                 nickname = nickname.replace(" ", "").replace("\n", "")
-                print(nickname)
                 if live_span:
                     live_users[nickname] = True
                 else:
@@ -193,7 +205,6 @@ class NightWatch:
         """list중 dict안에 존재하는 요소만 반납"""
         ret_list = []
         for user in my_list:
-            print(user["nickname"])
             if user["nickname"] in my_dict:
                 ret_list.append(user["panda_id"])
         return ret_list
@@ -201,7 +212,7 @@ class NightWatch:
     async def set_book_mark(self, panda_id: str, state: bool):
         """북마크 세팅. state상태로 세팅함"""
         await self.goto_url(f"https://www.pandalive.co.kr/channel/{panda_id}/notice")
-        asyncio.sleep(1)
+        await asyncio.sleep(1)
         book_mark = await self.page.query_selector(".btn_bookmark")
         book_mark_class = await book_mark.get_attribute("class")
         # 이미 북마크가 되어있다면
@@ -223,4 +234,5 @@ class NightWatch:
 
     async def destroy(self):
         """free memory"""
+        self.watch_loop = False
         await self.browser.close()
