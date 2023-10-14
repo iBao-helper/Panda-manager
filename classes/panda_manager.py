@@ -26,6 +26,7 @@ class CreateManagerDto(BaseModel):
     resource_ip: str
     panda_id: str
     manager_nick: str
+    recommand_message: str | None
 
 
 class PandaManager:
@@ -41,6 +42,7 @@ class PandaManager:
         self.data = body
         self.commands = []
         self.command_executed = False
+        self.command_list = ["!등록", "!삭제", "!사용법"]
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -140,6 +142,7 @@ class PandaManager:
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
                 # 보안 문자 떳는지 확인
+                await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.get_by_role("button", name="로그인", exact=True).click()
                 await asyncio.sleep(1)
@@ -166,28 +169,55 @@ class PandaManager:
         """remove Video box"""
         await self.page.evaluate("document.querySelector('div.player-box').remove()")
 
-    def chat_macro_command_handler(self, splited_chat: list):
+    async def chat_command_register_delete(self, splited_chat: list):
         """채팅 매크로 등록/삭제 처리"""
-        if splited_chat[0] == "!등록":
-            response = requests.post(
-                url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
-                json={
-                    "key": splited_chat[1],
-                    "value": splited_chat[2],
-                },
-                timeout=5,
-            )
-            print(response.text)
-        elif splited_chat[0] == "!삭제":
-            response = requests.delete(
-                url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
-                json={
-                    "key": splited_chat[1],
-                },
-                timeout=5,
-            )
-            print(response.text)
-        return response.text
+        try:
+            if splited_chat[0] == "!등록":
+                if len(splited_chat) >= 3:
+                    response = requests.post(
+                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        json={
+                            "key": splited_chat[1],
+                            "value": splited_chat[2],
+                        },
+                        timeout=5,
+                    )
+                    print(response.text)
+                    response = response.text
+                    self.commands = await get_commands(self.data.panda_id)
+                    await self.page.get_by_placeholder("채팅하기").fill(response)
+                    await self.page.get_by_role("button", name="보내기").click()
+                    return True
+                else:
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        "유효한 형태가 아닙니다/\n[!등록] [키워드] [응답]"
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
+                    return True
+            elif splited_chat[0] == "!삭제":
+                if len(splited_chat) >= 2:
+                    response = requests.delete(
+                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        json={
+                            "key": splited_chat[1],
+                        },
+                        timeout=5,
+                    )
+                    print(response.text)
+                    response = response.text
+                    self.commands = await get_commands(self.data.panda_id)
+                    await self.page.get_by_placeholder("채팅하기").fill(response)
+                    await self.page.get_by_role("button", name="보내기").click()
+                    return True
+                else:
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        "유효한 포멧이 아닙니다/\n[!삭제] [키워드]"
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
+                    return True
+        except Exception as e:
+            print(e)
+            return False
 
     async def handle_command(
         self,
@@ -198,15 +228,19 @@ class PandaManager:
         chat_l: ElementHandle,
     ):
         """명령어를 처리하기 위한 로직"""
-        if splited_chat[0] == "!등록" or splited_chat[0] == "!삭제":
-            if chat_user == data.nickname or chat_user == "크기가전부는아니자나여":
-                response = self.chat_macro_command_handler(splited_chat)
-                if response == "등록되었습니다" or response == "삭제되었습니다":
-                    self.commands = await get_commands(self.data.panda_id)
-                await self.page.get_by_placeholder("채팅하기").fill(response)
+        try:
+            if splited_chat[0] == "!사용법":
+                await self.page.get_by_placeholder("채팅하기").fill(
+                    emoji.emojize("사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]")
+                )
                 await self.page.get_by_role("button", name="보내기").click()
-                return True
-        return False
+            elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
+                chat_user == data.nickname or chat_user == "크기가전부는아니자나여"
+            ):
+                response = await self.chat_command_register_delete(splited_chat)
+                return response
+        except:  # pylint: disable=W0702
+            return False
 
     def check_command(self, chat, user: bool):
         """
@@ -214,58 +248,109 @@ class PandaManager:
         이전 명령어를 실행하여 flag가 True라면 채팅매크로를 실행하지 않음
         """
         # 위에서 커맨드를 실행했거나 매니저가 친 채팅이라면
-        if self.command_executed is True or user == self.data.manager_nick:
+        if user == self.data.manager_nick:
             return None
         for command in self.commands:
             if command["keyword"] == chat:
                 return command["response"]
         return None
 
-    async def chatting_example(self):
+    async def chatting_handler(self):
+        """채팅 핸들러"""
+        chat_l_elements = await self.page.query_selector_all(".cht_l")
+        for chat_l in chat_l_elements:
+            userinner = await chat_l.query_selector(".nickname")
+            chatinner = await chat_l.query_selector(".message")
+            # 임시땜빵용 특정 큰손들같은 경우 셀렉터가 다름
+            if userinner is None:
+                continue
+            user = await userinner.inner_text()
+            user = user.replace(":", "").strip()
+            chat = await chatinner.inner_text()
+            chat = chat.strip()
+            chat = emoji.demojize(chat)
+            chat_split = chat.split(" ", 2)
+            # 명령어 리스트중에 있는지 검사하고
+            if chat_split and len(chat_split) >= 1:
+                if chat_split[0] in self.command_list:
+                    # 명령어가 있다면 명령어를 처리
+                    self.command_executed = await self.handle_command(
+                        user, chat, chat_split, self.data, chat_l
+                    )
+                    # 이후 진행을 할지 안할지 command_executed로 세팅
+                    if self.command_executed is True:
+                        await chat_l.evaluate("(element) => element.remove()")
+                        continue
+                command_response = self.check_command(chat, user)
+                if command_response is not None:
+                    self.command_executed = True
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(command_response)
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
+                await chat_l.evaluate("(element) => element.remove()")
+
+    async def hart_handler(self):
+        """하트 핸들러"""
+        hart_elements = await self.page.query_selector_all(".cht_hart_new")
+        for hart_box in hart_elements:
+            hart_info = await hart_box.query_selector(".hart_info")
+            hart_user_tag = await hart_info.query_selector("p")
+            hart_user = (await hart_user_tag.inner_text()).strip().replace("님이", "")
+            hart_count_tag = await hart_info.query_selector("b")
+            hart_count = (await hart_count_tag.inner_text()).strip().replace("개", "")
+            print(hart_user)
+            print(hart_count)
+            await self.page.get_by_placeholder("채팅하기").fill(
+                emoji.emojize(f"{hart_user}님 {hart_count}개 땡큐~!")
+            )
+            await self.page.get_by_role("button", name="보내기").click()
+            await hart_box.evaluate("(element) => element.remove()")
+            requests.post(
+                url=f"http://{self.data.resource_ip}:3000/user/hart/history",
+                json={
+                    "panda_id": self.data.panda_id,
+                    "username": hart_user,
+                    "count": hart_count,
+                },
+                timeout=5,
+            )
+
+    async def recommand_handler(self):
+        """추천 핸들러"""
+        recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
+        user_list = []
+        exist = False
+        for recommand_element in recommand_elements:
+            exist = True
+            recommand_message = await recommand_element.inner_text()
+            user_name = recommand_message.split(" ")[0].replace("님께서", "")
+            user_list.append(user_name)
+            await recommand_element.evaluate("(element) => element.remove()")
+        if self.data.recommand_message is not None:
+            response_recommand_message = self.data.recommand_message
+        else:
+            response_recommand_message = "님 추천 감사합니다잇~!"
+        if exist:
+            await self.page.get_by_placeholder("채팅하기").fill(
+                emoji.emojize(f"{user_name} {response_recommand_message}")
+            )
+            await self.page.get_by_role("button", name="보내기").click()
+
+    async def macro(self):
         """테스트용"""
         self.loop = True
         self.commands = await get_commands(self.data.panda_id)
-        command_list = ["!등록", "!삭제"]
+        print("[Receive default commands]", self.commands)
         while self.loop:
             self.command_executed = False
             try:
-                chat_l_elements = await self.page.query_selector_all(".cht_l")
-                for chat_l in chat_l_elements:
-                    if self.command_executed is True:
-                        await chat_l.evaluate("(element) => element.remove()")
-                        continue
-                    userinner = await chat_l.query_selector(".nickname")
-                    chatinner = await chat_l.query_selector(".message")
-                    # 임시땜빵용 특정 큰손들같은 경우 셀렉터가 다름
-                    if userinner is None:
-                        continue
-                    user = await userinner.inner_text()
-                    user = user.replace(":", "").strip()
-                    chat = await chatinner.inner_text()
-                    chat = chat.strip()
-                    chat = emoji.demojize(chat)
-                    chat_split = chat.split(" ", 2)
-                    # 명령어 리스트중에 있는지 검사하고
-                    if chat_split[0] in command_list:
-                        # 명령어가 있다면 명령어를 처리
-                        self.command_executed = await self.handle_command(
-                            user, chat, chat_split, self.data, chat_l
-                        )
-                    if self.command_executed is True:
-                        await chat_l.evaluate("(element) => element.remove()")
-                        continue
-                    command_response = self.check_command(chat, user)
-                    if command_response is not None:
-                        self.command_executed = True
-                        await self.page.get_by_placeholder("채팅하기").fill(
-                            emoji.emojize(command_response)
-                        )
-                        await self.page.get_by_role("button", name="보내기").click()
-                    await chat_l.evaluate("(element) => element.remove()")
+                await self.chatting_handler()
+                await self.hart_handler()
+                await self.recommand_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
-
         return "haha"
 
     #######  manager 관련 유틸 함수들 #######
