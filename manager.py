@@ -1,22 +1,18 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
-import datetime
 import os
 import asyncio
 import re
 from typing import Dict
-import aiofiles
 import uvicorn
 import requests
-from fastapi import FastAPI, HTTPException, Response, status, Request
+from fastapi import FastAPI, Response, status, Request
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
-from aiofiles import open as aio_open
 from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_env import BACKEND_URL, BACKEND_PORT
-from util.my_util import get_commands
 
 
 app = FastAPI()
@@ -25,9 +21,7 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 
 
 @app.post("/panda_manager/{panda_id}")
-async def panda_manager_start(
-    body: pm.CreateManagerDto, panda_id: str, response: Response
-):
+async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
@@ -53,14 +47,14 @@ async def panda_manager_start(
         },
         timeout=5,
     )
-    asyncio.create_task(panda_manager.chatting_example())
+    asyncio.create_task(panda_manager.macro())
 
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
 
 
 @app.delete("/panda_manager/{panda_id}")
-async def destory_panda_manager(panda_id: str, response: Response):
+async def destory_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
     await panda_managers[panda_id].destroy()
     del panda_managers[panda_id]
@@ -183,26 +177,14 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     file_path = os.path.join(os.getcwd(), "logs", "pd.log")
     if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
         # nw 가동 실패
-        print("stt 실패", exc.panada_id, exc.description)
-        await panda_managers[exc.panada_id].destroy()
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/recreate",
-            json={"ip": panda_managers[exc.panada_id].data.proxy_ip},
-            timeout=5,
-        )
-        print(
-            f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-            f"{exc.description} / {request.query_params}\n"
-        )
+        print("PD 가동 실패", exc.panada_id, exc.description)
+        status_code = status.HTTP_400_BAD_REQUEST
+        message = "PD 가동 실패"
 
     elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
-        print("로그인 ID/PW 실패", exc.panada_id, exc.description)
-        print(
-            f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-            f"{exc.description} / {request.query_params}\n"
-        )
-        await panda_managers[exc.panada_id].destroy()
+        status_code = status.HTTP_200_OK
+        message = "로그인 실패"
     elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
         status_code = status.HTTP_400_BAD_REQUEST
         message = "stt 실패"
