@@ -112,9 +112,10 @@ async def check_manager_login(id: str, pw: str, response: Response):
             raise ex.PlayWrightException("stt 실패")  # pylint: disable=W0719
     else:
         print("로그인 성공")
+        login_profile = await page.query_selector("div.profile_img")
+        manager_nickname = await login_profile.inner_text()
         await browser.close()
-
-    return {"message": "ok"}
+    return manager_nickname
 
 
 @app.get("/panda-nickname", status_code=status.HTTP_200_OK)

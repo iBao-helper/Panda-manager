@@ -7,7 +7,7 @@ from typing import Dict
 import aiofiles
 import uvicorn
 import requests
-from fastapi import FastAPI, Response, status, Request
+from fastapi import FastAPI, HTTPException, Response, status, Request
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
 from aiofiles import open as aio_open
@@ -16,19 +16,12 @@ from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_env import BACKEND_URL, BACKEND_PORT
-from util.my_util import getCommands
+from util.my_util import get_commands
 
 
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
 panda_managers: Dict[str, pm.PandaManager] = {}
-
-
-@app.get("/")
-async def root():
-    """root"""
-    # asyncio.create_task(night_watch.create_playwright())
-    tmp = "타임아웃이나 나라 싑세키야"
 
 
 @app.post("/panda_manager/{panda_id}")
@@ -60,8 +53,7 @@ async def panda_manager_start(
         },
         timeout=5,
     )
-    commands = await getCommands(panda_id)
-    asyncio.create_task(panda_manager.chatting_example(commands))
+    asyncio.create_task(panda_manager.chatting_example())
 
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
@@ -191,7 +183,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     file_path = os.path.join(os.getcwd(), "logs", "pd.log")
     if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
         # nw 가동 실패
-        print("stt 실패", exc.panada_id)
+        print("stt 실패", exc.panada_id, exc.description)
         await panda_managers[exc.panada_id].destroy()
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/recreate",
@@ -205,29 +197,52 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
 
     elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
-        print("로그인 ID/PW 실패", exc.panada_id)
-        print(
-            f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-            f"{exc.description} / {request.query_params}\n"
-        )
-    elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
-        # STT 실패
-        print("stt 실패", exc.panada_id)
+        print("로그인 ID/PW 실패", exc.panada_id, exc.description)
         print(
             f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
             f"{exc.description} / {request.query_params}\n"
         )
         await panda_managers[exc.panada_id].destroy()
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/recreate",
-            json={"ip": panda_managers[exc.panada_id].data.proxy_ip},
-            timeout=5,
-        )
+    elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
+        status_code = status.HTTP_400_BAD_REQUEST
+        message = "stt 실패"
 
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"message": "PlayWright Exception"},
+        status_code=status_code,
+        content={"message": message},
     )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    PandaManager 가동시 backend에 등록 요청을 시도함
+    이미 있다면 등록되지 않음
+    """
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
+            json={"ip": "222.110.198.130", "capacity": 15},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        print("nightwatch already registered")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    PandaManager 가동시 backend에 등록 요청을 시도함
+    이미 있다면 등록되지 않음
+    """
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
+            json={"ip": "222.110.198.130"},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        print("nightwatch already registered")
 
 
 if __name__ == "__main__":

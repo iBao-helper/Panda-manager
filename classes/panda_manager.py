@@ -13,7 +13,7 @@ import requests
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_env import BACKEND_PORT, BACKEND_URL
-from util.my_util import getCommands
+from util.my_util import get_commands
 
 
 class CreateManagerDto(BaseModel):
@@ -25,6 +25,7 @@ class CreateManagerDto(BaseModel):
     manager_pw: str
     resource_ip: str
     panda_id: str
+    manager_nick: str
 
 
 class PandaManager:
@@ -169,9 +170,8 @@ class PandaManager:
         """채팅 매크로 등록/삭제 처리"""
         if splited_chat[0] == "!등록":
             response = requests.post(
-                url=f"http://{self.data.resource_ip}:3000/user/command",
+                url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
                 json={
-                    "pandaId": self.data.panda_id,
                     "key": splited_chat[1],
                     "value": splited_chat[2],
                 },
@@ -180,10 +180,9 @@ class PandaManager:
             print(response.text)
         elif splited_chat[0] == "!삭제":
             response = requests.delete(
-                url=f"http://{self.data.resource_ip}:3000/user/command",
+                url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
                 json={
-                    "panda_id": self.data.panda_id,
-                    "keyword": splited_chat[1],
+                    "key": splited_chat[1],
                 },
                 timeout=5,
             )
@@ -203,27 +202,29 @@ class PandaManager:
             if chat_user == data.nickname or chat_user == "크기가전부는아니자나여":
                 response = self.chat_macro_command_handler(splited_chat)
                 if response == "등록되었습니다" or response == "삭제되었습니다":
-                    self.commands = await getCommands(self.data.panda_id)
+                    self.commands = await get_commands(self.data.panda_id)
                 await self.page.get_by_placeholder("채팅하기").fill(response)
                 await self.page.get_by_role("button", name="보내기").click()
                 return True
         return False
 
-    def check_command(self, chat: str):
+    def check_command(self, chat, user: bool):
         """
         채팅이 채팅메크로에 일치하는지 검사
         이전 명령어를 실행하여 flag가 True라면 채팅매크로를 실행하지 않음
         """
-        if self.command_executed is True:
+        # 위에서 커맨드를 실행했거나 매니저가 친 채팅이라면
+        if self.command_executed is True or user == self.data.manager_nick:
             return None
         for command in self.commands:
             if command["keyword"] == chat:
                 return command["response"]
         return None
 
-    async def chatting_example(self, commands: list):
+    async def chatting_example(self):
         """테스트용"""
         self.loop = True
+        self.commands = await get_commands(self.data.panda_id)
         command_list = ["!등록", "!삭제"]
         while self.loop:
             self.command_executed = False
@@ -253,7 +254,7 @@ class PandaManager:
                     if self.command_executed is True:
                         await chat_l.evaluate("(element) => element.remove()")
                         continue
-                    command_response = self.check_command(chat)
+                    command_response = self.check_command(chat, user)
                     if command_response is not None:
                         self.command_executed = True
                         await self.page.get_by_placeholder("채팅하기").fill(
@@ -294,9 +295,4 @@ class PandaManager:
     async def destroy(self):
         """free memory"""
         self.loop = False
-        requests.delete(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy",
-            json={"ip": self.data.proxy_ip},
-            timeout=5,
-        )
         await self.browser.close()

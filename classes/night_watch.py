@@ -108,7 +108,13 @@ class NightWatch:
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
                 await self.page.get_by_role("button", name="로그인", exact=True).click()
+                await asyncio.sleep(1)
                 await self.page.wait_for_selector("div.profile_img")
+                manager_nickname = await (
+                    await self.page.query_selector("div.profile_img")
+                ).inner_text()
+                print("로그인 성공")
+                return manager_nickname
             else:
                 print("stt 실패")
                 raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_STT_FAILED)
