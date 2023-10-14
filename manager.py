@@ -183,26 +183,14 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     file_path = os.path.join(os.getcwd(), "logs", "pd.log")
     if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
         # nw 가동 실패
-        print("stt 실패", exc.panada_id, exc.description)
-        await panda_managers[exc.panada_id].destroy()
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/recreate",
-            json={"ip": panda_managers[exc.panada_id].data.proxy_ip},
-            timeout=5,
-        )
-        print(
-            f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-            f"{exc.description} / {request.query_params}\n"
-        )
+        print("PD 가동 실패", exc.panada_id, exc.description)
+        status_code = status.HTTP_400_BAD_REQUEST
+        message = "PD 가동 실패"
 
     elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
-        print("로그인 ID/PW 실패", exc.panada_id, exc.description)
-        print(
-            f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-            f"{exc.description} / {request.query_params}\n"
-        )
-        await panda_managers[exc.panada_id].destroy()
+        status_code = status.HTTP_200_OK
+        message = "로그인 실패"
     elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
         status_code = status.HTTP_400_BAD_REQUEST
         message = "stt 실패"
