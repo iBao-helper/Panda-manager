@@ -42,7 +42,7 @@ class PandaManager:
         self.data = body
         self.commands = []
         self.command_executed = False
-        self.command_list = ["!등록", "!삭제", "!사용법"]
+        self.command_list = ["!등록", "!삭제", "!사용법", "!추천"]
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -239,6 +239,9 @@ class PandaManager:
             ):
                 response = await self.chat_command_register_delete(splited_chat)
                 return response
+            elif splited_chat[0] == "!추천":
+                recommand_message = "".join(splited_chat[1:])
+                response = 
         except:  # pylint: disable=W0702
             return False
 
@@ -372,6 +375,10 @@ class PandaManager:
             raise ex.PlayWrightException(
                 ex.PWEEnum.PD_LOGIN_STT_FAILED, panda_id=self.data.panda_id
             )
+    
+    async def regist_recommand_message(self, rc_message):
+        requests.post()
+      
 
     async def stop(self):
         """awef"""
