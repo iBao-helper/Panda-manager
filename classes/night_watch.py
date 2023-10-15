@@ -9,6 +9,7 @@ from playwright.async_api import Browser
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
+from util.my_env import HEADLESS
 
 
 class NightWatch:
@@ -26,7 +27,7 @@ class NightWatch:
         """playwright 객체 생성"""
         try:
             apw = await async_playwright().start()
-            self.browser = await apw.chromium.launch(headless=False)
+            self.browser = await apw.chromium.launch(headless=HEADLESS)
             context = await self.browser.new_context(
                 viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
             )
@@ -46,7 +47,9 @@ class NightWatch:
         """
         await self.page.get_by_role("button", name="닫기").click()
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
+        await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
+        await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인").click()
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
@@ -173,8 +176,9 @@ class NightWatch:
                         json={"panda_ids": wanted_stop_list},
                         timeout=5,
                     )
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
                 await self.refresh()
+                await asyncio.sleep(5)
             except Exception as e:  # pylint: disable=W0718
                 file_path = os.path.join(os.getcwd(), "logs", "nw.log")
                 async with aiofiles.open(file_path, "a") as out:
