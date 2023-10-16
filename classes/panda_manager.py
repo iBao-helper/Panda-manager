@@ -42,7 +42,10 @@ class PandaManager:
         self.data = body
         self.commands = []
         self.command_executed = False
-        self.command_list = ["!등록", "!삭제", "!사용법", "!추천", "!써칭", "!합계"]
+        self.command_list = ["!등록", "!삭제", "!사용법", "!추천", "!하트", "!써칭", "!합계", "!타이머"]
+        self.timer_message_boolean = False
+        self.timer_complete = False
+        self.time = 0
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -234,7 +237,7 @@ class PandaManager:
             if splited_chat[0] == "!사용법":
                 await self.page.get_by_placeholder("채팅하기").fill(
                     emoji.emojize(
-                        "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]"
+                        "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]"
                     )
                 )
                 await self.page.get_by_role("button", name="보내기").click()
@@ -243,11 +246,19 @@ class PandaManager:
             ):
                 response = await self.chat_command_register_delete(splited_chat)
                 return response
-            elif splited_chat[0] == "!추천":
-                recommand_message = " ".join(splited_chat[1:])
-                response = await self.regist_recommand_message(recommand_message)
+            elif splited_chat[0] == "!추천" or splited_chat[0] == "!하트":
+                if splited_chat[0] == "!추천":
+                    recommand_message = " ".join(splited_chat[1:])
+                    response = await self.regist_recommand_message(recommand_message)
+                elif splited_chat[0] == "!하트":
+                    recommand_message = " ".join(splited_chat[1:])
+                    response = await self.regist_hart_message(recommand_message)
             elif splited_chat[0] == "!써칭" or splited_chat[0] == "!합계":
                 response = await self.get_hart_history(splited_chat[0], splited_chat[1])
+            elif splited_chat[0] == "!타이머" and len(splited_chat) >= 3:
+                asyncio.create_task(
+                    self.set_timer(int(splited_chat[1]), int(splited_chat[2]))
+                )
 
         except:  # pylint: disable=W0702
             return False
@@ -300,7 +311,7 @@ class PandaManager:
                         )
                         await self.page.get_by_role("button", name="보내기").click()
                     await chat_l.evaluate("(element) => element.remove()")
-        except Exception as e:  # pylint: disable=W0702
+        except Exception as e:  # pylint: disable=W0718
             print("chatting handler")
             print(e)
 
@@ -308,8 +319,10 @@ class PandaManager:
         """하트 핸들러"""
         try:
             hart_elements = await self.page.query_selector_all(".cht_hart_new")
+            exist = False
 
             for hart_box in hart_elements:
+                exist = True
                 hart_info = await hart_box.query_selector(".hart_info")
                 hart_user_tag = await hart_info.query_selector("p")
                 hart_user = (await hart_user_tag.inner_text()).strip().replace("님이", "")
@@ -317,13 +330,18 @@ class PandaManager:
                 hart_count = (
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
-                print(hart_user)
-                print(hart_count)
-                await self.page.get_by_placeholder("채팅하기").fill(
-                    emoji.emojize(f"{hart_user}님 {hart_count}개 땡큐~!")
-                )
-                await self.page.get_by_role("button", name="보내기").click()
                 await hart_box.evaluate("(element) => element.remove()")
+                if self.data.rc_message is not None:
+                    response_recommand_message = self.data.rc_message
+                else:
+                    response_recommand_message = f"{hart_user}님 {hart_count}개 땡큐~!"
+                print(hart_user, hart_count)
+                if exist:
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(response_recommand_message)
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
+
                 requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.data.nickname}",
                     json={
@@ -332,7 +350,7 @@ class PandaManager:
                     },
                     timeout=5,
                 )
-        except Exception as e:  # pylint: disable=W0702
+        except Exception as e:  # pylint: disable=W0718
             print("hart handler")
             print(e)
 
@@ -357,7 +375,7 @@ class PandaManager:
                     emoji.emojize(f"{user_name} {response_recommand_message}")
                 )
                 await self.page.get_by_role("button", name="보내기").click()
-        except Exception as e:  # pylint: disable=W0702
+        except Exception as e:  # pylint: disable=W0718
             print("recommand handler")
             print(e)
 
@@ -372,6 +390,7 @@ class PandaManager:
                 await self.chatting_handler()
                 await self.hart_handler()
                 await self.recommand_handler()
+                await self.timer_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -412,6 +431,21 @@ class PandaManager:
         except:  # pylint: disable=W0702
             return False
 
+    async def regist_hart_message(self, rc_message):
+        """Request update hart message"""
+        try:
+            response = requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-message/{self.data.panda_id}",
+                json={"message": rc_message},
+                timeout=5,
+            )
+            self.data.rc_message = response.text
+            await self.page.get_by_placeholder("채팅하기").fill("하트 메세지가 등록되었습니다")
+            await self.page.get_by_role("button", name="보내기").click()
+            return True
+        except:  # pylint: disable=W0702
+            return False
+
     async def get_hart_history(self, command, user):
         """하드 내역 조회"""
         try:
@@ -441,8 +475,49 @@ class PandaManager:
                 await self.page.get_by_placeholder("채팅하기").fill(message)
                 await self.page.get_by_role("button", name="보내기").click()
                 return True
-        except:
-            return False
+        except:  # pylint: disable=W0702
+            return False  # pylint: disable=W0702
+
+    async def timer_handler(self):
+        """타이머 핸들러. 타이머메세지를 출력해야한다면 출력"""
+        if self.timer_message_boolean:
+            time_min = self.time // 60
+            time_sec = self.time % 60
+            await self.page.get_by_placeholder("채팅하기").fill(
+                f"{time_min}분 {time_sec}초 남았습니다"
+            )
+            await self.page.get_by_role("button", name="보내기").click()
+            self.timer_message_boolean = False
+            if self.timer_complete:
+                self.timer_complete = False
+                self.time = 0
+                await self.page.get_by_placeholder("채팅하기").fill("타이머가 완료되었습니다")
+                await self.page.get_by_role("button", name="보내기").click()
+
+    async def set_timer(self, time: int, time_period: int):
+        """타이머 설정"""
+        if self.time > 0:
+            return
+        self.time = time
+        time_min = self.time // 60
+        time_sec = self.time % 60
+        await self.page.get_by_placeholder("채팅하기").fill(
+            f"{time_min}분 {time_sec}초 / {time_period}초 간격으로 알람이 설정되었습니다"
+        )
+        await self.page.get_by_role("button", name="보내기").click()
+        count = 0
+        while self.time > 1:
+            count += 1
+            self.time = self.time - 1
+            if count == time_period:
+                self.timer_message_boolean = True
+                count = 0
+            if self.time <= 5:
+                self.timer_message_boolean = True
+            print(self.time)
+            await asyncio.sleep(1)
+        self.timer_complete = True
+        self.timer_message_boolean = True
 
     async def stop(self):
         """awef"""
