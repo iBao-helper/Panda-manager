@@ -211,20 +211,20 @@ async def startup_event():
         print("nightwatch already registered")
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    PandaManager 가동시 backend에 등록 요청을 시도함
-    이미 있다면 등록되지 않음
-    """
-    try:
-        requests.delete(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-            json={"ip": "222.110.198.130"},
-            timeout=5,
-        )
-    except:  # pylint: disable=W0702
-        print("nightwatch already registered")
+# @app.on_event("shutdown")
+# async def shutdown_event():
+#     """
+#     PandaManager 가동시 backend에 등록 요청을 시도함
+#     이미 있다면 등록되지 않음
+#     """
+#     try:
+#         requests.delete(
+#             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
+#             json={"ip": "222.110.198.130"},
+#             timeout=5,
+#         )
+#     except:  # pylint: disable=W0702
+#         print("nightwatch already registered")
 
 
 if __name__ == "__main__":
