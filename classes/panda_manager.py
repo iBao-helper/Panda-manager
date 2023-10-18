@@ -37,8 +37,8 @@ class PandaManager:
         self.browser = Browser
         self.context = BrowserContext
         self.loop = False
-        self.backend_url = "teemo-world.link"
-        self.backend_port = "3000"
+        self.backend_url = BACKEND_URL
+        self.backend_port = BACKEND_PORT
         self.data = body
         self.commands = []
         self.command_executed = False
@@ -193,7 +193,7 @@ class PandaManager:
             if splited_chat[0] == "!등록":
                 if len(splited_chat) >= 3:
                     response = requests.post(
-                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.data.panda_id}",
                         json={
                             "key": splited_chat[1],
                             "value": splited_chat[2],
@@ -215,7 +215,7 @@ class PandaManager:
             elif splited_chat[0] == "!삭제":
                 if len(splited_chat) >= 2:
                     response = requests.delete(
-                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.data.panda_id}",
                         json={
                             "key": splited_chat[1],
                         },

@@ -9,7 +9,7 @@ from playwright.async_api import Browser
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
-from util.my_env import HEADLESS
+from util.my_env import BACKEND_PORT, BACKEND_URL, HEADLESS
 
 
 class NightWatch:
@@ -20,8 +20,8 @@ class NightWatch:
         self.browser = Browser
         self.watch_loop = False
         self.bookmark_list = []
-        self.backend_url = "teemo-world.link"
-        self.backend_port = "3000"
+        self.backend_url = BACKEND_URL
+        self.backend_port = BACKEND_PORT
 
     async def create_playwright(self):
         """playwright 객체 생성"""
