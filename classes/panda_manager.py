@@ -42,7 +42,17 @@ class PandaManager:
         self.data = body
         self.commands = []
         self.command_executed = False
-        self.command_list = ["!등록", "!삭제", "!사용법", "!추천", "!하트", "!써칭", "!합계", "!타이머"]
+        self.command_list = [
+            "!등록",
+            "!삭제",
+            "!사용법",
+            "!추천",
+            "!하트",
+            "!써칭",
+            "!합계",
+            "!타이머",
+            "!꺼",
+        ]
         self.timer_message_boolean = False
         self.timer_complete = False
         self.time = 0
@@ -52,9 +62,12 @@ class PandaManager:
         """playwright 객체 생성"""
         try:
             apw = await async_playwright().start()
-            self.browser = await apw.chromium.launch(
-                headless=HEADLESS, proxy={"server": f"{proxy_ip}:8888"}
-            )
+            if HEADLESS is False:
+                self.browser = await apw.chromium.launch(
+                    headless=HEADLESS, proxy={"server": f"{proxy_ip}:8888"}
+                )
+            else:
+                self.browser = await apw.chromium.launch(headless=HEADLESS)
             self.context = await self.browser.new_context(
                 viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
             )
@@ -259,6 +272,10 @@ class PandaManager:
                 asyncio.create_task(
                     self.set_timer(int(splited_chat[1]), int(splited_chat[2]))
                 )
+            elif splited_chat[0] == "!꺼":
+                # 비동기 호출
+                await self.stop_timer()
+            return True
 
         except:  # pylint: disable=W0702
             return False
@@ -293,7 +310,7 @@ class PandaManager:
                 chat = emoji.demojize(chat)
                 chat_split = chat.split(" ", 2)
                 # 명령어 리스트중에 있는지 검사하고
-                if chat_split and len(chat_split) >= 1:
+                if chat_split:
                     if chat_split[0] in self.command_list:
                         # 명령어가 있다면 명령어를 처리
                         self.command_executed = await self.handle_command(
@@ -480,7 +497,7 @@ class PandaManager:
 
     async def timer_handler(self):
         """타이머 핸들러. 타이머메세지를 출력해야한다면 출력"""
-        if self.timer_message_boolean:
+        if self.timer_message_boolean and self.time > 0:
             time_min = self.time // 60
             time_sec = self.time % 60
             await self.page.get_by_placeholder("채팅하기").fill(
@@ -488,11 +505,11 @@ class PandaManager:
             )
             await self.page.get_by_role("button", name="보내기").click()
             self.timer_message_boolean = False
-            if self.timer_complete:
-                self.timer_complete = False
-                self.time = 0
-                await self.page.get_by_placeholder("채팅하기").fill("타이머가 완료되었습니다")
-                await self.page.get_by_role("button", name="보내기").click()
+        if self.timer_complete:
+            self.timer_complete = False
+            self.time = 0
+            await self.page.get_by_placeholder("채팅하기").fill("타이머가 완료되었습니다")
+            await self.page.get_by_role("button", name="보내기").click()
 
     async def set_timer(self, time: int, time_period: int):
         """타이머 설정"""
@@ -506,7 +523,7 @@ class PandaManager:
         )
         await self.page.get_by_role("button", name="보내기").click()
         count = 0
-        while self.time > 1:
+        while self.time >= 1:
             count += 1
             self.time = self.time - 1
             if count == time_period:
@@ -518,6 +535,10 @@ class PandaManager:
             await asyncio.sleep(1)
         self.timer_complete = True
         self.timer_message_boolean = True
+
+    async def stop_timer(self):
+        """타이머 정지"""
+        self.time = 0
 
     async def stop(self):
         """awef"""
