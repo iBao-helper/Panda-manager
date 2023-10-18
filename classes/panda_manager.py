@@ -27,6 +27,7 @@ class CreateManagerDto(BaseModel):
     manager_nick: str
     rc_message: str | None
     resource_ip: str
+    hart_message: str | None
 
 
 class PandaManager:
@@ -348,8 +349,10 @@ class PandaManager:
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
                 await hart_box.evaluate("(element) => element.remove()")
-                if self.data.rc_message is not None:
-                    response_recommand_message = self.data.rc_message
+                if self.data.hart_message is not None:
+                    response_recommand_message = self.data.hart_message.replace(
+                        r"{hart_user}", hart_user
+                    ).replace(r"{hart_count}", hart_count)
                 else:
                     response_recommand_message = f"{hart_user}님 {hart_count}개 땡큐~!"
                 print(hart_user, hart_count)
@@ -375,23 +378,23 @@ class PandaManager:
         """추천 핸들러"""
         try:
             recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
-            user_list = []
             exist = False
             for recommand_element in recommand_elements:
                 exist = True
                 recommand_message = await recommand_element.inner_text()
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
-                user_list.append(user_name)
                 await recommand_element.evaluate("(element) => element.remove()")
-            if self.data.rc_message is not None:
-                response_recommand_message = self.data.rc_message
-            else:
-                response_recommand_message = "님 추천 감사합니다잇~!"
-            if exist:
-                await self.page.get_by_placeholder("채팅하기").fill(
-                    emoji.emojize(f"{user_name} {response_recommand_message}")
-                )
-                await self.page.get_by_role("button", name="보내기").click()
+                if self.data.rc_message is not None:
+                    response_recommand_message = self.data.rc_message.replace(
+                        r"{user_name}", user_name
+                    )
+                else:
+                    response_recommand_message = f"{user_name}님 추천 감사합니다잇~!"
+                if exist:
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(response_recommand_message)
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
         except Exception as e:  # pylint: disable=W0718
             print("recommand handler")
             print(e)
@@ -447,7 +450,7 @@ class PandaManager:
                 json={"message": rc_message},
                 timeout=5,
             )
-            self.data.rc_message = response.text
+            self.data.hart_message = response.text
             await self.page.get_by_placeholder("채팅하기").fill("하트 메세지가 등록되었습니다")
             await self.page.get_by_role("button", name="보내기").click()
             return True

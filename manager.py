@@ -12,7 +12,7 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_env import BACKEND_URL, BACKEND_PORT
+from util.my_env import BACKEND_URL, BACKEND_PORT, CAPACITY
 
 
 app = FastAPI()
@@ -204,7 +204,7 @@ async def startup_event():
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-            json={"ip": "222.110.198.130", "capacity": 15},
+            json={"ip": "222.110.198.130", "capacity": CAPACITY},
             timeout=5,
         )
     except:  # pylint: disable=W0702
