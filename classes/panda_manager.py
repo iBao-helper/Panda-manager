@@ -414,15 +414,6 @@ class PandaManager:
         return "haha"
 
     #######  manager 관련 유틸 함수들 #######
-    def filter_dict_by_list(self, my_dict, my_list):
-        """list중 dict안에 존재하는 요소만 반납"""
-        ret_list = []
-        for user in my_list:
-            print(user["nickname"])
-            if user["nickname"] in my_dict:
-                ret_list.append(user["panda_id"])
-        return ret_list
-
     async def check_popup_recaptcha_failed(self, show_frame: FrameLocator):
         """popup recaptcha failed"""
         retry_detect = await show_frame.get_by_text("나중에 다시 시도해 주세요").is_visible()
