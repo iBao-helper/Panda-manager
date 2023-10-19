@@ -12,7 +12,8 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_env import BACKEND_URL, BACKEND_PORT
+from util.my_env import BACKEND_URL, BACKEND_PORT, CAPACITY
+from util.my_util import User
 
 
 app = FastAPI()
@@ -47,6 +48,14 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         },
         timeout=5,
     )
+    data = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/{panda_id}?relaiton=true",
+        timeout=5,
+    )
+    user = User(**data.json())
+    panda_manager.set_user(user)
+    print("response user relation data : ", user)
+
     asyncio.create_task(panda_manager.macro())
 
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
@@ -204,7 +213,7 @@ async def startup_event():
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-            json={"ip": "222.110.198.130", "capacity": 15},
+            json={"ip": "222.110.198.130", "capacity": CAPACITY},
             timeout=5,
         )
     except:  # pylint: disable=W0702

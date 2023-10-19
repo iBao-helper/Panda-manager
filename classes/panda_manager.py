@@ -13,19 +13,15 @@ import requests
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_env import BACKEND_PORT, BACKEND_URL, HEADLESS
-from util.my_util import get_commands
+from util.my_util import User, get_commands
 
 
 class CreateManagerDto(BaseModel):
     """매니저 생성 DTO"""
 
-    panda_id: str
     proxy_ip: str
-    nickname: str
     manager_id: str
     manager_pw: str
-    manager_nick: str
-    rc_message: str | None
     resource_ip: str
 
 
@@ -37,8 +33,9 @@ class PandaManager:
         self.browser = Browser
         self.context = BrowserContext
         self.loop = False
-        self.backend_url = "teemo-world.link"
-        self.backend_port = "3000"
+        self.backend_url = BACKEND_URL
+        self.backend_port = BACKEND_PORT
+        self.user: User
         self.data = body
         self.commands = []
         self.command_executed = False
@@ -89,7 +86,7 @@ class PandaManager:
         try:
             await self.page.get_by_role("button", name="닫기").click()
         except Exception as e:  # pylint: disable=W0612
-            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, self.data.panda_id)
+            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, self.user.panda_id)
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
@@ -108,7 +105,7 @@ class PandaManager:
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.user.panda_id
             )
         invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
         invalid_label_pw = await self.page.get_by_label(
@@ -118,7 +115,7 @@ class PandaManager:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.user.panda_id
             )
         invalid_login_detect = await self.page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
@@ -169,7 +166,7 @@ class PandaManager:
             else:
                 print("stt 실패")
                 raise ex.PlayWrightException(
-                    ex.PWEEnum.PD_LOGIN_STT_FAILED, self.data.panda_id
+                    ex.PWEEnum.PD_LOGIN_STT_FAILED, self.user.panda_id
                 )
         else:
             print("로그인 성공")
@@ -193,7 +190,7 @@ class PandaManager:
             if splited_chat[0] == "!등록":
                 if len(splited_chat) >= 3:
                     response = requests.post(
-                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.user.panda_id}",
                         json={
                             "key": splited_chat[1],
                             "value": splited_chat[2],
@@ -202,7 +199,7 @@ class PandaManager:
                     )
                     print(response.text)
                     response = response.text
-                    self.commands = await get_commands(self.data.panda_id)
+                    self.commands = await get_commands(self.user.panda_id)
                     await self.page.get_by_placeholder("채팅하기").fill(response)
                     await self.page.get_by_role("button", name="보내기").click()
                     return True
@@ -215,7 +212,7 @@ class PandaManager:
             elif splited_chat[0] == "!삭제":
                 if len(splited_chat) >= 2:
                     response = requests.delete(
-                        url=f"http://{self.data.resource_ip}:3000/user/command/{self.data.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.user.panda_id}",
                         json={
                             "key": splited_chat[1],
                         },
@@ -223,7 +220,7 @@ class PandaManager:
                     )
                     print(response.text)
                     response = response.text
-                    self.commands = await get_commands(self.data.panda_id)
+                    self.commands = await get_commands(self.user.panda_id)
                     await self.page.get_by_placeholder("채팅하기").fill(response)
                     await self.page.get_by_role("button", name="보내기").click()
                     return True
@@ -286,7 +283,7 @@ class PandaManager:
         이전 명령어를 실행하여 flag가 True라면 채팅매크로를 실행하지 않음
         """
         # 위에서 커맨드를 실행했거나 매니저가 친 채팅이라면
-        if user == self.data.manager_nick:
+        if user == self.user.manager_nick:
             return None
         for command in self.commands:
             if command["keyword"] == chat:
@@ -314,7 +311,7 @@ class PandaManager:
                     if chat_split[0] in self.command_list:
                         # 명령어가 있다면 명령어를 처리
                         self.command_executed = await self.handle_command(
-                            user, chat, chat_split, self.data, chat_l
+                            user, chat, chat_split, self.user, chat_l
                         )
                         # 이후 진행을 할지 안할지 command_executed로 세팅
                         if self.command_executed is True:
@@ -336,10 +333,7 @@ class PandaManager:
         """하트 핸들러"""
         try:
             hart_elements = await self.page.query_selector_all(".cht_hart_new")
-            exist = False
-
             for hart_box in hart_elements:
-                exist = True
                 hart_info = await hart_box.query_selector(".hart_info")
                 hart_user_tag = await hart_info.query_selector("p")
                 hart_user = (await hart_user_tag.inner_text()).strip().replace("님이", "")
@@ -348,19 +342,17 @@ class PandaManager:
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
                 await hart_box.evaluate("(element) => element.remove()")
-                if self.data.rc_message is not None:
-                    response_recommand_message = self.data.rc_message
-                else:
-                    response_recommand_message = f"{hart_user}님 {hart_count}개 땡큐~!"
                 print(hart_user, hart_count)
-                if exist:
+                if self.user.hart_message != "":
+                    response_recommand_message = self.user.hart_message.replace(
+                        r"{hart_user}", hart_user
+                    ).replace(r"{hart_count}", hart_count)
                     await self.page.get_by_placeholder("채팅하기").fill(
                         emoji.emojize(response_recommand_message)
                     )
                     await self.page.get_by_role("button", name="보내기").click()
-
                 requests.post(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.data.nickname}",
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.user.nickname}",
                     json={
                         "username": hart_user,
                         "count": hart_count,
@@ -375,23 +367,18 @@ class PandaManager:
         """추천 핸들러"""
         try:
             recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
-            user_list = []
-            exist = False
             for recommand_element in recommand_elements:
-                exist = True
                 recommand_message = await recommand_element.inner_text()
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
-                user_list.append(user_name)
                 await recommand_element.evaluate("(element) => element.remove()")
-            if self.data.rc_message is not None:
-                response_recommand_message = self.data.rc_message
-            else:
-                response_recommand_message = "님 추천 감사합니다잇~!"
-            if exist:
-                await self.page.get_by_placeholder("채팅하기").fill(
-                    emoji.emojize(f"{user_name} {response_recommand_message}")
-                )
-                await self.page.get_by_role("button", name="보내기").click()
+                if self.user.rc_message != "":
+                    response_recommand_message = self.user.rc_message.replace(
+                        r"{user_name}", user_name
+                    )
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(response_recommand_message)
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
         except Exception as e:  # pylint: disable=W0718
             print("recommand handler")
             print(e)
@@ -399,7 +386,7 @@ class PandaManager:
     async def macro(self):
         """테스트용"""
         self.loop = True
-        self.commands = await get_commands(self.data.panda_id)
+        self.commands = await get_commands(self.user.panda_id)
         print("[Receive default commands]", self.commands)
         while self.loop:
             self.command_executed = False
@@ -414,15 +401,6 @@ class PandaManager:
         return "haha"
 
     #######  manager 관련 유틸 함수들 #######
-    def filter_dict_by_list(self, my_dict, my_list):
-        """list중 dict안에 존재하는 요소만 반납"""
-        ret_list = []
-        for user in my_list:
-            print(user["nickname"])
-            if user["nickname"] in my_dict:
-                ret_list.append(user["panda_id"])
-        return ret_list
-
     async def check_popup_recaptcha_failed(self, show_frame: FrameLocator):
         """popup recaptcha failed"""
         retry_detect = await show_frame.get_by_text("나중에 다시 시도해 주세요").is_visible()
@@ -430,18 +408,18 @@ class PandaManager:
         if retry_detect:
             print("잦은 재시도 탐지에 걸림")
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_STT_FAILED, panda_id=self.data.panda_id
+                ex.PWEEnum.PD_LOGIN_STT_FAILED, panda_id=self.user.panda_id
             )
 
     async def regist_recommand_message(self, rc_message):
         """Request update recommand message"""
         try:
             response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/recommand-message/{self.data.panda_id}",
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/recommand-message/{self.user.panda_id}",
                 json={"message": rc_message},
                 timeout=5,
             )
-            self.data.rc_message = response.text
+            self.user.rc_message = response.text
             await self.page.get_by_placeholder("채팅하기").fill("추천 메세지가 등록되었습니다")
             await self.page.get_by_role("button", name="보내기").click()
             return True
@@ -452,11 +430,11 @@ class PandaManager:
         """Request update hart message"""
         try:
             response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-message/{self.data.panda_id}",
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-message/{self.user.panda_id}",
                 json={"message": rc_message},
                 timeout=5,
             )
-            self.data.rc_message = response.text
+            self.user.hart_message = response.text
             await self.page.get_by_placeholder("채팅하기").fill("하트 메세지가 등록되었습니다")
             await self.page.get_by_role("button", name="보내기").click()
             return True
@@ -548,3 +526,7 @@ class PandaManager:
         """free memory"""
         self.loop = False
         await self.browser.close()
+
+    def set_user(self, user):
+        """사용된 user data 세팅"""
+        self.user = user
