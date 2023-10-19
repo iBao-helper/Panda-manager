@@ -337,10 +337,7 @@ class PandaManager:
         """하트 핸들러"""
         try:
             hart_elements = await self.page.query_selector_all(".cht_hart_new")
-            exist = False
-
             for hart_box in hart_elements:
-                exist = True
                 hart_info = await hart_box.query_selector(".hart_info")
                 hart_user_tag = await hart_info.query_selector("p")
                 hart_user = (await hart_user_tag.inner_text()).strip().replace("님이", "")
@@ -349,19 +346,15 @@ class PandaManager:
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
                 await hart_box.evaluate("(element) => element.remove()")
-                if self.data.hart_message is not None:
+                print(hart_user, hart_count)
+                if self.data.hart_message != "":
                     response_recommand_message = self.data.hart_message.replace(
                         r"{hart_user}", hart_user
                     ).replace(r"{hart_count}", hart_count)
-                else:
-                    response_recommand_message = f"{hart_user}님 {hart_count}개 땡큐~!"
-                print(hart_user, hart_count)
-                if exist:
                     await self.page.get_by_placeholder("채팅하기").fill(
                         emoji.emojize(response_recommand_message)
                     )
                     await self.page.get_by_role("button", name="보내기").click()
-
                 requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.data.nickname}",
                     json={
@@ -378,19 +371,14 @@ class PandaManager:
         """추천 핸들러"""
         try:
             recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
-            exist = False
             for recommand_element in recommand_elements:
-                exist = True
                 recommand_message = await recommand_element.inner_text()
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
                 await recommand_element.evaluate("(element) => element.remove()")
-                if self.data.rc_message is not None:
+                if self.data.rc_message != "":
                     response_recommand_message = self.data.rc_message.replace(
                         r"{user_name}", user_name
                     )
-                else:
-                    response_recommand_message = f"{user_name}님 추천 감사합니다잇~!"
-                if exist:
                     await self.page.get_by_placeholder("채팅하기").fill(
                         emoji.emojize(response_recommand_message)
                     )
