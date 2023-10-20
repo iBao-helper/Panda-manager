@@ -19,6 +19,7 @@ from util.my_util import User, get_commands
 class CreateManagerDto(BaseModel):
     """매니저 생성 DTO"""
 
+    panda_id: str
     proxy_ip: str
     manager_id: str
     manager_pw: str
@@ -86,7 +87,7 @@ class PandaManager:
         try:
             await self.page.get_by_role("button", name="닫기").click()
         except Exception as e:  # pylint: disable=W0612
-            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, self.user.panda_id)
+            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, self.data.panda_id)
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
@@ -105,7 +106,7 @@ class PandaManager:
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.user.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
             )
         invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
         invalid_label_pw = await self.page.get_by_label(
@@ -115,7 +116,7 @@ class PandaManager:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.user.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
             )
         invalid_login_detect = await self.page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
@@ -166,7 +167,7 @@ class PandaManager:
             else:
                 print("stt 실패")
                 raise ex.PlayWrightException(
-                    ex.PWEEnum.PD_LOGIN_STT_FAILED, self.user.panda_id
+                    ex.PWEEnum.PD_LOGIN_STT_FAILED, self.data.panda_id
                 )
         else:
             print("로그인 성공")
