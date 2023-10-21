@@ -12,6 +12,7 @@ loguru = "*"
 multipledispatch = "*"
 aiofiles = "*"
 install = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
