@@ -10,6 +10,8 @@ uvicorn = "*"
 selenium = "*"
 loguru = "*"
 multipledispatch = "*"
+aiofiles = "*"
+install = "*"
 
 [dev-packages]
 
