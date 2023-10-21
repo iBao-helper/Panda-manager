@@ -12,9 +12,11 @@ import aiofiles as aiof
 from classes import night_watch as nw
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_env import BACKEND_URL, BACKEND_PORT
+from dotenv import load_dotenv
+load_dotenv()
 
-
+BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
 

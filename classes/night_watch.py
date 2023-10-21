@@ -6,10 +6,16 @@ import requests
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
+from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
-from util.my_env import BACKEND_PORT, BACKEND_URL, HEADLESS
+
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
+HEADLESS = os.getenv("HEADLESS")
 
 
 class NightWatch:

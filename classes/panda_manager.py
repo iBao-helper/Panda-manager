@@ -1,5 +1,6 @@
 """ this is night wiath.py"""
 import asyncio
+import os
 import urllib.request
 import emoji
 from playwright.async_api import async_playwright
@@ -10,10 +11,15 @@ from playwright.async_api import BrowserContext
 from playwright.async_api import FrameLocator
 from pydantic import BaseModel  # pylint: disable=C0411
 import requests
+from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_env import BACKEND_PORT, BACKEND_URL, HEADLESS
 from util.my_util import User, get_commands
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
+HEADLESS = os.getenv("HEADLESS")
 
 
 class CreateManagerDto(BaseModel):

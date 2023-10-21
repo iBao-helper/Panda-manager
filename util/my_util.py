@@ -1,8 +1,13 @@
 """ 잡다한 함수로 뺼 것들 모아놓은곳"""
 from pydantic import BaseModel
 import requests
+import os
 
-from util.my_env import BACKEND_PORT, BACKEND_URL
+from dotenv import load_dotenv
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
 
 
 class User(BaseModel):

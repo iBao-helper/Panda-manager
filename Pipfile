@@ -13,6 +13,8 @@ multipledispatch = "*"
 aiofiles = "*"
 install = "*"
 python-dotenv = "*"
+playwright = "*"
+emoji = "*"
 
 [dev-packages]
 

@@ -12,9 +12,14 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_env import BACKEND_URL, BACKEND_PORT, CAPACITY, SERVER_KIND
 from util.my_util import User
+from dotenv import load_dotenv
+load_dotenv()
 
+BACKEND_URL = os.getenv("BACKEND_URL")
+BACKEND_PORT = os.getenv("BACKEND_PORT")
+CAPACITY = os.getenv("CAPACITY")
+SERVER_KIND = os.getenv("SERVER_KIND")
 
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
