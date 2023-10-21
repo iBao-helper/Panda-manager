@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-file_path = os.path.join(os.getcwd(), "logs", "pd.log")
-print(file_path)
+backend = os.getenv("BACKEND_URL")
+print(backend)
