@@ -15,7 +15,7 @@ load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
-HEADLESS = os.getenv("HEADLESS")
+HEADLESS = os.getenv("HEADLESS").lower() in ("true", "1", "t")
 
 
 class NightWatch:

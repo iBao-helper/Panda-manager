@@ -8,12 +8,14 @@ import requests
 from fastapi import FastAPI, Response, status, Request
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
+from dotenv import load_dotenv
 from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_util import User
-from dotenv import load_dotenv
+
+
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
@@ -218,7 +220,11 @@ async def startup_event():
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-            json={"ip": "222.110.198.130", "capacity": CAPACITY, "kind": SERVER_KIND},
+            json={
+                "ip": os.environ.get("MY_IP"),
+                "capacity": int(CAPACITY),
+                "kind": SERVER_KIND,
+            },
             timeout=5,
         )
     except:  # pylint: disable=W0702
