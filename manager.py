@@ -22,6 +22,7 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 CAPACITY = os.getenv("CAPACITY")
 SERVER_KIND = os.getenv("SERVER_KIND")
+PUBLIC_IP = os.getenv("PUBLIC_IP")
 
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
@@ -221,7 +222,7 @@ async def startup_event():
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
             json={
-                "ip": os.environ.get("PUBLIC_IP"),
+                "ip": PUBLIC_IP,
                 "capacity": int(CAPACITY),
                 "kind": SERVER_KIND,
             },
