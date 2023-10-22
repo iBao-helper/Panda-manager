@@ -221,7 +221,7 @@ async def startup_event():
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
             json={
-                "ip": os.environ.get("MY_IP"),
+                "ip": os.environ.get("PUBLIC_IP"),
                 "capacity": int(CAPACITY),
                 "kind": SERVER_KIND,
             },
