@@ -6,16 +6,16 @@ import requests
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
-from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
+from dotenv import load_dotenv
 
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
-HEADLESS = os.getenv("HEADLESS").lower() in ("true", "1", "t")
+HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 
 class NightWatch:
@@ -35,7 +35,8 @@ class NightWatch:
             apw = await async_playwright().start()
             self.browser = await apw.chromium.launch(headless=HEADLESS)
             context = await self.browser.new_context(
-                viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
+                viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
+                locale="ko-KR",
             )
             self.page = await context.new_page()
             await self.page.goto("http://pandalive.co.kr")
@@ -172,13 +173,13 @@ class NightWatch:
                 print(f"watend stop list = {wanted_stop_list}")
                 if len(wanted_play_list) > 0:
                     requests.post(
-                        url=f"http://{self.backend_url}:{self.backend_port}/proxy/increase",
+                        url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
                         json={"panda_ids": wanted_play_list},
                         timeout=5,
                     )
                 if len(wanted_stop_list) > 0:
-                    requests.post(
-                        url=f"http://{self.backend_url}:{self.backend_port}/proxy/decrease",
+                    requests.delete(
+                        url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
                         json={"panda_ids": wanted_stop_list},
                         timeout=5,
                     )
@@ -186,10 +187,7 @@ class NightWatch:
                 await self.refresh()
                 await asyncio.sleep(5)
             except Exception as e:  # pylint: disable=W0718
-                file_path = os.path.join(os.getcwd(), "logs", "nw.log")
-                async with aiofiles.open(file_path, "a") as out:
-                    await out.write(str(e))
-                    await out.flush()
+                print(e)
 
     async def get_user_status(self):
         """유저 상태"""

@@ -11,15 +11,17 @@ from playwright.async_api import BrowserContext
 from playwright.async_api import FrameLocator
 from pydantic import BaseModel  # pylint: disable=C0411
 import requests
-from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, get_commands
+from util.my_util import User, get_commands, logging
+from dotenv import load_dotenv
+
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
-HEADLESS = os.getenv("HEADLESS")
+HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
+SERVER_KIND = os.getenv("SERVER_KIND")
 
 
 class CreateManagerDto(BaseModel):
@@ -66,21 +68,27 @@ class PandaManager:
         """playwright 객체 생성"""
         try:
             apw = await async_playwright().start()
-            if HEADLESS is False:
+            if SERVER_KIND == "local":
                 self.browser = await apw.chromium.launch(
-                    headless=HEADLESS, proxy={"server": f"{proxy_ip}:8888"}
+                    headless=HEADLESS,
+                    proxy={"server": f"{proxy_ip}:8888"}
+                    # headless=HEADLESS,
                 )
             else:
                 self.browser = await apw.chromium.launch(headless=HEADLESS)
             self.context = await self.browser.new_context(
-                viewport={"width": 1500, "height": 900}  # 원하는 해상도 크기를 지정하세요.
+                viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
+                locale="ko-KR",
             )
             self.page = await self.context.new_page()
             await self.page.goto("http://pandalive.co.kr")
             print(await self.page.title())
         except Exception as e:  # pylint: disable=W0703
+            logging(self.data.panda_id, f"[create_playwright] - {str(e)}")
             self.data.proxy_ip = proxy_ip
-            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR) from e
+            raise ex.PlayWrightException(
+                ex.PWEEnum.PD_CREATE_ERROR, message="playwright 객체 생성 실패"
+            ) from e
         return True
 
     async def login(self, login_id: str = "xptmxmdyd123", login_pw: str = "Adkflfkd1"):
@@ -93,7 +101,13 @@ class PandaManager:
         try:
             await self.page.get_by_role("button", name="닫기").click()
         except Exception as e:  # pylint: disable=W0612
-            raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, self.data.panda_id)
+            self.page.screenshot(path=f"test.png", full_page=True)
+            raise ex.PlayWrightException(
+                ex.PWEEnum.PD_CREATE_ERROR,
+                panda_id=self.data.panda_id,
+                resource_ip=self.data.resource_ip,
+                message="로그인 닫기버튼 못찾음 ㅋ",
+            )
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
@@ -112,7 +126,10 @@ class PandaManager:
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
+                panda_id=self.data.panda_id,
+                resource_ip=self.data.resource_ip,
+                message="아디 비번 틀렸음",
             )
         invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
         invalid_label_pw = await self.page.get_by_label(
@@ -122,7 +139,10 @@ class PandaManager:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW, self.data.panda_id
+                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
+                panda_id=self.data.panda_id,
+                resource_ip=self.data.resource_ip,
+                message="아뒤 비번 틀렸음(팝업)",
             )
         invalid_login_detect = await self.page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
@@ -173,7 +193,10 @@ class PandaManager:
             else:
                 print("stt 실패")
                 raise ex.PlayWrightException(
-                    ex.PWEEnum.PD_LOGIN_STT_FAILED, self.data.panda_id
+                    ex.PWEEnum.PD_LOGIN_STT_FAILED,
+                    panda_id=self.data.panda_id,
+                    resource_ip=self.data.resource_ip,
+                    message="stt에 실패함",
                 )
         else:
             print("로그인 성공")
@@ -415,7 +438,9 @@ class PandaManager:
         if retry_detect:
             print("잦은 재시도 탐지에 걸림")
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_STT_FAILED, panda_id=self.user.panda_id
+                ex.PWEEnum.PD_LOGIN_STT_FAILED,
+                panda_id=self.data.panda_id,
+                message="잦은 재시도 탐지에 걸림",
             )
 
     async def regist_recommand_message(self, rc_message):

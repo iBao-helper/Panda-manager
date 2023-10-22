@@ -13,6 +13,7 @@ from classes import night_watch as nw
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
@@ -52,7 +53,7 @@ async def check_manager_login(id: str, pw: str, response: Response):
     print(id)
     print(pw)
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=False)
+    browser = await apw.chromium.launch(headless=True)
     page = await browser.new_page()
     await page.goto("http://pandalive.co.kr")
     await page.get_by_role("button", name="닫기").click()
@@ -124,7 +125,7 @@ async def check_manager_login(id: str, pw: str, response: Response):
 async def get_panda_nickname(id: str, response: Response):
     """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=False)
+    browser = await apw.chromium.launch(headless=True)
     page = await browser.new_page()
     await page.goto(f"https://www.pandalive.co.kr/channel/{id}/notice")
     await asyncio.sleep(1)
@@ -149,7 +150,7 @@ async def startup_event():
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
-            json={"ip": "222.110.198.130"},
+            json={"ip": "121.162.13.100"},
             timeout=5,
         )
     except:  # pylint: disable=W0702
@@ -169,38 +170,17 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     file_path = os.path.join(os.getcwd(), "logs", "nw.log")
     if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
         # nw 가동 실패
+        print(exc)
         await night_watch.destroy()
-        async with aiof.open(file_path, "a") as out:
-            await out.write(
-                (
-                    f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-                    f"{exc.description} / {request.query_params}\n"
-                )
-            )
-            await out.flush()
 
     elif exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
+        print(exc)
         await night_watch.destroy()
-        async with aiof.open(file_path, "a") as out:
-            await out.write(
-                (
-                    f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-                    f"{exc.description} / {request.query_params}\n"
-                )
-            )
-            await out.flush()
     elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
         # STT 실패
+        print(exc)
         await night_watch.destroy()
-        async with aiof.open(file_path, "a") as out:
-            await out.write(
-                (
-                    f"{datetime.datetime.now()} : {request.url} / {await request.body()} / "
-                    f"{exc.description} / {request.query_params}\n"
-                )
-            )
-            await out.flush()
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -8,21 +8,23 @@ import requests
 from fastapi import FastAPI, Response, status, Request
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
-from dotenv import load_dotenv
 from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User
-
+from util.my_util import User, logging
+from dotenv import load_dotenv
 
 load_dotenv()
+
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 CAPACITY = os.getenv("CAPACITY")
 SERVER_KIND = os.getenv("SERVER_KIND")
 PUBLIC_IP = os.getenv("PUBLIC_IP")
+INSTANCE_ID = os.getenv("INSTANCE_ID")
+HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
@@ -32,30 +34,87 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
+    await logging(body.panda_id, f"[panda_manager_start] - body data\n{body}")
+    await logging(
+        body.panda_id,
+        f"[panda_manager_start] - ENV_DATA data\n{SERVER_KIND}, HEADRESS={HEADLESS}",
+    )
+    print(body, panda_id)
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
 
     # 생성 에러일 경우 PD_CREATE_ERROR 발생
     try:
+        await logging(
+            body.panda_id,
+            f"[panda_manager_start] - create_playwright start\nproxy_ip:{body.proxy_ip}",
+        )
         await panda_manager.create_playwright(body.proxy_ip)
+        await logging(
+            body.panda_id,
+            r"[panda_manager_start] - create_playwright successs",
+        )
     except Exception as e:  # pylint: disable=W0612
-        raise ex.PlayWrightException(ex.PWEEnum.PD_CREATE_ERROR, panda_id=panda_id)
+        await logging(
+            body.panda_id,
+            r"[panda_manager_start] - create_playwright failed",
+        )
+        await logging(
+            body.panda_id,
+            f"[panda_manager_start] - {str(e)}",
+        )
+        requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/log?message=create_plarywright",
+            timeout=5,
+        )
+        raise ex.PlayWrightException(
+            ex.PWEEnum.PD_CREATE_ERROR,
+            panda_id=panda_id,
+            resource_ip=body.resource_ip,
+            message="create playwright error",
+        )
     # 로그인이 실패할 경우 PD_LOIGIN_이유 발생
-    await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
+    try:
+        await logging(
+            body.panda_id,
+            f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
+        )
+        await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
+        await logging(
+            body.panda_id,
+            r"[panda_manager_start] - login success",
+        )
+    except Exception as e:
+        await logging(
+            body.panda_id,
+            f"[panda_manager_start] - login failed\n{str(e)}",
+        )
+        raise e
+
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
     await panda_manager.page.get_by_role("button", name="확인").click()
 
     ## 무사히 방송에 접속하였다면 DB에 관계를 설정해준다
-    requests.put(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy",
-        json={
-            "ip": body.proxy_ip,
-            "panda_id": panda_id,
-            "resource_ip": body.resource_ip,
-        },
-        timeout=5,
-    )
+    if SERVER_KIND == "local":
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/request-proxy-task",
+            json={
+                "ip": body.proxy_ip,
+                "panda_id": panda_id,
+                "resource_ip": body.resource_ip,
+            },
+            timeout=5,
+        )
+    elif SERVER_KIND == "ec2":
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/request-ec2-task",
+            json={
+                "panda_id": panda_id,
+                "resource_ip": body.resource_ip,
+            },
+            timeout=5,
+        )
     data = requests.get(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/{panda_id}?relaiton=true",
         timeout=5,
@@ -73,8 +132,9 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
 @app.delete("/panda_manager/{panda_id}")
 async def destory_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
-    await panda_managers[panda_id].destroy()
-    del panda_managers[panda_id]
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].destroy()
+        del panda_managers[panda_id]
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},
@@ -191,20 +251,44 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
     print(os.getcwd())
     print(exc.description)
-    file_path = os.path.join(os.getcwd(), "logs", "pd.log")
-    if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
-        # nw 가동 실패
-        print("PD 가동 실패", exc.panada_id, exc.description)
-        status_code = status.HTTP_400_BAD_REQUEST
-        message = "PD 가동 실패"
-
-    elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
-        # nigthwatch 로그인 실패
-        status_code = status.HTTP_200_OK
-        message = "로그인 실패"
-    elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
-        status_code = status.HTTP_400_BAD_REQUEST
-        message = "stt 실패"
+    if SERVER_KIND == "ec2":
+        print("ec2 task 실패")
+        await logging(exc.panada_id, exc.message)
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
+            json={"panda_id": exc.panada_id, message: exc.message},
+            timeout=10,
+        )
+        message = "EC2 task 실패"
+    elif SERVER_KIND == "local":
+        print("ec2 task 실패")
+        if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
+            # nw 가동 실패
+            print("PD 가동 실패", exc.panada_id, exc.description)
+            status_code = status.HTTP_400_BAD_REQUEST
+            message = "PandaManager 생성 실패"
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+                json={"panda_id": exc.panada_id, "message": message},
+                timeout=10,
+            )
+        elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
+            # nigthwatch 로그인 실패
+            status_code = status.HTTP_200_OK
+            message = "로그인 실패"
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+                json={"panda_id": exc.panada_id, "message": message},
+                timeout=10,
+            )
+        elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
+            status_code = status.HTTP_400_BAD_REQUEST
+            message = "stt 실패"
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+                json={"panda_id": exc.panada_id, "message": message},
+                timeout=10,
+            )
 
     return JSONResponse(
         status_code=status_code,
@@ -219,15 +303,23 @@ async def startup_event():
     이미 있다면 등록되지 않음
     """
     try:
+        print(f"{PUBLIC_IP}")
+        await logging(
+            "common-env-check",
+            f"PUBLIC_IP : {PUBLIC_IP}, CAPACITY : {CAPACITY}, INSTANCE_ID : {INSTANCE_ID}, "
+            f"SERVER_KIND : {SERVER_KIND}",
+        )
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
             json={
                 "ip": PUBLIC_IP,
                 "capacity": int(CAPACITY),
                 "kind": SERVER_KIND,
+                "instance_id": INSTANCE_ID,
             },
             timeout=5,
         )
+
     except:  # pylint: disable=W0702
         print("nightwatch already registered")
 

@@ -2,8 +2,8 @@
 from pydantic import BaseModel
 import requests
 import os
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
@@ -21,7 +21,7 @@ class User(BaseModel):
     manager_nick: str
     rc_message: str
     hart_message: str
-    resourceId: str | None
+    resourceId: int | None
 
 
 async def get_commands(panda_id: str):
@@ -32,3 +32,12 @@ async def get_commands(panda_id: str):
     )
     command_dict = commands.json()
     return command_dict
+
+
+async def logging(panda_id: str, message: str):
+    """백엔드 서버에 로그를 남긴다"""
+    requests.post(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log",
+        json={"panda_id": panda_id, "message": message},
+        timeout=5,
+    )
