@@ -18,6 +18,7 @@ load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
+HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
 
@@ -53,7 +54,7 @@ async def check_manager_login(id: str, pw: str, response: Response):
     print(id)
     print(pw)
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=True)
+    browser = await apw.chromium.launch(headless=HEADLESS)
     page = await browser.new_page()
     await page.goto("http://pandalive.co.kr")
     await page.get_by_role("button", name="닫기").click()
@@ -125,7 +126,7 @@ async def check_manager_login(id: str, pw: str, response: Response):
 async def get_panda_nickname(id: str, response: Response):
     """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=True)
+    browser = await apw.chromium.launch(headless=HEADLESS)
     page = await browser.new_page()
     await page.goto(f"https://www.pandalive.co.kr/channel/{id}/notice")
     await asyncio.sleep(1)
