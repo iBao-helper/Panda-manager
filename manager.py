@@ -14,6 +14,7 @@ from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 from util.my_util import User, logging
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 
@@ -35,62 +36,27 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     await logging(body.panda_id, f"[panda_manager_start] - body data\n{body}")
-    await logging(
-        body.panda_id,
-        f"[panda_manager_start] - ENV_DATA data\n{SERVER_KIND}, HEADRESS={HEADLESS}",
-    )
     print(body, panda_id)
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
 
-    # 생성 에러일 경우 PD_CREATE_ERROR 발생
-    try:
-        await logging(
-            body.panda_id,
-            f"[panda_manager_start] - create_playwright start\nproxy_ip:{body.proxy_ip}",
-        )
-        await panda_manager.create_playwright(body.proxy_ip)
-        await logging(
-            body.panda_id,
-            r"[panda_manager_start] - create_playwright successs",
-        )
-    except Exception as e:  # pylint: disable=W0612
-        await logging(
-            body.panda_id,
-            r"[panda_manager_start] - create_playwright failed",
-        )
-        await logging(
-            body.panda_id,
-            f"[panda_manager_start] - {str(e)}",
-        )
-        requests.get(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/log?message=create_plarywright",
-            timeout=5,
-        )
-        raise ex.PlayWrightException(
-            ex.PWEEnum.PD_CREATE_ERROR,
-            panda_id=panda_id,
-            resource_ip=body.resource_ip,
-            message="create playwright error",
-        )
-    # 로그인이 실패할 경우 PD_LOIGIN_이유 발생
-    try:
-        await logging(
-            body.panda_id,
-            f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
-        )
-        await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
-        await logging(
-            body.panda_id,
-            r"[panda_manager_start] - login success",
-        )
-    except Exception as e:
-        await logging(
-            body.panda_id,
-            f"[panda_manager_start] - login failed\n{str(e)}",
-        )
-        raise e
+    await logging(
+        body.panda_id,
+        f"[panda_manager_start] - create_playwright start\nproxy_ip:{body.proxy_ip}",
+    )
+    await panda_manager.create_playwright(body.proxy_ip)
 
+    await logging(
+        body.panda_id,
+        f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
+    )
+    # 로그인이 실패할 경우 PD_LOIGIN_이유 발생
+    await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
+
+    await logging(
+        body.panda_id,
+        f"[panda_manager_start] - goto url \nhttps://www.pandalive.co.kr/live/play/{panda_id}",
+    )
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
     await panda_manager.page.get_by_role("button", name="확인").click()
@@ -124,7 +90,6 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     print("response user relation data : ", user)
 
     asyncio.create_task(panda_manager.macro())
-
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
 
@@ -247,13 +212,11 @@ async def get_panda_nickname(id: str, response: Response):
 
 ## Exception Handler 모음
 @app.exception_handler(ex.PlayWrightException)
-async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
+async def play_wright_handler(exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
-    print(os.getcwd())
-    print(exc.description)
+    await logging(exc.panada_id, f"{SERVER_KIND} - PlayWright Error\n{exc.message}")
     if SERVER_KIND == "ec2":
         print("ec2 task 실패")
-        await logging(exc.panada_id, exc.message)
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
             json={"panda_id": exc.panada_id, message: exc.message},
@@ -276,12 +239,14 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
             message = "로그인 실패"
-            requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-                json={"panda_id": exc.panada_id, "message": message},
-                timeout=10,
-            )
+            # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
+            # requests.post(
+            #     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+            #     json={"panda_id": exc.panada_id, "message": message},
+            #     timeout=10,
+            # )
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
+            # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
             requests.post(
@@ -293,6 +258,24 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     return JSONResponse(
         status_code=status_code,
         content={"message": message},
+    )
+
+
+@app.exception_handler(Exception)
+async def default_exception_filter(request: Request, e: Exception):
+    """예상치 못한 에러가 발생했을때 백엔드에 로깅하기 위한 필터"""
+
+    if "panda_id" in request.path_params:
+        panda_id = request.path_params["panda_id"]
+        await logging(panda_id, f"PlayWright Error\n{str(e)}")
+        await logging(panda_id, {traceback.print_exc()})
+    else:
+        await logging("Unkown-Error", f"{SERVER_KIND} - PlayWright Error\n{str(e)}")
+        await logging("Unkown-Error", {traceback.print_exc()})
+
+    return JSONResponse(
+        status_code=500,
+        content={"message": str(e)},
     )
 
 

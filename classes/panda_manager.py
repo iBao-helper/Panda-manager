@@ -11,10 +11,11 @@ from playwright.async_api import BrowserContext
 from playwright.async_api import FrameLocator
 from pydantic import BaseModel  # pylint: disable=C0411
 import requests
+from dotenv import load_dotenv
+
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, get_commands, logging
-from dotenv import load_dotenv
+from util.my_util import User, get_commands
 
 load_dotenv()
 
@@ -84,10 +85,9 @@ class PandaManager:
             await self.page.goto("http://pandalive.co.kr")
             print(await self.page.title())
         except Exception as e:  # pylint: disable=W0703
-            logging(self.data.panda_id, f"[create_playwright] - {str(e)}")
             self.data.proxy_ip = proxy_ip
             raise ex.PlayWrightException(
-                ex.PWEEnum.PD_CREATE_ERROR, message="playwright 객체 생성 실패"
+                ex.PWEEnum.PD_CREATE_ERROR, message=f"[create_playwright] - {str(e)}"
             ) from e
         return True
 
@@ -98,16 +98,8 @@ class PandaManager:
         3. 로그인 과정을 수행한 뒤 로그인 프로필 이미지가 나타날때까지 대기
         4. bookmark 페이지로 이동
         """
-        try:
-            await self.page.get_by_role("button", name="닫기").click()
-        except Exception as e:  # pylint: disable=W0612
-            self.page.screenshot(path=f"test.png", full_page=True)
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_CREATE_ERROR,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
-                message="로그인 닫기버튼 못찾음 ㅋ",
-            )
+        await self.page.locator("div.po")
+        await self.page.get_by_role("button", name="닫기").click()
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
@@ -442,6 +434,12 @@ class PandaManager:
                 panda_id=self.data.panda_id,
                 message="잦은 재시도 탐지에 걸림",
             )
+
+    async def find_element(self, selector: str, is_pass: bool):
+        """
+        특정 요소를 셀렉터로 찾습니다. is_pass가 true라면 존재하지 않아도 통과합니다.
+        없다면 에러를 발생시킵니다.
+        """
 
     async def regist_recommand_message(self, rc_message):
         """Request update recommand message"""
