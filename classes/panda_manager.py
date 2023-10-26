@@ -587,3 +587,19 @@ class PandaManager:
     def set_user(self, user):
         """사용된 user data 세팅"""
         self.user = user
+
+    async def send_screenshot(self):
+        """백엔드서버에 스크린샷 보냄"""
+        await self.page.screenshot(path=self.data.panda_id + ".png")
+        files = {
+            "file": (
+                self.data.panda_id + ".png",
+                open(self.data.panda_id + ".png", "rb"),
+                "image/png",
+            )
+        }
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/upload",
+            files=files,
+            timeout=20,
+        )

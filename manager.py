@@ -54,18 +54,18 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     try:
         await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
     except TimeoutError:
-        await panda_manager.page.screenshot(path=body.manager_id + ".png")
+        await panda_manager.page.screenshot(path=body.panda_id + ".png")
         files = {
             "file": (
-                body.manager_id + ".png",
-                open(body.manager_id + ".png", "rb"),
+                body.panda_id + ".png",
+                open(body.panda_id + ".png", "rb"),
                 "image/png",
             )
         }
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/upload",
             files=files,
-            timeout=5,
+            timeout=20,
         )
         raise ex.PlayWrightException(
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
@@ -233,6 +233,7 @@ async def get_panda_nickname(id: str, response: Response):
 async def play_wright_handler(exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
     await logging(exc.panada_id, f"{SERVER_KIND} - PlayWright Error\n{exc.message}")
+    await panda_managers[exc.panada_id].send_screenshot()
     if SERVER_KIND == "ec2":
         print("ec2 task 실패")
         requests.post(
@@ -282,7 +283,6 @@ async def play_wright_handler(exc: ex.PlayWrightException):
 @app.exception_handler(Exception)
 async def default_exception_filter(request: Request, e: Exception):
     """예상치 못한 에러가 발생했을때 백엔드에 로깅하기 위한 필터"""
-
     if "panda_id" in request.path_params:
         panda_id = request.path_params["panda_id"]
         await logging(panda_id, f"PlayWright Error\n{str(e)}")
