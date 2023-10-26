@@ -119,6 +119,10 @@ class PandaManager:
         invalid_text_pw = await self.page.get_by_text(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
+        await logging(
+            "common-env-check",
+            f"[invalid-visible check]\nid:{invalid_text_id}, pw:{invalid_text_pw}",
+        )
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
             raise ex.PlayWrightException(
@@ -131,6 +135,10 @@ class PandaManager:
         invalid_label_pw = await self.page.get_by_label(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
+        await logging(
+            "common-env-check",
+            f"[invalid-visible check]\nid:{invalid_text_id}, pw:{invalid_text_pw}",
+        )
         if invalid_label_id or invalid_label_pw:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
@@ -144,6 +152,10 @@ class PandaManager:
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
         ).is_visible()
         auto_detect = await self.page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
+        await logging(
+            "common-env-check",
+            f"[invalid-login_detect check]\invalid_login_detect:{invalid_login_detect}, auto_detect:{auto_detect}",
+        )
         if invalid_login_detect or auto_detect:
             print("Invliad login popup")
             await self.page.get_by_role("button", name="확인").click()
@@ -160,10 +172,12 @@ class PandaManager:
                         f'iframe[name="{frame.name}"]'
                     )
             await click_frame.get_by_label("로봇이 아닙니다.").click()
+            await logging("common-env-check", "[로봇이 아닙니다]")
             await asyncio.sleep(1)
             # 리캡챠 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
             await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
+            await logging("common-env-check", "[음성 보안문자 듣기]")
             await asyncio.sleep(1)
             # 보안문자 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
@@ -179,6 +193,7 @@ class PandaManager:
                 print(response)
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
+                await logging("common-env-check", "[들리는대로 입력하세요 확인]")
                 # 보안 문자 떳는지 확인
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
