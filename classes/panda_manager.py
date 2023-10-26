@@ -98,8 +98,6 @@ class PandaManager:
         3. 로그인 과정을 수행한 뒤 로그인 프로필 이미지가 나타날때까지 대기
         4. bookmark 페이지로 이동
         """
-        raise TimeoutError("test")
-        await self.page.wait_for_selector
         await self.page.get_by_role("button", name="닫기").click()
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await asyncio.sleep(0.3)
