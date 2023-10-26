@@ -154,7 +154,7 @@ class PandaManager:
         auto_detect = await self.page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
         await logging(
             "common-env-check",
-            f"[invalid-login_detect check]\invalid_login_detect:{invalid_login_detect}, auto_detect:{auto_detect}",
+            f"[invalid-login_detect check]\ninvalid_login_detect:{invalid_login_detect}, auto_detect:{auto_detect}",
         )
         if invalid_login_detect or auto_detect:
             print("Invliad login popup")
@@ -215,16 +215,13 @@ class PandaManager:
 
     async def goto_url(self, url: str):
         """url 이동"""
-        count = 0
-        while count < 30:
-            await self.page.goto(url)
-            err_404 = await self.page.query_selector("div.err404")
-            err_404_visible = await err_404.is_visible()
-            if err_404_visible:
-                break
-            else:
-                count += 1
-                await asyncio.sleep(3)
+        await self.page.goto(url)
+        err_404 = await self.page.query_selector("div.err404")
+        if err_404 is not None:
+            await logging(self.data.panda_id, "404에러")
+            await self.refresh()
+            await asyncio.sleep(3)
+            await self.goto_url(url)
 
     async def refresh(self):
         """refresh"""
