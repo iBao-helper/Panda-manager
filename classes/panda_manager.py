@@ -197,7 +197,7 @@ class PandaManager:
                 # 보안 문자 떳는지 확인
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
-                await self.page.get_by_role("button", name="로그인").click()
+                await self.page.get_by_role("button", name="로그인", exact=True).click()
                 await logging(self.data.panda_id, "마지막 로그인")
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
