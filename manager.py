@@ -51,7 +51,25 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
     )
     # 로그인이 실패할 경우 PD_LOIGIN_이유 발생
-    await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
+    try:
+        await panda_manager.login(login_id=body.manager_id, login_pw=body.manager_pw)
+    except TimeoutError:
+        await panda_manager.page.screenshot(path=body.manager_id + ".png")
+        files = {
+            "file": (
+                body.manager_id + ".png",
+                open(body.manager_id + ".png", "rb"),
+                "image/png",
+            )
+        }
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/upload",
+            files=files,
+            timeout=5,
+        )
+        raise ex.PlayWrightException(
+            panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
+        ) from TimeoutError
 
     await logging(
         body.panda_id,
@@ -249,11 +267,11 @@ async def play_wright_handler(exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-                json={"panda_id": exc.panada_id, "message": message},
-                timeout=10,
-            )
+            # requests.post(
+            #     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+            #     json={"panda_id": exc.panada_id, "message": message},
+            #     timeout=10,
+            # )
 
     return JSONResponse(
         status_code=status_code,
