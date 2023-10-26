@@ -134,16 +134,7 @@ class NightWatch:
 
     async def goto_url(self, url: str):
         """url 이동"""
-        count = 0
-        while count < 30:
-            await self.page.goto(url)
-            err_404 = await self.page.query_selector("div.err404")
-            err_404_visible = await err_404.is_visible()
-            if err_404_visible:
-                break
-            else:
-                count += 1
-                await asyncio.sleep(3)
+        await self.page.goto(url)
 
     async def refresh(self):
         """refresh"""

@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, get_commands
+from util.my_util import User, get_commands, logging
 
 load_dotenv()
 
@@ -99,15 +99,20 @@ class PandaManager:
         4. bookmark 페이지로 이동
         """
         await self.page.get_by_role("button", name="닫기").click()
+        await logging("닫기 성공")
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
+        await logging("로그인 / 회원가입")
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
+        await logging("로그인 / 회원가입")
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인").click()
+        await logging("로그인")
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
         await asyncio.sleep(2)
         await self.page.get_by_role("button", name="로그인", exact=True).click()
+        await logging("로그인")
         await asyncio.sleep(2)
         print("로그인 클릭")
         invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
@@ -195,7 +200,16 @@ class PandaManager:
 
     async def goto_url(self, url: str):
         """url 이동"""
-        await self.page.goto(url)
+        count = 0
+        while count < 30:
+            await self.page.goto(url)
+            err_404 = await self.page.query_selector("div.err404")
+            err_404_visible = await err_404.is_visible()
+            if err_404_visible:
+                break
+            else:
+                count += 1
+                await asyncio.sleep(3)
 
     async def refresh(self):
         """refresh"""
