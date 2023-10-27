@@ -1,18 +1,17 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
-import datetime
 import os
 import asyncio
 import re
 import uvicorn
 import requests
-from fastapi import FastAPI, Response, status, Request
+from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
-import aiofiles as aiof
+from dotenv import load_dotenv
 from classes import night_watch as nw
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -49,10 +48,10 @@ async def test():
 
 
 @app.get("/check-manager", status_code=status.HTTP_200_OK)
-async def check_manager_login(id: str, pw: str, response: Response):
+async def check_manager_login(manager_id: str, manager_pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
-    print(id)
-    print(pw)
+    print(manager_id)
+    print(manager_pw)
     apw = await async_playwright().start()
     browser = await apw.chromium.launch(headless=HEADLESS)
     page = await browser.new_page()
@@ -63,8 +62,8 @@ async def check_manager_login(id: str, pw: str, response: Response):
     await page.get_by_role("link", name="로그인").click()
     # await page.get_by_role("textbox").nth(1).fill("siveriness0")
     # await page.get_by_role("textbox").nth(2).fill("dkflfkd12#")
-    await page.get_by_role("textbox").nth(1).fill(id)
-    await page.get_by_role("textbox").nth(2).fill(pw)
+    await page.get_by_role("textbox").nth(1).fill(manager_id)
+    await page.get_by_role("textbox").nth(2).fill(manager_pw)
     await asyncio.sleep(2)
     await page.get_by_role("button", name="로그인", exact=True).click()
     await asyncio.sleep(2)
@@ -99,11 +98,11 @@ async def check_manager_login(id: str, pw: str, response: Response):
                 click_frame = page.frame_locator(f'iframe[name="{frame.name}"]')
         await click_frame.get_by_label("로봇이 아닙니다.").click()
         await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
-        test = await show_frame.get_by_role(
+        audio_url = await show_frame.get_by_role(
             "link", name="또는 오디오를 MP3로 다운로드하세요."
         ).get_attribute("href")
-        print(test)
-        os.system(f"curl {test} --output stt/audio.mp3")
+        print(audio_url)
+        os.system(f"curl {audio_url} --output stt/audio.mp3")
         response = sample_recognize("stt/audio.mp3")
         if response:
             print(response)
@@ -123,20 +122,20 @@ async def check_manager_login(id: str, pw: str, response: Response):
 
 
 @app.get("/panda-nickname", status_code=status.HTTP_200_OK)
-async def get_panda_nickname(id: str, response: Response):
+async def get_panda_nickname(bj_id: str, response: Response):
     """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
     apw = await async_playwright().start()
     browser = await apw.chromium.launch(headless=HEADLESS)
     page = await browser.new_page()
-    await page.goto(f"https://www.pandalive.co.kr/channel/{id}/notice")
+    await page.goto(f"https://www.pandalive.co.kr/channel/{bj_id}/notice")
     await asyncio.sleep(1)
-    if page.url != f"https://www.pandalive.co.kr/channel/{id}/notice":
+    if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "null"}
     nickname = await page.query_selector(".nickname")
     nickname = await nickname.inner_text()
     result = re.sub(r"\([^)]*\)", "", nickname)
-    asyncio.create_task(night_watch.add_book_mark_list(id))
+    asyncio.create_task(night_watch.add_book_mark_list(bj_id))
     await browser.close()
     print(result)
     return result
@@ -164,11 +163,10 @@ async def startup_event():
 
 ## Exception Handler 모음
 @app.exception_handler(ex.PlayWrightException)
-async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
+async def play_wright_handler(exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
     print(os.getcwd())
     print(exc.description)
-    file_path = os.path.join(os.getcwd(), "logs", "nw.log")
     if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
         # nw 가동 실패
         print(exc)
