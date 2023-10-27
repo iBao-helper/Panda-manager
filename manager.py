@@ -236,6 +236,10 @@ async def play_wright_handler(exc: ex.PlayWrightException):
     await panda_managers[exc.panada_id].send_screenshot()
     if SERVER_KIND == "ec2":
         print("ec2 task 실패")
+        await logging(
+            exc.panada_id,
+            f"{SERVER_KIND} - PlayWright Error - ec2 task 실패\n{exc.message}",
+        )
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
             json={"panda_id": exc.panada_id, message: exc.message},
@@ -257,7 +261,9 @@ async def play_wright_handler(exc: ex.PlayWrightException):
         elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
-            message = "로그인 실패"
+            message = "ID/PW 로그인 실패"
+            await panda_managers[exc.panada_id].destroy()
+            del panda_managers[exc.panada_id]
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
             # requests.post(
             #     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
@@ -268,11 +274,11 @@ async def play_wright_handler(exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            # requests.post(
-            #     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-            #     json={"panda_id": exc.panada_id, "message": message},
-            #     timeout=10,
-            # )
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+                json={"panda_id": exc.panada_id, "message": message},
+                timeout=10,
+            )
 
     return JSONResponse(
         status_code=status_code,

@@ -514,7 +514,7 @@ class PandaManager:
                         message
                         + f"[{data['username']}] -> [{data['bjname']}] ♥{data['count']}개\n"
                     )
-                await self.page.get_by_placeholder("채팅하기").fill(message)
+                await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
                 await self.page.get_by_role("button", name="보내기").click()
                 return True
             elif command == "!합계":
@@ -524,7 +524,7 @@ class PandaManager:
                 )
                 print(response)
                 message = f"{user} : {response.text}개"
-                await self.page.get_by_placeholder("채팅하기").fill(message)
+                await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
                 await self.page.get_by_role("button", name="보내기").click()
                 return True
         except:  # pylint: disable=W0702
