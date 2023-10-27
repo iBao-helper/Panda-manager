@@ -240,11 +240,36 @@ async def play_wright_handler(exc: ex.PlayWrightException):
             exc.panada_id,
             f"{SERVER_KIND} - PlayWright Error - ec2 task 실패\n{exc.message}",
         )
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
-            json={"panda_id": exc.panada_id, message: exc.message},
-            timeout=10,
-        )
+        if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
+            # nw 가동 실패
+            print("PD 가동 실패", exc.panada_id, exc.description)
+            status_code = status.HTTP_400_BAD_REQUEST
+            message = "PandaManager 생성 실패"
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
+                json={"panda_id": exc.panada_id, message: exc.message},
+                timeout=10,
+            )
+        elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
+            # nigthwatch 로그인 실패
+            status_code = status.HTTP_200_OK
+            message = "ID/PW 로그인 실패"
+            # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
+            requests.delete(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-login",
+                json={"panda_id": exc.panada_id},
+                timeout=10,
+            )
+        elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
+            # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
+            status_code = status.HTTP_400_BAD_REQUEST
+            message = "stt 실패"
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
+                json={"panda_id": exc.panada_id, message: exc.message},
+                timeout=10,
+            )
+
         message = "EC2 task 실패"
     elif SERVER_KIND == "local":
         print("ec2 task 실패")
@@ -262,14 +287,12 @@ async def play_wright_handler(exc: ex.PlayWrightException):
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
-            await panda_managers[exc.panada_id].destroy()
-            del panda_managers[exc.panada_id]
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
-            # requests.post(
-            #     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-            #     json={"panda_id": exc.panada_id, "message": message},
-            #     timeout=10,
-            # )
+            requests.delete(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-login",
+                json={"panda_id": exc.panada_id, "message": message},
+                timeout=10,
+            )
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
@@ -291,10 +314,22 @@ async def default_exception_filter(request: Request, e: Exception):
     """예상치 못한 에러가 발생했을때 백엔드에 로깅하기 위한 필터"""
     if "panda_id" in request.path_params:
         panda_id = request.path_params["panda_id"]
-        await logging(panda_id, f"PlayWright Error\n{str(e)}")
+        if SERVER_KIND == "ec2":
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
+                json={"panda_id": panda_id, "message": "Unkown-Ec2-Error"},
+                timeout=10,
+            )
+        elif SERVER_KIND == "local":
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
+                json={"panda_id": panda_id, "message": "Unkown-Proxy-Error"},
+                timeout=10,
+            )
+        await logging(panda_id, f"Exception Error\n{str(e)}")
         await logging(panda_id, {traceback.print_exc()})
     else:
-        await logging("Unkown-Error", f"{SERVER_KIND} - PlayWright Error\n{str(e)}")
+        await logging("Unkown-Error", f"{SERVER_KIND} - Exception Error\n{str(e)}")
         await logging("Unkown-Error", {traceback.print_exc()})
 
     return JSONResponse(
