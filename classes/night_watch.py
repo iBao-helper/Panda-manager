@@ -152,7 +152,7 @@ class NightWatch:
             try:
                 for book_mark_id in self.bookmark_list:
                     await self.set_book_mark(book_mark_id, True)
-                    asyncio.sleep(0.1)
+                    await asyncio.sleep(0.1)
                 self.bookmark_list.clear()
                 idle_users, live_users = await self.get_user_status()
                 backend_live_users = requests.get(

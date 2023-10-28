@@ -402,7 +402,7 @@ class PandaManager:
                 requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.user.nickname}",
                     json={
-                        "username": hart_user,
+                        "username": emoji.emojize(hart_user),
                         "count": hart_count,
                     },
                     timeout=5,
@@ -503,11 +503,11 @@ class PandaManager:
         try:
             if command == "!써칭":
                 response = requests.get(
-                    f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{user}?mode=search",
+                    f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{emoji.emojize(user)}?mode=search",
                     timeout=5,
                 )
-                print(response)
                 json_data = response.json()
+                print("써칭 리스폰스", json_data)
                 message = ""
                 for data in json_data:
                     message = (
@@ -519,7 +519,7 @@ class PandaManager:
                 return True
             elif command == "!합계":
                 response = requests.get(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{user}?mode=sum",
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{emoji.emojize(user)}?mode=sum",
                     timeout=5,
                 )
                 print(response)
