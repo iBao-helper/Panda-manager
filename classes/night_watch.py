@@ -6,10 +6,11 @@ import requests
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
+from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
 from stt import sample_recognize
-from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -33,7 +34,7 @@ class NightWatch:
         """playwright 객체 생성"""
         try:
             apw = await async_playwright().start()
-            self.browser = await apw.chromium.launch(headless=HEADLESS)
+            self.browser = await apw.chromium.launch(headless=False)
             context = await self.browser.new_context(
                 viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
                 locale="ko-KR",
@@ -138,7 +139,9 @@ class NightWatch:
 
     async def refresh(self):
         """refresh"""
-        await self.page.reload()
+        # 리프레쉬에서 에러남
+        await self.page.goto("about:blank")
+        await self.goto_url(r"https://www.pandalive.co.kr/pick#bookmark")
 
     async def remove_video(self):
         """remove Video box"""
@@ -147,47 +150,49 @@ class NightWatch:
     #######  night watch 관련 함수들 #######
     async def start_night_watch(self):
         """nightWatch 시작 함수"""
-        self.watch_loop = True
-        while self.watch_loop:
-            try:
-                for book_mark_id in self.bookmark_list:
-                    await self.set_book_mark(book_mark_id, True)
-                    await asyncio.sleep(0.1)
-                self.bookmark_list.clear()
-                idle_users, live_users = await self.get_user_status()
-                backend_live_users = requests.get(
-                    url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
-                    timeout=5,
-                ).json()
-                backend_idle_users = requests.get(
-                    f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
-                    timeout=5,
-                ).json()
-                wanted_play_list = self.filter_dict_by_list(
-                    live_users, backend_idle_users
-                )
-                wanted_stop_list = self.filter_dict_by_list(
-                    idle_users, backend_live_users
-                )
-                print(f"watned play lsit = {wanted_play_list}")
-                print(f"watend stop list = {wanted_stop_list}")
-                if len(wanted_play_list) > 0:
-                    requests.post(
-                        url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
-                        json={"panda_ids": wanted_play_list},
-                        timeout=5,
-                    )
-                if len(wanted_stop_list) > 0:
-                    requests.delete(
-                        url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
-                        json={"panda_ids": wanted_stop_list},
-                        timeout=5,
-                    )
-                await asyncio.sleep(5)
-                await self.refresh()
-                await asyncio.sleep(5)
-            except Exception as e:  # pylint: disable=W0718
-                print(e)
+        try:
+            # print("[start night watch] - BookMark Start")
+            # for book_mark_id in self.bookmark_list:
+            # await self.set_book_mark(book_mark_id, True)
+            #     await asyncio.sleep(0.1)
+            # self.bookmark_list.clear()
+            # print("[start night watch] - get_user_status")
+            # idle_users, live_users = await self.get_user_status()
+            # print("[start night watch] - Api Calls")
+            # backend_live_users = requests.get(
+            #     url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
+            #     timeout=5,
+            # ).json()
+            # backend_idle_users = requests.get(
+            #     f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
+            #     timeout=5,
+            # ).json()
+            # print("[start night watch] - filter_dict_by_list")
+            # wanted_play_list = self.filter_dict_by_list(live_users, backend_idle_users)
+            # wanted_stop_list = self.filter_dict_by_list(idle_users, backend_live_users)
+            # print(f"watned play lsit = {wanted_play_list}")
+            # print(f"watend stop list = {wanted_stop_list}")
+            # # 이 부분 이후에 에러 발생 1
+            # if len(wanted_play_list) > 0:
+            #     requests.post(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+            #         json={"panda_ids": wanted_play_list},
+            #         timeout=5,
+            #     )
+            # if len(wanted_stop_list) > 0:
+            #     requests.delete(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+            #         json={"panda_ids": wanted_stop_list},
+            #         timeout=5,
+            #     )
+            # await asyncio.sleep(5)
+            print("[start night watch] - refresh start")
+            await self.refresh()
+            print("[start night watch] - refresh ended")
+            await asyncio.sleep(5)
+            print("[start night watch] - ENDED")
+        except Exception as e:  # pylint: disable=W0718
+            print(e)
 
     async def get_user_status(self):
         """유저 상태"""
@@ -196,10 +201,11 @@ class NightWatch:
         if self.page.url != "https://www.pandalive.co.kr/pick#bookmark":
             print("북마크 페이지가 아닙니다. 북마크 페이지로 이동합니다.")
             await self.goto_url("https://www.pandalive.co.kr/pick#bookmark")
-        tmp = self.page.locator("div.pickList ul")
+        # tmp = self.page.locator("div.pickList ul")
+        tmp = await self.page.query_selector("div.pickList ul")
+        lists = await tmp.query_selector_all("li")
 
         try:
-            lists = await tmp.locator("li").element_handles()
             for lists_li in lists:
                 photo = await lists_li.query_selector("div.photo")
                 infor = await lists_li.query_selector("div.infor")

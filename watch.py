@@ -2,6 +2,7 @@
 import os
 import asyncio
 import re
+import time
 import uvicorn
 import requests
 from fastapi import FastAPI, Response, status
@@ -9,6 +10,7 @@ from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 from classes import night_watch as nw
+from classes import night_watch_selenium as nws
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
 
@@ -20,16 +22,27 @@ BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
+sele_watch: nws.SeleWatch = nws.SeleWatch()
+
+
+async def loop2():
+    """aaa"""
+    while True:
+        time.sleep(5)
+        sele_watch.refresh()
+        time.sleep(5)
+        sele_watch.start()
 
 
 @app.post("/NightWatch")
 async def night_watch_start():
     """감시자 시작"""
-    await night_watch.create_playwright()
-    await night_watch.login()
-    await night_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
+    sele_watch.create_selenium()
+    sele_watch.element_click_with_css("button.btnClose")
+    sele_watch.login()
+    sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
-    asyncio.create_task(night_watch.start_night_watch())
+    asyncio.create_task(loop2())
     return {"message": "NightWatch"}
 
 
@@ -189,3 +202,4 @@ async def play_wright_handler(exc: ex.PlayWrightException):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
+    night_watch_start()
