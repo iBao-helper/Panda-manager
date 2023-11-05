@@ -3,6 +3,7 @@ import asyncio
 import os
 import urllib.request
 import emoji
+from datetime import datetime
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
@@ -10,6 +11,7 @@ from playwright.async_api import ElementHandle
 from playwright.async_api import BrowserContext
 from playwright.async_api import FrameLocator
 from pydantic import BaseModel  # pylint: disable=C0411
+
 import requests
 from dotenv import load_dotenv
 
@@ -59,6 +61,7 @@ class PandaManager:
             "!합계",
             "!타이머",
             "!꺼",
+            "!BJ등록"
         ]
         self.timer_message_boolean = False
         self.timer_complete = False
@@ -320,6 +323,20 @@ class PandaManager:
             elif splited_chat[0] == "!꺼":
                 # 비동기 호출
                 await self.stop_timer()
+            elif splited_chat[0] == "!BJ등록":
+                tmp: str = splited_chat[2]
+                splited = tmp.split("/")
+                await self.page.get_by_placeholder("채팅하기").fill("BJ_ID, Manager ID/PW 의 유효성을 확인합니다. 15초 내외로 소요됩니다")
+                await self.page.get_by_role("button", name="보내기").click()
+                response = requests.post(
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/chat-register/{splited_chat[1]}",
+                    json={"id": splited[0], "pw": splited[1]},
+                    timeout=30,
+                )
+                print(response.text)
+                response = response.text
+                await self.page.get_by_placeholder("채팅하기").fill(response)
+                await self.page.get_by_role("button", name="보내기").click()
             return True
 
         except:  # pylint: disable=W0702
@@ -390,7 +407,9 @@ class PandaManager:
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
                 await hart_box.evaluate("(element) => element.remove()")
-                print(hart_user, hart_count)
+                print(
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"), hart_user, hart_count
+                )
                 if self.user.hart_message != "":
                     response_recommand_message = self.user.hart_message.replace(
                         r"{hart_user}", hart_user
@@ -603,3 +622,8 @@ class PandaManager:
             files=files,
             timeout=20,
         )
+
+    async def chatting_send(self, message):
+        """채팅 전송"""
+        await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
+        await self.page.get_by_role("button", name="보내기").click()

@@ -5,6 +5,7 @@ import re
 import time
 import uvicorn
 import requests
+import concurrent.futures
 from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
@@ -24,8 +25,11 @@ app = FastAPI()
 night_watch: nw.NightWatch = nw.NightWatch()
 sele_watch: nws.SeleWatch = nws.SeleWatch()
 
+# ThreadPoolExecutor를 생성하여 loop2 함수를 별도의 스레드에서 실행합니다.
+executor = concurrent.futures.ThreadPoolExecutor()
 
-async def loop2():
+
+def loop2():
     """aaa"""
     while True:
         time.sleep(5)
@@ -42,7 +46,7 @@ async def night_watch_start():
     sele_watch.login()
     sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
-    asyncio.create_task(loop2())
+    executor.submit(loop2)
     return {"message": "NightWatch"}
 
 
