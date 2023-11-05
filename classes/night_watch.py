@@ -148,7 +148,7 @@ class NightWatch:
         await self.page.evaluate("document.querySelector('div.player-box').remove()")
 
     #######  night watch 관련 함수들 #######
-    async def start_night_watch(self):
+    # async def start_night_watch(self):
         """nightWatch 시작 함수"""
         try:
             # print("[start night watch] - BookMark Start")
@@ -160,11 +160,11 @@ class NightWatch:
             # idle_users, live_users = await self.get_user_status()
             # print("[start night watch] - Api Calls")
             # backend_live_users = requests.get(
-            #     url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
+            #     url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
             #     timeout=5,
             # ).json()
             # backend_idle_users = requests.get(
-            #     f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
+            #     f"http://{self.backend_url}:{self.backend_port}/bj?mode=idle",
             #     timeout=5,
             # ).json()
             # print("[start night watch] - filter_dict_by_list")

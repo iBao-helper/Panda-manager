@@ -100,7 +100,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
             timeout=5,
         )
     data = requests.get(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/{panda_id}?relaiton=true",
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
         timeout=5,
     )
     user = User(**data.json())

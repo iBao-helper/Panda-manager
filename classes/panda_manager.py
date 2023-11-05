@@ -238,7 +238,7 @@ class PandaManager:
             if splited_chat[0] == "!등록":
                 if len(splited_chat) >= 3:
                     response = requests.post(
-                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.user.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}",
                         json={
                             "key": splited_chat[1],
                             "value": splited_chat[2],
@@ -260,7 +260,7 @@ class PandaManager:
             elif splited_chat[0] == "!삭제":
                 if len(splited_chat) >= 2:
                     response = requests.delete(
-                        url=f"http://{self.backend_url}:{self.backend_port}/user/command/{self.user.panda_id}",
+                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}",
                         json={
                             "key": splited_chat[1],
                         },
@@ -400,7 +400,7 @@ class PandaManager:
                     )
                     await self.page.get_by_role("button", name="보내기").click()
                 requests.post(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{self.user.nickname}",
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{self.user.nickname}",
                     json={
                         "username": emoji.emojize(hart_user),
                         "count": hart_count,
@@ -472,7 +472,7 @@ class PandaManager:
         """Request update recommand message"""
         try:
             response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/recommand-message/{self.user.panda_id}",
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/recommand-message/{self.user.panda_id}",
                 json={"message": rc_message},
                 timeout=5,
             )
@@ -487,7 +487,7 @@ class PandaManager:
         """Request update hart message"""
         try:
             response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-message/{self.user.panda_id}",
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{self.user.panda_id}",
                 json={"message": rc_message},
                 timeout=5,
             )
@@ -503,7 +503,7 @@ class PandaManager:
         try:
             if command == "!써칭":
                 response = requests.get(
-                    f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{emoji.emojize(user)}?mode=search",
+                    f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=search",
                     timeout=5,
                 )
                 json_data = response.json()
@@ -519,7 +519,7 @@ class PandaManager:
                 return True
             elif command == "!합계":
                 response = requests.get(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/hart-history/{emoji.emojize(user)}?mode=sum",
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=sum",
                     timeout=5,
                 )
                 print(response)

@@ -84,11 +84,11 @@ class SeleWatch:
             self.bookmark_list.clear()
             idle_users, live_users = self.get_user_status()
             backend_live_users = requests.get(
-                url=f"http://{self.backend_url}:{self.backend_port}/user?mode=playing",
+                url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
                 timeout=5,
             ).json()
             backend_idle_users = requests.get(
-                f"http://{self.backend_url}:{self.backend_port}/user?mode=idle",
+                f"http://{self.backend_url}:{self.backend_port}/bj?mode=idle",
                 timeout=5,
             ).json()
             print("[start night watch] - filter_dict_by_list")
