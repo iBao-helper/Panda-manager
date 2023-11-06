@@ -50,6 +50,8 @@ class PandaManager:
         self.user: User
         self.data = body
         self.commands = []
+        self.song_list = []
+        self.song_message_boolean = False
         self.command_executed = False
         self.command_list = [
             "!등록",
@@ -61,7 +63,9 @@ class PandaManager:
             "!합계",
             "!타이머",
             "!꺼",
-            "!BJ등록"
+            "!신청",
+            "!리스트",
+            "!BJ등록",
         ]
         self.timer_message_boolean = False
         self.timer_complete = False
@@ -303,16 +307,18 @@ class PandaManager:
                 )
                 await self.page.get_by_role("button", name="보내기").click()
             elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
-                chat_user == data.nickname or chat_user == "크기가전부는아니자나여"
+                chat_user == data.nickname
+                or chat_user == "크기가전부는아니자나여"
+                or chat_user == "FS시혈_FUXK금붕어"
             ):
                 response = await self.chat_command_register_delete(splited_chat)
                 return response
             elif splited_chat[0] == "!추천" or splited_chat[0] == "!하트":
                 if splited_chat[0] == "!추천":
-                    recommand_message = " ".join(splited_chat[1:])
+                    recommand_message = "".join(splited_chat[1:])
                     response = await self.regist_recommand_message(recommand_message)
                 elif splited_chat[0] == "!하트":
-                    recommand_message = " ".join(splited_chat[1:])
+                    recommand_message = "".join(splited_chat[1:])
                     response = await self.regist_hart_message(recommand_message)
             elif splited_chat[0] == "!써칭" or splited_chat[0] == "!합계":
                 response = await self.get_hart_history(splited_chat[0], splited_chat[1])
@@ -323,10 +329,16 @@ class PandaManager:
             elif splited_chat[0] == "!꺼":
                 # 비동기 호출
                 await self.stop_timer()
+            elif splited_chat[0] == "!신청":
+                await self.regist_song(" ".join(splited_chat[1:]))
+            elif splited_chat[0] == "!리스트":
+                await self.send_song_list()
             elif splited_chat[0] == "!BJ등록":
                 tmp: str = splited_chat[2]
                 splited = tmp.split("/")
-                await self.page.get_by_placeholder("채팅하기").fill("BJ_ID, Manager ID/PW 의 유효성을 확인합니다. 15초 내외로 소요됩니다")
+                await self.page.get_by_placeholder("채팅하기").fill(
+                    "BJ_ID, Manager ID/PW 의 유효성을 확인합니다. 15초 내외로 소요됩니다"
+                )
                 await self.page.get_by_role("button", name="보내기").click()
                 response = requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/chat-register/{splited_chat[1]}",
@@ -433,7 +445,7 @@ class PandaManager:
     async def recommand_handler(self):
         """추천 핸들러"""
         try:
-            recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
+            recommand_elements = await self.page.query_selector_all(".cht_l.cht_al_1")
             for recommand_element in recommand_elements:
                 recommand_message = await recommand_element.inner_text()
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
@@ -462,6 +474,7 @@ class PandaManager:
                 await self.hart_handler()
                 await self.recommand_handler()
                 await self.timer_handler()
+                await self.song_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -528,13 +541,23 @@ class PandaManager:
                 json_data = response.json()
                 print("써칭 리스폰스", json_data)
                 message = ""
-                for data in json_data:
-                    message = (
-                        message
-                        + f"[{data['username']}] -> [{data['bjname']}] ♥{data['count']}개\n"
+                if len(json_data) > 0:
+                    for data in json_data:
+                        message = (
+                            message
+                            + f"[{data['username']}] -> [{data['bjname']}] ♥{data['count']}개\n"
+                        )
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(message)
                     )
-                await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
-                await self.page.get_by_role("button", name="보내기").click()
+                    await self.page.get_by_role("button", name="보내기").click()
+                else:
+                    await self.page.get_by_placeholder("채팅하기").fill(
+                        emoji.emojize(
+                            f"{user}님의 하트 내역이 없습니다. 하트 내역은 매니저봇이 있는 방에서만 집계됩니다."
+                        )
+                    )
+                    await self.page.get_by_role("button", name="보내기").click()
                 return True
             elif command == "!합계":
                 response = requests.get(
@@ -572,10 +595,9 @@ class PandaManager:
         self.time = time
         time_min = self.time // 60
         time_sec = self.time % 60
-        await self.page.get_by_placeholder("채팅하기").fill(
+        await self.chatting_send(
             f"{time_min}분 {time_sec}초 / {time_period}초 간격으로 알람이 설정되었습니다"
         )
-        await self.page.get_by_role("button", name="보내기").click()
         count = 0
         while self.time >= 1:
             count += 1
@@ -606,6 +628,46 @@ class PandaManager:
     def set_user(self, user):
         """사용된 user data 세팅"""
         self.user = user
+
+    async def regist_song(self, song):
+        """신청곡 추가"""
+        if song in self.song_list:
+            await self.chatting_send("이미 신청한 곡입니다.")
+            return
+        if len(self.song_list) == 0:
+            asyncio.create_task(self.song_timer())
+        self.song_list.append(song)
+        self.song_message_boolean = True
+
+    async def song_timer(self):
+        """신청곡 타이머"""
+        while len(self.song_list) > 0:
+            time = 180
+            while time > 0:
+                time -= 1
+                await asyncio.sleep(1)
+            self.song_list.pop(0)
+            self.song_message_boolean = True
+
+    async def send_song_list(self):
+        """신청곡 리스트 보내기"""
+        message = "신청곡 리스트\n"
+        for song in self.song_list:
+            message += f"{song}\n"
+        await self.chatting_send(message)
+
+    async def song_handler(self):
+        """신청곡 핸들러"""
+        if len(self.song_list) == 0 and self.song_message_boolean:
+            await self.chatting_send("신청곡 리스트가 모두 소진되었습니다")
+            self.song_message_boolean = False
+            return
+        if len(self.song_list) > 0 and self.song_message_boolean:
+            message = "신청곡 리스트\n"
+            for song in self.song_list:
+                message += f"{song}\n"
+            await self.chatting_send(message)
+            self.song_message_boolean = False
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
