@@ -315,10 +315,10 @@ class PandaManager:
                 return response
             elif splited_chat[0] == "!추천" or splited_chat[0] == "!하트":
                 if splited_chat[0] == "!추천":
-                    recommand_message = "".join(splited_chat[1:])
+                    recommand_message = " ".join(splited_chat[1:])
                     response = await self.regist_recommand_message(recommand_message)
                 elif splited_chat[0] == "!하트":
-                    recommand_message = "".join(splited_chat[1:])
+                    recommand_message = " ".join(splited_chat[1:])
                     response = await self.regist_hart_message(recommand_message)
             elif splited_chat[0] == "!써칭" or splited_chat[0] == "!합계":
                 response = await self.get_hart_history(splited_chat[0], splited_chat[1])
