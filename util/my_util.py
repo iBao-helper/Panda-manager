@@ -21,7 +21,7 @@ class User(BaseModel):
     manager_nick: str
     rc_message: str
     hart_message: str
-    resourceId: int | None
+    resource_id: int | None
 
 
 async def get_commands(panda_id: str):

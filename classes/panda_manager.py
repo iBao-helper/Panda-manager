@@ -433,7 +433,7 @@ class PandaManager:
                 requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{self.user.nickname}",
                     json={
-                        "username": emoji.emojize(hart_user),
+                        "user_name": emoji.emojize(hart_user),
                         "count": hart_count,
                     },
                     timeout=5,
@@ -545,7 +545,7 @@ class PandaManager:
                     for data in json_data:
                         message = (
                             message
-                            + f"[{data['username']}] -> [{data['bjname']}] ♥{data['count']}개\n"
+                            + f"[{data['user_name']}] -> [{data['bj_name']}] ♥{data['count']}개\n"
                         )
                     await self.page.get_by_placeholder("채팅하기").fill(
                         emoji.emojize(message)
