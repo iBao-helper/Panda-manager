@@ -232,19 +232,18 @@ async def get_panda_nickname(id: str, response: Response):
 @app.exception_handler(ex.PlayWrightException)
 async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
-    await logging(exc.panada_id, f"{SERVER_KIND} - PlayWright Error\n{exc.message}")
     await panda_managers[exc.panada_id].send_screenshot()
     if SERVER_KIND == "ec2":
         print("ec2 task 실패")
-        await logging(
-            exc.panada_id,
-            f"{SERVER_KIND} - PlayWright Error - ec2 task 실패\n{exc.message}",
-        )
         if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
             # nw 가동 실패
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
                 json={"panda_id": exc.panada_id, message: exc.message},
@@ -255,6 +254,10 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             requests.delete(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-login",
                 json={"panda_id": exc.panada_id},
@@ -264,12 +267,15 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
                 json={"panda_id": exc.panada_id, message: exc.message},
                 timeout=10,
             )
-
         message = "EC2 task 실패"
     elif SERVER_KIND == "local":
         print("ec2 task 실패")
@@ -278,6 +284,10 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
                 json={"panda_id": exc.panada_id, "message": message},
@@ -287,6 +297,10 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
             requests.delete(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-login",
@@ -297,12 +311,15 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
+            await logging(
+                exc.panada_id,
+                f"{SERVER_KIND} - PlayWright Error\n{message}",
+            )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
                 json={"panda_id": exc.panada_id, "message": message},
                 timeout=10,
             )
-
     return JSONResponse(
         status_code=status_code,
         content={"message": message},
