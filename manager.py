@@ -230,7 +230,7 @@ async def get_panda_nickname(id: str, response: Response):
 
 ## Exception Handler 모음
 @app.exception_handler(ex.PlayWrightException)
-async def play_wright_handler(exc: ex.PlayWrightException):
+async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
     await logging(exc.panada_id, f"{SERVER_KIND} - PlayWright Error\n{exc.message}")
     await panda_managers[exc.panada_id].send_screenshot()
