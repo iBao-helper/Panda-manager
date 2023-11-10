@@ -19,6 +19,7 @@ class SeleWatch:
     def __init__(self) -> None:
         self.driver = None
         self.bookmark_list = []
+        self.delete_bookmark_list = []
         self.backend_url = BACKEND_URL
         self.backend_port = BACKEND_PORT
 
@@ -81,7 +82,10 @@ class SeleWatch:
             # print("[start night watch] - BookMark Start")
             for book_mark_id in self.bookmark_list:
                 self.set_book_mark(book_mark_id, True)
+            for book_mark_id in self.delete_bookmark_list:
+                self.set_book_mark(book_mark_id, False)
             self.bookmark_list.clear()
+            self.delete_bookmark_list.clear()
             idle_users, live_users = self.get_user_status()
             backend_live_users = requests.get(
                 url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
@@ -162,6 +166,10 @@ class SeleWatch:
     def add_book_mark_list(self, panda_id: str):
         """북마크 해야될 리스트에 추가"""
         self.bookmark_list.append(panda_id)
+
+    def delete_book_mark_list(self, panda_id: str):
+        """북마크 삭제해야될 리스트에 추가"""
+        self.delete_bookmark_list.append(panda_id)
 
     def refresh(self):
         """새로고침"""

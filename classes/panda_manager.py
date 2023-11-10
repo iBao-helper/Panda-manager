@@ -235,9 +235,14 @@ class PandaManager:
         """refresh"""
         await self.page.reload()
 
-    async def remove_video(self):
-        """remove Video box"""
-        await self.page.evaluate("document.querySelector('div.player-box').remove()")
+    async def remove_elements(self):
+        """remove other elements"""
+        target = self.page.locator('#header')
+        await target.evaluate("(element) => element.remove()")
+        target = self.page.locator('#sideArea')
+        await target.evaluate("(element) => element.remove()")
+        target = self.page.locator('.live_left_area')
+        await target.evaluate("(element) => element.remove()")
 
     async def chat_command_register_delete(self, splited_chat: list):
         """채팅 매크로 등록/삭제 처리"""

@@ -152,10 +152,23 @@ async def get_panda_nickname(bj_id: str, response: Response):
     nickname = await page.query_selector(".nickname")
     nickname = await nickname.inner_text()
     result = re.sub(r"\([^)]*\)", "", nickname)
-    asyncio.create_task(night_watch.add_book_mark_list(bj_id))
     await browser.close()
     print(result)
     return result
+
+
+@app.get("/add-bookmark", status_code=status.HTTP_200_OK)
+async def add_book_mark(bj_id: str):
+    """북마크 추가"""
+    sele_watch.add_book_mark_list(bj_id)
+    return {"message": "success"}
+
+
+@app.get("/delete-bookmark", status_code=status.HTTP_200_OK)
+async def delete_book_mark(bj_id: str):
+    """북마크 추가"""
+    sele_watch.delete_book_mark_list(bj_id)
+    return {"message": "success"}
 
 
 @app.on_event("startup")

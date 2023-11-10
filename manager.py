@@ -106,7 +106,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     user = User(**data.json())
     panda_manager.set_user(user)
     print("response user relation data : ", user)
-
+    await panda_manager.remove_elements()
     asyncio.create_task(panda_manager.macro())
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
