@@ -327,10 +327,14 @@ class PandaManager:
                     response = await self.regist_hart_message(recommand_message)
             elif splited_chat[0] == "!써칭" or splited_chat[0] == "!합계":
                 response = await self.get_hart_history(splited_chat[0], splited_chat[1])
-            elif splited_chat[0] == "!타이머" and len(splited_chat) >= 3:
-                asyncio.create_task(
-                    self.set_timer(int(splited_chat[1]), int(splited_chat[2]))
-                )
+            elif splited_chat[0] == "!타이머":
+                if len(splited_chat) == 3:
+                    asyncio.create_task(
+                        self.set_timer(int(splited_chat[1]), int(splited_chat[2]))
+                    )
+                elif len(splited_chat) == 2:
+                    asyncio.create_task(self.set_timer(int(splited_chat[1])))
+
             elif splited_chat[0] == "!꺼":
                 # 비동기 호출
                 await self.stop_timer()
@@ -593,7 +597,7 @@ class PandaManager:
             await self.page.get_by_placeholder("채팅하기").fill("타이머가 완료되었습니다")
             await self.page.get_by_role("button", name="보내기").click()
 
-    async def set_timer(self, time: int, time_period: int):
+    async def set_timer(self, time: int, time_period: int = 60):
         """타이머 설정"""
         if self.time > 0:
             return
@@ -674,9 +678,9 @@ class PandaManager:
     #             message += f"{song}\n"
     #         await self.chatting_send(message)
     #         self.song_message_boolean = False
-    
+
     async def update_commands(self):
-      self.commands = await get_commands(self.user.panda_id)
+        self.commands = await get_commands(self.user.panda_id)
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
