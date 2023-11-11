@@ -237,11 +237,11 @@ class PandaManager:
 
     async def remove_elements(self):
         """remove other elements"""
-        target = self.page.locator('#header')
+        target = self.page.locator("#header")
         await target.evaluate("(element) => element.remove()")
-        target = self.page.locator('#sideArea')
+        target = self.page.locator("#sideArea")
         await target.evaluate("(element) => element.remove()")
-        target = self.page.locator('.live_left_area')
+        target = self.page.locator(".live_left_area")
         await target.evaluate("(element) => element.remove()")
 
     async def chat_command_register_delete(self, splited_chat: list):
@@ -336,8 +336,8 @@ class PandaManager:
                 await self.stop_timer()
             elif splited_chat[0] == "!신청":
                 await self.regist_song(" ".join(splited_chat[1:]))
-            elif splited_chat[0] == "!리스트":
-                await self.send_song_list()
+            elif splited_chat[0] == "!리스트" and (chat_user == data.nickname):
+                await self.send_song_list(chat_user)
             elif splited_chat[0] == "!BJ등록":
                 tmp: str = splited_chat[2]
                 splited = tmp.split("/")
@@ -479,7 +479,7 @@ class PandaManager:
                 await self.hart_handler()
                 await self.recommand_handler()
                 await self.timer_handler()
-                await self.song_handler()
+                # await self.song_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -639,40 +639,41 @@ class PandaManager:
         if song in self.song_list:
             await self.chatting_send("이미 신청한 곡입니다.")
             return
-        if len(self.song_list) == 0:
-            asyncio.create_task(self.song_timer())
         self.song_list.append(song)
+        await self.chatting_send(f"{song} - 신청되었습니다.")
         self.song_message_boolean = True
 
-    async def song_timer(self):
-        """신청곡 타이머"""
-        while len(self.song_list) > 0:
-            time = 180
-            while time > 0:
-                time -= 1
-                await asyncio.sleep(1)
-            self.song_list.pop(0)
-            self.song_message_boolean = True
+    # async def song_timer(self):
+    #     """신청곡 타이머"""
+    #     while len(self.song_list) > 0:
+    #         time = 180
+    #         while time > 0:
+    #             time -= 1
+    #             await asyncio.sleep(1)
+    #         self.song_list.pop(0)
+    #         self.song_message_boolean = True
 
-    async def send_song_list(self):
+    async def send_song_list(self, chat_user):
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
         for song in self.song_list:
             message += f"{song}\n"
+        if len(self.song_list) > 0 and chat_user == self.user.nickname:
+            self.song_list.remove(self.song_list[0])
         await self.chatting_send(message)
 
-    async def song_handler(self):
-        """신청곡 핸들러"""
-        if len(self.song_list) == 0 and self.song_message_boolean:
-            await self.chatting_send("신청곡 리스트가 모두 소진되었습니다")
-            self.song_message_boolean = False
-            return
-        if len(self.song_list) > 0 and self.song_message_boolean:
-            message = "신청곡 리스트\n"
-            for song in self.song_list:
-                message += f"{song}\n"
-            await self.chatting_send(message)
-            self.song_message_boolean = False
+    # async def song_handler(self):
+    #     """신청곡 핸들러"""
+    #     if len(self.song_list) == 0 and self.song_message_boolean:
+    #         await self.chatting_send("신청곡 리스트가 모두 소진되었습니다")
+    #         self.song_message_boolean = False
+    #         return
+    #     if len(self.song_list) > 0 and self.song_message_boolean:
+    #         message = "신청곡 리스트\n"
+    #         for song in self.song_list:
+    #             message += f"{song}\n"
+    #         await self.chatting_send(message)
+    #         self.song_message_boolean = False
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
