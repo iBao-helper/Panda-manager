@@ -124,6 +124,17 @@ async def destory_panda_manager(panda_id: str):
     )
 
 
+@app.put("/panda_manager/{panda_id}/command")
+async def update_manager_command(panda_id: str):
+    """백엔드로부터 커맨드가 업데이트 될 경우"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].update_commands()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
 @app.get("/test")
 async def test():
     """테스트"""

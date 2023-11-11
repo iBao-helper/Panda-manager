@@ -674,6 +674,9 @@ class PandaManager:
     #             message += f"{song}\n"
     #         await self.chatting_send(message)
     #         self.song_message_boolean = False
+    
+    async def update_commands(self):
+      self.commands = await get_commands(self.user.panda_id)
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
