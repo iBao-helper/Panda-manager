@@ -34,6 +34,24 @@ async def get_commands(panda_id: str):
     return command_dict
 
 
+async def get_rc_message(panda_id: str):
+    """panda_id의 command리스트를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/rc-message/{panda_id}",
+        timeout=5,
+    )
+    return message
+
+
+async def get_hart_message(panda_id: str):
+    """panda_id의 command리스트를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{panda_id}",
+        timeout=5,
+    )
+    return message
+
+
 async def logging(panda_id: str, message: str):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(

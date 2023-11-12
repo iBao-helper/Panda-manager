@@ -135,6 +135,28 @@ async def update_manager_command(panda_id: str):
     )
 
 
+@app.put("/panda_manager/{panda_id}/rc-message")
+async def update_manager_rc(panda_id: str):
+    """백엔드로부터 커맨드가 업데이트 될 경우"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].update_recommend()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
+@app.put("/panda_manager/{panda_id}/hart-message")
+async def update_manager_hart(panda_id: str):
+    """백엔드로부터 커맨드가 업데이트 될 경우"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].update_hart_message()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
 @app.get("/test")
 async def test():
     """테스트"""

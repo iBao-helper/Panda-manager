@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, get_commands, logging
+from util.my_util import User, get_commands, get_hart_message, get_rc_message, logging
 
 load_dotenv()
 
@@ -680,7 +680,16 @@ class PandaManager:
     #         self.song_message_boolean = False
 
     async def update_commands(self):
+        """커맨드 업데이트"""
         self.commands = await get_commands(self.user.panda_id)
+
+    async def update_recommend(self):
+        """커맨드 업데이트"""
+        self.user.rc_message = await get_rc_message(self.user.panda_id)
+
+    async def update_hart_message(self):
+        """커맨드 업데이트"""
+        self.user.hart_message = await get_hart_message(self.user.panda_id)
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
