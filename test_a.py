@@ -3,7 +3,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from classes.night_watch_selenium import SeleWatch
+from tmp_watch import SeleWatch
 
 sele_watch = SeleWatch()
 sele_watch.create_selenium()
@@ -15,6 +15,6 @@ sele_watch.login()
 sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
 while True:
     time.sleep(5)
-    sele_watch.start()
+    # sele_watch.start()
     time.sleep(5)
 print("hahaha")

@@ -21,6 +21,8 @@ class User(BaseModel):
     manager_nick: str
     rc_message: str
     hart_message: str
+    pr_message: str
+    pr_period: int
     resource_id: int | None
 
 
@@ -35,7 +37,7 @@ async def get_commands(panda_id: str):
 
 
 async def get_rc_message(panda_id: str):
-    """panda_id의 command리스트를 가져온다"""
+    """panda_id의 추천메세지 가져온다"""
     message = requests.get(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/rc-message/{panda_id}",
         timeout=5,
@@ -44,9 +46,18 @@ async def get_rc_message(panda_id: str):
 
 
 async def get_hart_message(panda_id: str):
-    """panda_id의 command리스트를 가져온다"""
+    """panda_id의 하트메세지 가져온다"""
     message = requests.get(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{panda_id}",
+        timeout=5,
+    )
+    return message
+
+
+async def get_pr_message(panda_id: str):
+    """panda_id의 command리스트를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/pr-message/{panda_id}",
         timeout=5,
     )
     return message

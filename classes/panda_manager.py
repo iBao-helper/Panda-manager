@@ -17,7 +17,14 @@ from dotenv import load_dotenv
 
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, get_commands, get_hart_message, get_rc_message, logging
+from util.my_util import (
+    User,
+    get_commands,
+    get_hart_message,
+    get_pr_message,
+    get_rc_message,
+    logging,
+)
 
 load_dotenv()
 
@@ -257,10 +264,8 @@ class PandaManager:
                         },
                         timeout=5,
                     )
-                    print(response.text)
-                    response = response.text
                     self.commands = await get_commands(self.user.panda_id)
-                    await self.page.get_by_placeholder("채팅하기").fill(response)
+                    await self.page.get_by_placeholder("채팅하기").fill("등록되었습니다")
                     await self.page.get_by_role("button", name="보내기").click()
                     return True
                 else:
@@ -340,7 +345,7 @@ class PandaManager:
                 await self.stop_timer()
             elif splited_chat[0] == "!신청":
                 await self.regist_song(" ".join(splited_chat[1:]))
-            elif splited_chat[0] == "!리스트" and (chat_user == data.nickname):
+            elif splited_chat[0] == "!리스트":
                 await self.send_song_list(chat_user)
             elif splited_chat[0] == "!BJ등록":
                 tmp: str = splited_chat[2]
@@ -644,7 +649,7 @@ class PandaManager:
             await self.chatting_send("이미 신청한 곡입니다.")
             return
         self.song_list.append(song)
-        await self.chatting_send(f"{song} - 신청되었습니다.")
+        await self.chatting_send(f"{song} 신청되었습니다.")
         self.song_message_boolean = True
 
     # async def song_timer(self):
@@ -685,11 +690,21 @@ class PandaManager:
 
     async def update_recommend(self):
         """커맨드 업데이트"""
-        self.user.rc_message = await get_rc_message(self.user.panda_id)
+        response = await get_rc_message(self.user.panda_id)
+        self.user.rc_message = response.text
+        print(self.user.rc_message)
 
     async def update_hart_message(self):
         """커맨드 업데이트"""
-        self.user.hart_message = await get_hart_message(self.user.panda_id)
+        response = await get_hart_message(self.user.panda_id)
+        self.user.hart_message = response.text
+        print(self.user.hart_message)
+
+    async def update_pr_message(self):
+        """PR 업데이트"""
+        response = await get_pr_message(self.user.panda_id)
+        self.user.pr_message = response.text
+        print(self.user.hart_message)
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
