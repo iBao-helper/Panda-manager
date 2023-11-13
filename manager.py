@@ -161,7 +161,7 @@ async def update_manager_hart(panda_id: str):
 async def update_manager_pr(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
-        await panda_managers[panda_id].update_pr_message()
+        await panda_managers[panda_id].update_pr()
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},

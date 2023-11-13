@@ -63,6 +63,15 @@ async def get_pr_message(panda_id: str):
     return message
 
 
+async def get_pr_period(panda_id: str):
+    """panda_id의 command리스트를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/pr-period/{panda_id}",
+        timeout=5,
+    )
+    return message
+
+
 async def logging(panda_id: str, message: str):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(

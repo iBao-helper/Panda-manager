@@ -22,6 +22,7 @@ from util.my_util import (
     get_commands,
     get_hart_message,
     get_pr_message,
+    get_pr_period,
     get_rc_message,
     logging,
 )
@@ -58,6 +59,7 @@ class PandaManager:
         self.data = body
         self.commands = []
         self.song_list = []
+        self.is_pr_message_sendable = False
         self.song_message_boolean = False
         self.command_executed = False
         self.command_list = [
@@ -480,6 +482,7 @@ class PandaManager:
         """테스트용"""
         self.loop = True
         self.commands = await get_commands(self.user.panda_id)
+        asyncio.create_task(self.pr_timer())
         print("[Receive default commands]", self.commands)
         while self.loop:
             self.command_executed = False
@@ -488,7 +491,7 @@ class PandaManager:
                 await self.hart_handler()
                 await self.recommand_handler()
                 await self.timer_handler()
-                # await self.song_handler()
+                await self.pr_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -652,16 +655,6 @@ class PandaManager:
         await self.chatting_send(f"{song} 신청되었습니다.")
         self.song_message_boolean = True
 
-    # async def song_timer(self):
-    #     """신청곡 타이머"""
-    #     while len(self.song_list) > 0:
-    #         time = 180
-    #         while time > 0:
-    #             time -= 1
-    #             await asyncio.sleep(1)
-    #         self.song_list.pop(0)
-    #         self.song_message_boolean = True
-
     async def send_song_list(self, chat_user):
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
@@ -671,18 +664,11 @@ class PandaManager:
             self.song_list.remove(self.song_list[0])
         await self.chatting_send(message)
 
-    # async def song_handler(self):
-    #     """신청곡 핸들러"""
-    #     if len(self.song_list) == 0 and self.song_message_boolean:
-    #         await self.chatting_send("신청곡 리스트가 모두 소진되었습니다")
-    #         self.song_message_boolean = False
-    #         return
-    #     if len(self.song_list) > 0 and self.song_message_boolean:
-    #         message = "신청곡 리스트\n"
-    #         for song in self.song_list:
-    #             message += f"{song}\n"
-    #         await self.chatting_send(message)
-    #         self.song_message_boolean = False
+    async def pr_handler(self):
+        """일정 주기마다 안내메시지 발송하는 핸들러"""
+        if self.is_pr_message_sendable:
+            await self.chatting_send(self.user.pr_message)
+            self.is_pr_message_sendable = False
 
     async def update_commands(self):
         """커맨드 업데이트"""
@@ -700,11 +686,24 @@ class PandaManager:
         self.user.hart_message = response.text
         print(self.user.hart_message)
 
-    async def update_pr_message(self):
+    async def update_pr(self):
         """PR 업데이트"""
-        response = await get_pr_message(self.user.panda_id)
-        self.user.pr_message = response.text
-        print(self.user.hart_message)
+        pr_message = await get_pr_message(self.user.panda_id)
+        self.user.pr_message = pr_message.text
+        print(self.user.pr_message)
+
+        pr_period = await get_pr_period(self.user.panda_id)
+        self.user.pr_period = int(pr_period.text)
+        print(self.user.pr_period)
+
+    async def pr_timer(self):
+        """신청곡 타이머"""
+        while True:
+            time = self.user.pr_period
+            while time > 0:
+                time -= 1
+                await asyncio.sleep(1)
+            self.is_pr_message_sendable = True
 
     async def send_screenshot(self):
         """백엔드서버에 스크린샷 보냄"""
