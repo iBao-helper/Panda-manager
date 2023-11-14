@@ -129,6 +129,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             await page.wait_for_selector("div.profile_img")
         else:
             print("stt 실패")
+            await browser.close()
             raise ex.PlayWrightException("stt 실패")  # pylint: disable=W0719
     else:
         print("로그인 성공")
@@ -148,6 +149,7 @@ async def get_panda_nickname(bj_id: str, response: Response):
     await asyncio.sleep(1)
     if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
         response.status_code = status.HTTP_404_NOT_FOUND
+        await browser.close()
         return {"message": "null"}
     nickname = await page.query_selector(".nickname")
     nickname = await nickname.inner_text()
