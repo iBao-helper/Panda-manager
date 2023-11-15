@@ -703,6 +703,7 @@ class PandaManager:
             files=files,
             timeout=20,
         )
+        os.remove(f"{self.data.panda_id} + .png")
 
     async def chatting_send(self, message):
         """채팅 전송"""
