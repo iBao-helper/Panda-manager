@@ -74,7 +74,6 @@ class PandaManager:
             "!꺼",
             "!신청",
             "!리스트",
-            "!BJ등록",
         ]
         self.timer_message_boolean = False
         self.timer_complete = False
@@ -349,22 +348,6 @@ class PandaManager:
                 await self.regist_song(" ".join(splited_chat[1:]))
             elif splited_chat[0] == "!리스트":
                 await self.send_song_list(chat_user)
-            elif splited_chat[0] == "!BJ등록":
-                tmp: str = splited_chat[2]
-                splited = tmp.split("/")
-                await self.page.get_by_placeholder("채팅하기").fill(
-                    "BJ_ID, Manager ID/PW 의 유효성을 확인합니다. 15초 내외로 소요됩니다"
-                )
-                await self.page.get_by_role("button", name="보내기").click()
-                response = requests.post(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/chat-register/{splited_chat[1]}",
-                    json={"id": splited[0], "pw": splited[1]},
-                    timeout=30,
-                )
-                print(response.text)
-                response = response.text
-                await self.page.get_by_placeholder("채팅하기").fill(response)
-                await self.page.get_by_role("button", name="보내기").click()
             return True
 
         except:  # pylint: disable=W0702
