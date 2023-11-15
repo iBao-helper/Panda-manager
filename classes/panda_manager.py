@@ -16,7 +16,7 @@ import requests
 from dotenv import load_dotenv
 
 from custom_exception import custom_exceptions as ex
-from stt import sample_recognize
+from stt_v2 import sample_recognize
 from util.my_util import (
     User,
     get_commands,
@@ -461,7 +461,7 @@ class PandaManager:
     async def recommand_handler(self):
         """추천 핸들러"""
         try:
-            recommand_elements = await self.page.query_selector_all(".cht_l.cht_al_1")
+            recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
             for recommand_element in recommand_elements:
                 recommand_message = await recommand_element.inner_text()
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
