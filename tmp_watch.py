@@ -1,5 +1,6 @@
 """테스트"""
 import os
+import re
 import time
 import requests
 from dotenv import load_dotenv
@@ -7,6 +8,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
+from typing import List
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
@@ -35,7 +38,8 @@ class SeleWatch:
         options.add_argument("disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument(f"--proxy-server={PROXY_IP}:8888")
+        options.add_argument("headless")
+        # options.add_argument(f"--proxy-server={PROXY_IP}:8888")
 
         # 크롬 드라이버 최신 버전 설정
         service = ChromeService(executable_path="/usr/bin/chromedriver")
@@ -65,11 +69,8 @@ class SeleWatch:
 
     def find_element_with_css(self, css_selector):
         """css_selector로 element 찾기"""
-        try:
-            btn_close = self.driver.find_element(by=By.CSS_SELECTOR, value=css_selector)
-            return btn_close
-        except Exception as e:  # pylint: disable=W0703
-            print(f"[find_element_with_css] - {css_selector}\n{e}")
+        btn_close = self.driver.find_element(by=By.CSS_SELECTOR, value=css_selector)
+        return btn_close
 
     def element_click_with_css(self, css_selector):
         """css 엘리먼트 클릭"""
@@ -177,3 +178,53 @@ class SeleWatch:
     def refresh(self):
         """새로고침"""
         self.driver.refresh()
+
+    def scroll_down(self):
+        """page를 스크롤 끝까지 내리는 함수"""
+        self.driver.implicitly_wait(0)
+        while True:
+            try:
+                element = self.find_element_with_css("div.listBtnMore")
+                if element:
+                    element.click()
+                time.sleep(0.5)
+            except Exception as e:  # pylint: disable=W0703
+                break
+        self.driver.implicitly_wait(10)
+
+    def get_proceed_data_list(self, lists: List[WebElement]):
+        """진행중인 방송 리스트를 가져옴"""
+        ret_list = []
+        for list_item in lists:
+            name = list_item.find_element(By.CSS_SELECTOR, "div.infor > span.name")
+            viewer = list_item.find_element(By.CSS_SELECTOR, "div.infor > span.viewr")
+            if viewer.text == "FULL":
+                view_count = 700
+            else:
+                view_count = int(viewer.text.replace("'", "").replace(",", ""))
+            if view_count >= 2:
+                ret_list.append({"name": name.text, "viewer": view_count})
+        return ret_list
+
+    def get_user_list(self):
+        """매크로"""
+        self.goto_url("https://www.pandalive.co.kr/live")
+        self.scroll_down()
+        lists = self.driver.find_elements(By.CSS_SELECTOR, "div.liveList > ul > li")
+        proceed_list = self.get_proceed_data_list(lists)
+        print(proceed_list)
+        return proceed_list
+
+    def add_user(self, user):
+        try:
+            panda_id = self.driver.find_element(
+                By.XPATH,
+                "/html/body/div/div/div/div[2]/div[2]/div/div/table/tbody/tr/td[4]",
+            ).text
+            requests.post(
+                url=f"http://localhost:3000/user/tmp-user",
+                json={"panda_id": panda_id, "nickname": user},
+                timeout=5,
+            )
+        except Exception as e:
+            print(e)
