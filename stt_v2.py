@@ -32,6 +32,3 @@ def sample_recognize(
         print(f"[GOOGLE TRANSCRIPT] - {response.results[0].alternatives[0].transcript}")
         return response.results[0].alternatives[0].transcript
     return False
-
-
-sample_recognize("/root/localServer/stt/audio.mp3")
