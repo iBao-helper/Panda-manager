@@ -182,7 +182,7 @@ async def startup_event():
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
-            json={"ip": "121.131.106.243"},
+            json={"ip": "61.73.46.20"},
             timeout=5,
         )
     except:  # pylint: disable=W0702

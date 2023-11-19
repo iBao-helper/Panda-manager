@@ -82,7 +82,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     ## 무사히 방송에 접속하였다면 DB에 관계를 설정해준다
     if SERVER_KIND == "local":
         requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/request-proxy-task",
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/success-proxy-task",
             json={
                 "ip": body.proxy_ip,
                 "panda_id": panda_id,
@@ -92,7 +92,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         )
     elif SERVER_KIND == "ec2":
         requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/request-ec2-task",
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/success-ec2-task",
             json={
                 "panda_id": panda_id,
                 "resource_ip": body.resource_ip,
