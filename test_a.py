@@ -21,14 +21,15 @@ async def test():
     panda_manager2: pm = pm(tmp)
     await panda_manager2.create_playwright()
     panda_managers["1"] = panda_manager2
-    await panda_managers["0"].goto_url(
-        "https://www.pandalive.co.kr/live/play/live1004h"
-    )
-    await panda_managers["1"].goto_url(
-        "https://www.pandalive.co.kr/live/play/live1004h"
-    )
+    panda_manager3: pm = pm(tmp)
+    await panda_manager2.create_playwright()
+    panda_managers["2"] = panda_manager3
+    await panda_managers["0"].goto_url("https://www.pandalive.co.kr/live/play/qaaq36")
+    await panda_managers["1"].goto_url("https://www.pandalive.co.kr/live/play/qaaq36")
+    await panda_managers["2"].goto_url("https://www.pandalive.co.kr/live/play/qaaq36")
     await panda_managers["0"].remove_elements()
     await panda_managers["1"].remove_elements()
+    await panda_managers["2"].remove_elements()
 
 
 asyncio.run(test())
