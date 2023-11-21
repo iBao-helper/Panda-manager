@@ -86,7 +86,7 @@ class PandaManager:
             apw = await async_playwright().start()
             if SERVER_KIND == "local":
                 self.browser = await apw.chromium.launch(
-                    headless=False,
+                    headless=True,
                     # proxy={"server": f"{proxy_ip}:8888"}
                     # headless=HEADLESS,
                 )
