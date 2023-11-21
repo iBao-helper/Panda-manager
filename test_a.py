@@ -27,6 +27,8 @@ async def test():
     await panda_managers["1"].goto_url(
         "https://www.pandalive.co.kr/live/play/live1004h"
     )
+    await panda_managers["0"].remove_elements()
+    await panda_managers["1"].remove_elements()
 
 
 asyncio.run(test())
