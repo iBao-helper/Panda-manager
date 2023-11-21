@@ -22,7 +22,7 @@ async def test():
     await panda_manager2.create_playwright()
     panda_managers["1"] = panda_manager2
     panda_manager3: pm = pm(tmp)
-    await panda_manager2.create_playwright()
+    await panda_manager3.create_playwright()
     panda_managers["2"] = panda_manager3
     await panda_managers["0"].goto_url("https://www.pandalive.co.kr/live/play/qaaq36")
     await panda_managers["1"].goto_url("https://www.pandalive.co.kr/live/play/qaaq36")
