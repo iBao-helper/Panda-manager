@@ -34,7 +34,7 @@ class NightWatch:
         """playwright 객체 생성"""
         try:
             apw = await async_playwright().start()
-            self.browser = await apw.chromium.launch(headless=False)
+            self.browser = await apw.chromium.launch(headless=True)
             context = await self.browser.new_context(
                 viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
                 locale="ko-KR",
