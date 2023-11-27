@@ -12,7 +12,7 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, logging
+from util.my_util import User, logging_debug
 from dotenv import load_dotenv
 import traceback
 
@@ -35,18 +35,18 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    await logging(body.panda_id, f"[panda_manager_start] - body data\n{body}")
+    await logging_debug(body.panda_id, f"[panda_manager_start] - body data\n{body}")
     print(body, panda_id)
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
 
-    await logging(
+    await logging_debug(
         body.panda_id,
         f"[panda_manager_start] - create_playwright start\nproxy_ip:{body.proxy_ip}",
     )
     await panda_manager.create_playwright(body.proxy_ip)
 
-    await logging(
+    await logging_debug(
         body.panda_id,
         f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
     )
@@ -71,7 +71,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
         ) from TimeoutError
 
-    await logging(
+    await logging_debug(
         body.panda_id,
         f"[panda_manager_start] - goto url \nhttps://www.pandalive.co.kr/live/play/{panda_id}",
     )
@@ -284,7 +284,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -298,7 +298,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -311,7 +311,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -328,7 +328,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -341,7 +341,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -355,7 +355,7 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            await logging(
+            await logging_debug(
                 exc.panada_id,
                 f"{SERVER_KIND} - PlayWright Error\n{message}",
             )
@@ -387,11 +387,11 @@ async def default_exception_filter(request: Request, e: Exception):
                 json={"panda_id": panda_id, "message": "Unkown-Proxy-Error"},
                 timeout=10,
             )
-        await logging(panda_id, f"Exception Error\n{str(e)}")
-        await logging(panda_id, {traceback.print_exc()})
+        await logging_debug(panda_id, f"Exception Error\n{str(e)}")
+        await logging_debug(panda_id, {traceback.print_exc()})
     else:
-        await logging("Unkown-Error", f"{SERVER_KIND} - Exception Error\n{str(e)}")
-        await logging("Unkown-Error", {traceback.print_exc()})
+        await logging_debug("Unkown-Error", f"{SERVER_KIND} - Exception Error\n{str(e)}")
+        await logging_debug("Unkown-Error", {traceback.print_exc()})
 
     return JSONResponse(
         status_code=500,
@@ -407,7 +407,7 @@ async def startup_event():
     """
     try:
         print(f"{PUBLIC_IP}")
-        await logging(
+        await logging_debug(
             "common-env-check",
             f"PUBLIC_IP : {PUBLIC_IP}, CAPACITY : {CAPACITY}, INSTANCE_ID : {INSTANCE_ID}, "
             f"SERVER_KIND : {SERVER_KIND}",

@@ -24,7 +24,7 @@ from util.my_util import (
     get_pr_message,
     get_pr_period,
     get_rc_message,
-    logging,
+    logging_debug,
 )
 
 load_dotenv()
@@ -114,27 +114,27 @@ class PandaManager:
         4. bookmark 페이지로 이동
         """
         await self.page.get_by_role("button", name="닫기").click()
-        await logging(self.data.panda_id, "닫기 성공")
+        await logging_debug(self.data.panda_id, "닫기 성공")
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
-        await logging(self.data.panda_id, "로그인 / 회원가입")
+        await logging_debug(self.data.panda_id, "로그인 / 회원가입")
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
-        await logging(self.data.panda_id, "로그인 / 회원가입")
+        await logging_debug(self.data.panda_id, "로그인 / 회원가입")
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인").click()
-        await logging(self.data.panda_id, "로그인")
+        await logging_debug(self.data.panda_id, "로그인")
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
         await asyncio.sleep(2)
         await self.page.get_by_role("button", name="로그인", exact=True).click()
-        await logging(self.data.panda_id, "로그인")
+        await logging_debug(self.data.panda_id, "로그인")
         await asyncio.sleep(2)
         print("로그인 클릭")
         invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
         invalid_text_pw = await self.page.get_by_text(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
-        await logging(
+        await logging_debug(
             self.data.panda_id,
             f"[invalid-visible check]\nid:{invalid_text_id}, pw:{invalid_text_pw}",
         )
@@ -150,7 +150,7 @@ class PandaManager:
         invalid_label_pw = await self.page.get_by_label(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
-        await logging(
+        await logging_debug(
             self.data.panda_id,
             f"[invalid-visible check]\nid:{invalid_text_id}, pw:{invalid_text_pw}",
         )
@@ -167,7 +167,7 @@ class PandaManager:
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
         ).is_visible()
         auto_detect = await self.page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
-        await logging(
+        await logging_debug(
             self.data.panda_id,
             f"[invalid-login_detect check]\ninvalid_login_detect:{invalid_login_detect}, auto_detect:{auto_detect}",
         )
@@ -187,12 +187,12 @@ class PandaManager:
                         f'iframe[name="{frame.name}"]'
                     )
             await click_frame.get_by_label("로봇이 아닙니다.").click()
-            await logging(self.data.panda_id, "[로봇이 아닙니다]")
+            await logging_debug(self.data.panda_id, "[로봇이 아닙니다]")
             await asyncio.sleep(1)
             # 리캡챠 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
             await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
-            await logging(self.data.panda_id, "[음성 보안문자 듣기]")
+            await logging_debug(self.data.panda_id, "[음성 보안문자 듣기]")
             await asyncio.sleep(1)
             # 보안문자 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
@@ -208,12 +208,12 @@ class PandaManager:
                 print(response)
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
-                await logging(self.data.panda_id, "[들리는대로 입력하세요 확인]")
+                await logging_debug(self.data.panda_id, "[들리는대로 입력하세요 확인]")
                 # 보안 문자 떳는지 확인
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.get_by_role("button", name="로그인", exact=True).click()
-                await logging(self.data.panda_id, "마지막 로그인")
+                await logging_debug(self.data.panda_id, "마지막 로그인")
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.wait_for_selector("div.profile_img")
@@ -234,7 +234,7 @@ class PandaManager:
         await self.page.goto(url)
         err_404 = await self.page.query_selector("div.err404")
         if err_404 is not None:
-            await logging(self.data.panda_id, "404에러")
+            await logging_debug(self.data.panda_id, "404에러")
             await self.refresh()
             await asyncio.sleep(3)
             await self.goto_url(url)
@@ -487,7 +487,7 @@ class PandaManager:
         print("retry_detect", retry_detect)
         if retry_detect:
             print("잦은 재시도 탐지에 걸림")
-            await logging(self.data.panda_id, "잦은 재시도 탐지에 걸림")
+            await logging_debug(self.data.panda_id, "잦은 재시도 탐지에 걸림")
             raise ex.PlayWrightException(
                 ex.PWEEnum.PD_LOGIN_STT_FAILED,
                 panda_id=self.data.panda_id,
