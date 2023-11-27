@@ -72,7 +72,7 @@ async def get_pr_period(panda_id: str):
     return message
 
 
-async def logging_debug(panda_id: str, description: str, data):
+async def logging_debug(panda_id: str, description: str, data: object):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
@@ -80,7 +80,7 @@ async def logging_debug(panda_id: str, description: str, data):
         timeout=5,
     )
 
-async def logging_error(panda_id: str, description: str, data):
+async def logging_error(panda_id: str, description: str, data: object):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/error",
