@@ -12,7 +12,7 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
-from util.my_util import User, logging_debug
+from util.my_util import User, logging_debug, logging_error
 from dotenv import load_dotenv
 import traceback
 
@@ -35,20 +35,25 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    await logging_debug(body.panda_id, f"[panda_manager_start] - body data\n{body}")
+    await logging_debug(body.panda_id, "[panda_manager_start] - body", body)
     print(body, panda_id)
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
 
     await logging_debug(
         body.panda_id,
-        f"[panda_manager_start] - create_playwright start\nproxy_ip:{body.proxy_ip}",
+        "[panda_manager_start] - create_playwright start", {
+            "proxy_ip": body.proxy_ip
+		}
     )
     await panda_manager.create_playwright(body.proxy_ip)
 
     await logging_debug(
         body.panda_id,
-        f"[panda_manager_start] - login start\nlogin_id:{body.manager_id}, login_pw={body.manager_pw}",
+        "[panda_manager_start] - login start", {
+            "login_id": body.manager_id, 
+            "login_pw": body.manager_pw
+		},
     )
     # 로그인이 실패할 경우 PD_LOIGIN_이유 발생
     try:
@@ -73,7 +78,9 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
 
     await logging_debug(
         body.panda_id,
-        f"[panda_manager_start] - goto url \nhttps://www.pandalive.co.kr/live/play/{panda_id}",
+        "[panda_manager_start] - goto url", {
+            "url": f"https://www.pandalive.co.kr/live/play/{panda_id}"
+		}
     )
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
@@ -178,8 +185,13 @@ async def test():
 @app.get("/check-manager", status_code=status.HTTP_200_OK)
 async def check_manager_login(id: str, pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
-    print(id)
-    print(pw)
+    await logging_debug(
+        "check-manager",
+        "[check_manager_login] - id, pw", {
+            "id": id,
+            "pw": pw
+		}
+    )
     apw = await async_playwright().start()
     browser = await apw.chromium.launch(headless=False)
     page = await browser.new_page()
@@ -284,9 +296,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+					"server_kind": SERVER_KIND,
+					"message": message
+				}
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
@@ -298,9 +314,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+                  "server_kind": SERVER_KIND,
+                  "message": message
+                }
             )
             requests.delete(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-login",
@@ -311,9 +331,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+					"server_kind": SERVER_KIND,
+					"message": message
+				}
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
@@ -328,9 +352,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             print("PD 가동 실패", exc.panada_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+					"server_kind": SERVER_KIND,
+					"message": message
+				}
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
@@ -341,9 +369,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # nigthwatch 로그인 실패
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+					"server_kind": SERVER_KIND,
+					"message": message
+				}
             )
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
             requests.delete(
@@ -355,9 +387,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             # 이 경우는 stt에 실패했거나 봇 탐지에 걸렸을 경우 재시작 해야함
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
-            await logging_debug(
+            await logging_error(
                 exc.panada_id,
-                f"{SERVER_KIND} - PlayWright Error\n{message}",
+                "PlayWright Error",
+                {
+					"server_kind": SERVER_KIND,
+					"message": message
+				}
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
@@ -387,11 +423,23 @@ async def default_exception_filter(request: Request, e: Exception):
                 json={"panda_id": panda_id, "message": "Unkown-Proxy-Error"},
                 timeout=10,
             )
-        await logging_debug(panda_id, f"Exception Error\n{str(e)}")
-        await logging_debug(panda_id, {traceback.print_exc()})
+        await logging_error(
+                panda_id,
+                "Unkown Error",
+                {
+                  "message": str(e),
+                  "trace": traceback.print_exc()
+                }
+            )
     else:
-        await logging_debug("Unkown-Error", f"{SERVER_KIND} - Exception Error\n{str(e)}")
-        await logging_debug("Unkown-Error", {traceback.print_exc()})
+        await logging_error(
+                panda_id,
+                "Unkown Error",
+                {
+                  "message": str(e),
+                  "trace": traceback.print_exc()
+                }
+            )
 
     return JSONResponse(
         status_code=500,
@@ -406,11 +454,15 @@ async def startup_event():
     이미 있다면 등록되지 않음
     """
     try:
-        print(f"{PUBLIC_IP}")
         await logging_debug(
-            "common-env-check",
-            f"PUBLIC_IP : {PUBLIC_IP}, CAPACITY : {CAPACITY}, INSTANCE_ID : {INSTANCE_ID}, "
-            f"SERVER_KIND : {SERVER_KIND}",
+            "Manager",
+            "PandaManager StartUp Function",
+            {
+              "PUBLIC_IP": PUBLIC_IP,
+              "CAPACITY": CAPACITY,
+              "INSTANCE_ID": INSTANCE_ID,
+              "SERVER_KIND": SERVER_KIND
+            }
         )
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
