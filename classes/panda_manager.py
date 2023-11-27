@@ -139,8 +139,8 @@ class PandaManager:
             self.data.panda_id,
             "[invalid-visible check]",
             {
-                "id": {invalid_text_id}, 
-                "pw": {invalid_text_pw}
+                "id": invalid_text_id, 
+                "pw": invalid_text_pw
             },
         )
         if invalid_text_id or invalid_text_pw:
@@ -159,8 +159,8 @@ class PandaManager:
             self.data.panda_id,
             "[invalid-visible check]",
             {
-                "id": {invalid_text_id}, 
-                "pw": {invalid_text_pw}
+                "id": invalid_text_id, 
+                "pw": invalid_text_pw
 			},
         )
         if invalid_label_id or invalid_label_pw:
