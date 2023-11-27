@@ -35,7 +35,13 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    await logging_debug(body.panda_id, f"[panda_manager_start] - {body.panda_id}", body)
+    await logging_debug(body.panda_id, f"[panda_manager_start] - {body.panda_id}", {
+      "panda_id": body.panda_id,
+      "proxy_ip": body.proxy_ip,
+      "manager_id": body.manager_id,
+      "manager_pw": body.manager_pw,
+      "resource_ip": body.resource_ip
+    })
     print(body, panda_id)
     panda_manager: pm.PandaManager = pm.PandaManager(body)
     panda_managers[panda_id] = panda_manager
