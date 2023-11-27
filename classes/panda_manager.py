@@ -130,7 +130,6 @@ class PandaManager:
         await self.page.get_by_role("button", name="로그인", exact=True).click()
         await logging_debug(self.data.panda_id, "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"})
         await asyncio.sleep(2)
-        print("로그인 클릭")
         invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
         invalid_text_pw = await self.page.get_by_text(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
