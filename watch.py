@@ -74,7 +74,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     print(manager_id)
     print(manager_pw)
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=False)
+    browser = await apw.chromium.launch(headless=True)
     context = await browser.new_context(
       viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
       locale="ko-KR",
