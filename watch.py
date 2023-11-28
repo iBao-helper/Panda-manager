@@ -72,7 +72,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     print(manager_id)
     print(manager_pw)
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=False)
+    browser = await apw.chromium.launch(headless=True)
     page = await browser.new_page()
     await logging_debug("check_manager_login", "매니저 체크", {
         "manager_id": manager_id,
