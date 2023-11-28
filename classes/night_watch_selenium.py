@@ -81,10 +81,10 @@ class SeleWatch:
         """시작"""
         try:
             # print("[start night watch] - BookMark Start")
-            for book_mark_id in self.bookmark_list:
-                self.set_book_mark(book_mark_id, True)
             for book_mark_id in self.delete_bookmark_list:
                 self.set_book_mark(book_mark_id, False)
+            for book_mark_id in self.bookmark_list:
+                self.set_book_mark(book_mark_id, True)
             self.bookmark_list.clear()
             self.delete_bookmark_list.clear()
             idle_users, live_users = self.get_user_status()

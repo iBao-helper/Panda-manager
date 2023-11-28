@@ -2,8 +2,8 @@
 import asyncio
 import os
 import urllib.request
-import emoji
 from datetime import datetime
+import emoji
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
