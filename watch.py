@@ -14,6 +14,7 @@ from classes import night_watch as nw
 from classes import night_watch_selenium as nws
 from custom_exception import custom_exceptions as ex
 from stt import sample_recognize
+from util.my_util import logging_debug
 
 
 load_dotenv()
@@ -59,9 +60,10 @@ async def night_watch_stop():
 
 
 @app.get("/test")
-async def test():
+async def test(response: Response):
     """테스트"""
-    return {"message": "test"}
+    response.status_code = status.HTTP_202_ACCEPTED
+    return {"message": "Something went wrong"}, status.HTTP_400_BAD_REQUEST
 
 
 @app.get("/check-manager", status_code=status.HTTP_200_OK)
@@ -70,8 +72,12 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     print(manager_id)
     print(manager_pw)
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=HEADLESS)
+    browser = await apw.chromium.launch(headless=False)
     page = await browser.new_page()
+    await logging_debug("check_manager_login", "매니저 체크", {
+        "manager_id": manager_id,
+        "manager_pw": manager_pw
+    })
     try:
         await page.goto("http://pandalive.co.kr")
         await page.get_by_role("button", name="닫기").click()
@@ -88,15 +94,13 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         invalid_text_id = await page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
         invalid_text_pw = await page.get_by_text("비밀번호가 일치하지 않습니다.다시 입력해 주세요.").is_visible()
         if invalid_text_id or invalid_text_pw:
-            await browser.close()
-            raise ex.PlayWrightException("Invalid Id/PW")  # pylint: disable=W0719
+            raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW)  # pylint: disable=W0719
         invalid_label_id = await page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
         invalid_label_pw = await page.get_by_label(
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
         if invalid_label_id or invalid_label_pw:
-            await browser.close()
-            raise ex.PlayWrightException("Invalid Id/PW")  # pylint: disable=W0719
+            raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW)  # pylint: disable=W0719
         invalid_login_detect = await page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
         ).is_visible()
@@ -122,26 +126,28 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             ).get_attribute("href")
             print(audio_url)
             os.system(f"curl {audio_url} --output stt/audio.mp3")
-            response = sample_recognize("stt/audio.mp3")
-            if response:
-                print(response)
-                await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
+            stt_response = sample_recognize("stt/audio.mp3")
+            if stt_response:
+                print(stt_response)
+                await show_frame.get_by_label("들리는 대로 입력하세요.").fill(stt_response)
                 await show_frame.get_by_role("button", name="확인").click()
                 await page.get_by_role("button", name="로그인", exact=True).click()
                 await page.wait_for_selector("div.profile_img")
             else:
                 print("stt 실패")
-                await browser.close()
-                raise ex.PlayWrightException("stt 실패")  # pylint: disable=W0719
+                raise ex.PlayWrightException(ex.PWEEnum.NW_LOGIN_STT_FAILED)  # pylint: disable=W0719
         else:
             print("로그인 성공")
+            await logging_debug("check_manager_login", "매니저 체크 성공", {
+              "manager_id": manager_id,
+              "manager_pw": manager_pw
+            })
             login_profile = await page.query_selector("div.profile_img")
             manager_nickname = await login_profile.inner_text()
             await browser.close()
             return manager_nickname
-    except: # pylint: disable=W0718 W0702
+    except ex.PlayWrightException as exc: # pylint: disable=W0718 W0702
         await page.goto("http://pandalive.co.kr")
-        await page.get_by_role("button", name="닫기").click()
         await page.get_by_role("button", name="로그인 / 회원가입").click()
         await page.get_by_role("link", name="로그인 / 회원가입").click()
         await page.get_by_role("link", name="로그인").click()
@@ -151,7 +157,23 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         await page.get_by_role("button", name="로그인", exact=True).click()
         await asyncio.sleep(2)
         await browser.close()
-        raise ex.PlayWrightException("Invalid Id/PW")  # pylint: disable=W0719 W0707
+        if exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
+            await logging_debug("check_manager_login", "매니저 체크 실패", {
+              "manager_id": manager_id,
+              "manager_pw": manager_pw,
+              "err_message": "ID/PW 불일치"
+            })
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"message": "ID/PW 불일치"}
+            
+        elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
+            await logging_debug("check_manager_login", "매니저 체크 실패", {
+              "manager_id": manager_id,
+              "manager_pw": manager_pw,
+              "err_message": "STT 실패"
+            })
+            response.status_code = status.HTTP_409_CONFLICT
+            return {"message": "STT 실패"}
   
 
 
@@ -187,6 +209,8 @@ async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     sele_watch.delete_book_mark_list(bj_id)
     return {"message": "success"}
+
+
 
 
 @app.on_event("startup")
