@@ -150,6 +150,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         await asyncio.sleep(2)
         await page.get_by_role("button", name="로그인", exact=True).click()
         await asyncio.sleep(2)
+        await browser.close()
         raise ex.PlayWrightException("Invalid Id/PW")  # pylint: disable=W0719 W0707
   
 
