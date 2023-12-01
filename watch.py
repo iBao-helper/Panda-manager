@@ -156,20 +156,20 @@ async def delete_book_mark(bj_id: str):
 
 
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    NightWatch 가동시 backend에 등록 요청을 시도함
-    이미 있다면 등록되지 않음
-    """
-    try:
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
-            json={"ip": "112.185.118.249"},
-            timeout=5,
-        )
-    except:  # pylint: disable=W0702
-        print("nightwatch already registered")
+# @app.on_event("startup")
+# async def startup_event():
+#     """
+#     NightWatch 가동시 backend에 등록 요청을 시도함
+#     이미 있다면 등록되지 않음
+#     """
+#     try:
+#         requests.post(
+#             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
+#             json={"ip": "112.185.118.249"},
+#             timeout=5,
+#         )
+#     except:  # pylint: disable=W0702
+#         print("nightwatch already registered")
 
 
 ## 현재 로컬환경에서 테스트라 localServer 리소스가 실행될때 backend 에 등록하지 않음
