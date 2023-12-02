@@ -2,5 +2,8 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "git.pruneOnFetch": true
+  "git.pruneOnFetch": true,
+  "editor.formatOnSave": true,
+  "editor.indentSize": "tabSize",
+  "editor.insertSpaces": true
 }
