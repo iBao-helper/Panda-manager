@@ -9,7 +9,7 @@ from playwright.async_api import Browser
 from dotenv import load_dotenv
 from custom_exception import custom_exceptions as ex
 import urllib.request  # pylint: disable=C0411
-from stt import sample_recognize
+from stt_v2 import sample_recognize
 
 
 load_dotenv()

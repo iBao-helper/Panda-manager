@@ -11,7 +11,7 @@ from playwright.async_api import async_playwright
 from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
-from stt import sample_recognize
+from stt_v2 import sample_recognize
 from util.my_util import User, logging_debug, logging_error
 from dotenv import load_dotenv
 import traceback
