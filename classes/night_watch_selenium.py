@@ -128,15 +128,14 @@ class SeleWatch:
         time.sleep(1)
         book_mark = self.find_element_with_css("span.btn_bookmark")
         book_mark_class = book_mark.get_attribute("class")
+        self.bookmark_list_changed = True
         # 이미 북마크가 되어있다면
         if "on" in book_mark_class:
             if state is False:
-                self.bookmark_list_changed = True
                 book_mark.click()
         # 북마크가 되어있지 않다면
         else:
             if state is True:
-                self.bookmark_list_changed = True
                 book_mark.click()
 
     def get_user_status(self):
