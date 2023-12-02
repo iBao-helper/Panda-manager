@@ -22,6 +22,7 @@ class SeleWatch:
         self.delete_bookmark_list = []
         self.backend_url = BACKEND_URL
         self.backend_port = BACKEND_PORT
+        self.bookmark_list_changed = False
 
     def create_selenium(self):
         """selenium 생성"""
@@ -78,7 +79,7 @@ class SeleWatch:
         self.find_element_with_css(css_selector).send_keys(value)
 
     def start(self):
-        """시작"""
+        """NightWatch Loop 함수"""
         try:
             # print("[start night watch] - BookMark Start")
             for book_mark_id in self.delete_bookmark_list:
@@ -127,10 +128,12 @@ class SeleWatch:
         # 이미 북마크가 되어있다면
         if "on" in book_mark_class:
             if state is False:
+                self.bookmark_list_changed = True
                 book_mark.click()
         # 북마크가 되어있지 않다면
         else:
             if state is True:
+                self.bookmark_list_changed = True
                 book_mark.click()
 
     def get_user_status(self):
@@ -154,6 +157,13 @@ class SeleWatch:
             except:  # pylint: disable=W0702
                 idle_users[nickname] = False
         self.driver.implicitly_wait(10)
+        if self.bookmark_list_changed:
+            self.bookmark_list_changed = False
+            idle_user_keys = list(idle_users.keys())
+            live_user_keys = list(live_users.keys())
+            combined_keys = idle_user_keys + live_user_keys
+            print("combined_keys = ", combined_keys)
+
         return idle_users, live_users
 
     def filter_dict_by_list(self, my_dict, my_list):
