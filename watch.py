@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from classes import night_watch as nw
 from classes import night_watch_selenium as nws
 from custom_exception import custom_exceptions as ex
-from stt import sample_recognize
+from stt_v2 import sample_recognize
 from util.my_util import logging_debug, logging_error
 
 load_dotenv()
@@ -76,45 +76,58 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     apw = await async_playwright().start()
     browser = await apw.chromium.launch(headless=True)
     context = await browser.new_context(
-      viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
-      locale="ko-KR",
+        viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
+        locale="ko-KR",
     )
     page = await context.new_page()
-    await logging_debug("check_manager_login", "매니저 체크", {
-        "manager_id": manager_id,
-        "manager_pw": manager_pw
-    })
+    await logging_debug(
+        "check_manager_login",
+        "매니저 체크",
+        {"manager_id": manager_id, "manager_pw": manager_pw},
+    )
     try:
         await page.goto("http://pandalive.co.kr")
         await page.get_by_role("button", name="닫기").click()
         manager_nickname = await login(page, manager_id, manager_pw)
         await browser.close()
         return manager_nickname
-    except ex.PlayWrightException as exc: # pylint: disable=W0718 W0702
+    except ex.PlayWrightException as exc:  # pylint: disable=W0718 W0702
         await page.goto("http://pandalive.co.kr")
         if exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
-            await logging_debug("check_manager_login", "매니저 체크 실패", {
-              "manager_id": manager_id,
-              "manager_pw": manager_pw,
-              "err_message": "ID/PW 불일치"
-            })
+            await logging_debug(
+                "check_manager_login",
+                "매니저 체크 실패",
+                {
+                    "manager_id": manager_id,
+                    "manager_pw": manager_pw,
+                    "err_message": "ID/PW 불일치",
+                },
+            )
             try:
                 await login(page, "resetaccount", "Adkflfkd1")
-            except Exception as e: # pylint: disable=W0702 W0612 W0718
-                await logging_error("check_manager_login", "매니저 리셋 로그인도 실패. ", {
-                  "manager_id": manager_id,
-                  "manager_pw": manager_pw,
-                  "err_message": str(e)
-                })
+            except Exception as e:  # pylint: disable=W0702 W0612 W0718
+                await logging_error(
+                    "check_manager_login",
+                    "매니저 리셋 로그인도 실패. ",
+                    {
+                        "manager_id": manager_id,
+                        "manager_pw": manager_pw,
+                        "err_message": str(e),
+                    },
+                )
             await browser.close()
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"message": "ID/PW 불일치"}
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
-            await logging_debug("check_manager_login", "매니저 체크 실패", {
-              "manager_id": manager_id,
-              "manager_pw": manager_pw,
-              "err_message": "STT 실패"
-            })
+            await logging_debug(
+                "check_manager_login",
+                "매니저 체크 실패",
+                {
+                    "manager_id": manager_id,
+                    "manager_pw": manager_pw,
+                    "err_message": "STT 실패",
+                },
+            )
             await browser.close()
             response.status_code = status.HTTP_409_CONFLICT
             return {"message": "STT 실패"}
@@ -152,8 +165,6 @@ async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     sele_watch.delete_book_mark_list(bj_id)
     return {"message": "success"}
-
-
 
 
 # @app.on_event("startup")
@@ -201,6 +212,7 @@ async def play_wright_handler(exc: ex.PlayWrightException):
         content={"message": "PlayWright Exception"},
     )
 
+
 #######  manager 관련 유틸 함수들 #######
 async def check_popup_recaptcha_failed(show_frame: FrameLocator):
     """popup recaptcha failed"""
@@ -208,84 +220,83 @@ async def check_popup_recaptcha_failed(show_frame: FrameLocator):
     print("retry_detect", retry_detect)
     if retry_detect:
         print("잦은 재시도 탐지에 걸림")
-        await logging_error('check-manager', "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"})
-        raise ex.PlayWrightException(
-            ex.PWEEnum.PD_LOGIN_STT_FAILED
+        await logging_error(
+            "check-manager", "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"}
         )
+        raise ex.PlayWrightException(ex.PWEEnum.PD_LOGIN_STT_FAILED)
+
 
 async def login(page: Page, manager_id, manager_pw):
     """로그인 시도"""
-    await logging_debug('check-manager', "[login] - 닫기", {"debug_message": "닫기 성공"})
+    await logging_debug("check-manager", "[login] - 닫기", {"debug_message": "닫기 성공"})
     await page.get_by_role("button", name="로그인 / 회원가입").click()
-    await logging_debug('check-manager', "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"})
+    await logging_debug(
+        "check-manager", "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"}
+    )
     await asyncio.sleep(0.3)
     await page.get_by_role("link", name="로그인 / 회원가입").click()
-    await logging_debug('check-manager', "[login] - 로그인 / 회원가입 링크 클릭", {"debug_message": "로그인 / 회원가입"})
+    await logging_debug(
+        "check-manager", "[login] - 로그인 / 회원가입 링크 클릭", {"debug_message": "로그인 / 회원가입"}
+    )
     await asyncio.sleep(0.3)
     await page.get_by_role("link", name="로그인").click()
-    await logging_debug('check-manager', "[login] - 로그인 링크 클릭", {"debug_message": "로그인"})
+    await logging_debug(
+        "check-manager", "[login] - 로그인 링크 클릭", {"debug_message": "로그인"}
+    )
     await page.get_by_role("textbox").nth(1).fill(manager_id)
     await page.get_by_role("textbox").nth(2).fill(manager_pw)
     await asyncio.sleep(2)
     await page.get_by_role("button", name="로그인", exact=True).click()
-    await logging_debug('check-manager', "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"})
+    await logging_debug(
+        "check-manager", "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"}
+    )
     await asyncio.sleep(2)
     invalid_text_id = await page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
     invalid_text_pw = await page.query_selector(".inputBox.fon.err > p")
     if invalid_text_id or invalid_text_pw:
-        await logging_debug("check-manager", "Invalid ID/PW", {
-            "maanager_id": manager_id,
-            "manager_pw": manager_pw
-        })
+        await logging_debug(
+            "check-manager",
+            "Invalid ID/PW",
+            {"maanager_id": manager_id, "manager_pw": manager_pw},
+        )
         raise ex.PlayWrightException(
             ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
         )
     await logging_debug(
-        'check-manager',
+        "check-manager",
         "[빨간줄 통과]",
-        {
-            "id": manager_id, 
-            "pw": manager_pw
-        },
+        {"id": manager_id, "pw": manager_pw},
     )
     invalid_label_id = await page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
     invalid_label_pw = await page.get_by_label(
         "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
     ).is_visible()
     await logging_debug(
-        'check-manager',
+        "check-manager",
         "[팝업 통과]",
-        {
-            "id": manager_id, 
-            "pw": manager_pw
-        },
+        {"id": manager_id, "pw": manager_pw},
     )
     if invalid_label_id or invalid_label_pw:
-        await logging_debug("check-manager", "Popup Invalid ID/PW", {
-          "id": manager_id, 
-          "pw": manager_pw
-        })
-        await page.get_by_role("button", name="확인").click()
-        raise ex.PlayWrightException(
-            ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW
+        await logging_debug(
+            "check-manager", "Popup Invalid ID/PW", {"id": manager_id, "pw": manager_pw}
         )
+        await page.get_by_role("button", name="확인").click()
+        raise ex.PlayWrightException(ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW)
     invalid_login_detect = await page.get_by_label(
         "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
     ).is_visible()
     auto_detect = await page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
     await logging_debug(
-        'check-manager',
+        "check-manager",
         "[invalid-login_detect check]",
-        {
-            "invalid_login_detect": invalid_login_detect, 
-            "auto_detect": auto_detect
-        },
+        {"invalid_login_detect": invalid_login_detect, "auto_detect": auto_detect},
     )
     if invalid_login_detect or auto_detect:
-        await logging_debug('check-manager', "[비정상적인 로그인 / 자동접속방지 체크박스] 감지됨", {
-          "비정상 로그인 감지": invalid_login_detect,
-          "자동접속방지 체크박스": auto_detect
-        })
+        await logging_debug(
+            "check-manager",
+            "[비정상적인 로그인 / 자동접속방지 체크박스] 감지됨",
+            {"비정상 로그인 감지": invalid_login_detect, "자동접속방지 체크박스": auto_detect},
+        )
         await page.get_by_role("button", name="확인").click()
         await asyncio.sleep(2)
         click_frame = None
@@ -296,57 +307,62 @@ async def login(page: Page, manager_id, manager_pw):
             if "/api2/bframe" in frame.url:
                 show_frame = page.frame_locator(f'iframe[name="{frame.name}"]')
             if "/api2/anchor" in frame.url:
-                click_frame = page.frame_locator(
-                    f'iframe[name="{frame.name}"]'
-                )
+                click_frame = page.frame_locator(f'iframe[name="{frame.name}"]')
         await click_frame.get_by_label("로봇이 아닙니다.").click()
-        await logging_debug('check-manager', "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."})
+        await logging_debug(
+            "check-manager", "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."}
+        )
         await asyncio.sleep(1)
         # 리캡챠 떳는지 확인
         await check_popup_recaptcha_failed(show_frame)
         await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
-        await logging_debug('check-manager', "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"})
+        await logging_debug(
+            "check-manager", "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
+        )
         await asyncio.sleep(1)
         # 보안문자 떳는지 확인
         await check_popup_recaptcha_failed(show_frame)
         audio_url = await show_frame.get_by_role(
             "link", name="또는 오디오를 MP3로 다운로드하세요."
         ).get_attribute("href")
-        await logging_debug('check-manager', "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": audio_url})
+        await logging_debug(
+            "check-manager", "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": audio_url}
+        )
         await asyncio.sleep(1)
         urllib.request.urlretrieve(audio_url, "stt/audio.mp3")
         response = sample_recognize("stt/audio.mp3")
         if response:
             print(response)
-            await logging_debug('check-manager', "[음성 보안문자 듣기] - 음성인식 결과", {
-              "stt_result": response
-            })
+            await logging_debug(
+                "check-manager", "[음성 보안문자 듣기] - 음성인식 결과", {"stt_result": response}
+            )
             await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
             await show_frame.get_by_role("button", name="확인").click()
-            await logging_debug('check-manager', "[들리는대로 입력하세요 확인]", {"debug_message": "들리는대로 입력하세요 확인"})
+            await logging_debug(
+                "check-manager", "[들리는대로 입력하세요 확인]", {"debug_message": "들리는대로 입력하세요 확인"}
+            )
             # 보안 문자 떳는지 확인
             await asyncio.sleep(1)
             await check_popup_recaptcha_failed(show_frame)
             await page.get_by_role("button", name="로그인", exact=True).click()
-            await logging_debug('check-manager', "마지막 로그인", {"debug_message": "마지막 로그인"})
+            await logging_debug(
+                "check-manager", "마지막 로그인", {"debug_message": "마지막 로그인"}
+            )
             await asyncio.sleep(1)
             await check_popup_recaptcha_failed(show_frame)
             await page.wait_for_selector("div.profile_img")
         else:
-            await logging_error('check-manager', "stt 실패", {
-              "err_message": "stt 실패"
-            })
+            await logging_error("check-manager", "stt 실패", {"err_message": "stt 실패"})
             print("stt 실패")
-            await logging_debug('check-manager', "stt 실패", {"debug_message": "stt 실패"})
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_STT_FAILED
-            )
+            await logging_debug("check-manager", "stt 실패", {"debug_message": "stt 실패"})
+            raise ex.PlayWrightException(ex.PWEEnum.PD_LOGIN_STT_FAILED)
     else:
         print("로그인 성공")
         login_profile = await page.query_selector("div.profile_img")
         manager_nickname = await login_profile.inner_text()
-        await logging_debug('check-manager', "로그인 성공", {"debug_message": "로그인 성공"})
+        await logging_debug("check-manager", "로그인 성공", {"debug_message": "로그인 성공"})
         return manager_nickname
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
