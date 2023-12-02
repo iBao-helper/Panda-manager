@@ -1,3 +1,4 @@
+""" google STT 파일"""
 from google.cloud.speech_v2 import SpeechClient
 from google.cloud.speech_v2.types import cloud_speech
 
