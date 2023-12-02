@@ -185,6 +185,15 @@ async def update_manager_pr(panda_id: str):
         content={"message": f"{panda_id} is command updated"},
     )
 
+@app.get("/screen-shot/{panda_id}")
+async def screen_shot(panda_id: str):
+    """스크린샷"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].send_screenshot()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
 
 @app.get("/test")
 async def test():
