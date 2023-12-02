@@ -8,9 +8,12 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
 
+from util.my_util import logging_debug
+
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
+PUBLIC_IP = os.getenv("PUBLIC_IP")
 
 
 class SeleWatch:
@@ -162,7 +165,20 @@ class SeleWatch:
             idle_user_keys = list(idle_users.keys())
             live_user_keys = list(live_users.keys())
             combined_keys = idle_user_keys + live_user_keys
-            print("combined_keys = ", combined_keys)
+            requests.post(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
+                json={
+                    "panda_id": "NightWatch",
+                    "description": "Current Regist User",
+                    "data": combined_keys,
+                },
+                timeout=5,
+            )
+            requests.patch(
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
+                json={"ip": PUBLIC_IP, "size": len(combined_keys)},
+                timeout=5,
+            )
 
         return idle_users, live_users
 
