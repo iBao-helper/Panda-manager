@@ -646,7 +646,7 @@ class PandaManager:
             await self.chatting_send("이미 신청한 곡입니다.")
             return
         self.song_list.append(song)
-        await self.chatting_send(f"{song} 신청되었습니다.")
+        await self.chatting_send(f"'{song}' 신청되었습니다.")
         self.song_message_boolean = True
 
     async def send_song_list(self, chat_user):
