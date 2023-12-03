@@ -184,16 +184,18 @@ class SeleWatch:
         """idle_list 중 current_live_list안에 있는 요소만 반납"""
         ret_list = []
         for user in current_live_list:
-            if user in backend_idle_list:
-                ret_list.append(user)
+            for backend_data in backend_idle_list:
+                if user == backend_data["nickname"]:
+                    ret_list.append(backend_data["panda_id"])
+                    break
         return ret_list
 
     def filter_wanted_stop_list(self, current_live_list: list, backend_live_list: list):
         """live_list에서 dict안에 존재하는 요소만 반납"""
         ret_list = []
         for user in backend_live_list:
-            if user not in current_live_list:
-                ret_list.append(user)
+            if user["nickname"] not in current_live_list:
+                ret_list.append(user["panda_id"])
         return ret_list
 
     def send_jjockji_message(self, panda_id: str, message: str):

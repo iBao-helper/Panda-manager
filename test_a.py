@@ -17,7 +17,7 @@ def main():
     sele_watch.element_click_with_css("button.btnClose")
     sele_watch.login("ibao123", "Adkflfkd1")
     sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
-    idle, live = sele_watch.get_user_status()
+    live = sele_watch.get_user_status()
     backend_live_users = requests.get(
         url="http://panda-manager.com:3000/bj?mode=playing",
         timeout=5,
@@ -26,8 +26,8 @@ def main():
         "http://panda-manager.com:3000/bj?mode=idle",
         timeout=5,
     ).json()
-    wanted_play_list = sele_watch.filter_live_list(live, backend_idle_users)
-    wanted_stop_list = sele_watch.filter_idle_list(idle, backend_live_users)
+    wanted_play_list = sele_watch.filter_wanted_play_list(live, backend_idle_users)
+    wanted_stop_list = sele_watch.filter_wanted_stop_list(live, backend_live_users)
     # sele_watch.goto_url("https://www.pandalive.co.kr/my/post")
     # for bj in bj_lists:
     # sele_watch.send_jjockji_message("k1990121", "awef")
