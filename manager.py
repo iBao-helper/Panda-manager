@@ -185,6 +185,7 @@ async def update_manager_pr(panda_id: str):
         content={"message": f"{panda_id} is command updated"},
     )
 
+
 @app.get("/screen-shot/{panda_id}")
 async def screen_shot(panda_id: str):
     """스크린샷"""
@@ -195,11 +196,13 @@ async def screen_shot(panda_id: str):
         content={"message": f"{panda_id} is command updated"},
     )
 
+
 @app.get("/test")
 async def test():
     """테스트"""
     # asyncio.create_task(night_watch.test2())
-    return {"message": "test"}
+    len(panda_managers)
+    return {"message": len(panda_managers)}
 
 
 ## Exception Handler 모음
