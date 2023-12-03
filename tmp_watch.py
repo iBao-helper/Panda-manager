@@ -222,7 +222,7 @@ class SeleWatch:
                 "/html/body/div/div/div/div[2]/div[2]/div/div/table/tbody/tr/td[4]",
             ).text
             requests.post(
-                url=f"http://localhost:3000/user/tmp-user",
+                url=f"http://panda-manager.com:3000/user/tmp-user",
                 json={"panda_id": panda_id, "nickname": user},
                 timeout=5,
             )

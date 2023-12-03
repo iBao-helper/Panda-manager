@@ -1,37 +1,37 @@
-"""테스트용 모듈"""
-from classes import night_watch_selenium as nws
+"""테스트"""
+import time
 import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from tmp_watch import SeleWatch
 
-sele_watch: nws.SeleWatch = nws.SeleWatch()
 
-
-def main():
-    """메인"""
-
-    # bj_lists = requests.get(
-    #     url="http://panda-manager.com:3000/master/tmp-user",
-    #     timeout=5,
-    # ).json()
-    # print(bj_lists)
+while True:
+    sele_watch = SeleWatch()
     sele_watch.create_selenium()
+    # 닫기 버튼 클릭
     sele_watch.element_click_with_css("button.btnClose")
-    sele_watch.login("ibao123", "Adkflfkd1")
-    sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
-    live = sele_watch.get_user_status()
-    backend_live_users = requests.get(
-        url="http://panda-manager.com:3000/bj?mode=playing",
+
+    # 로그인 과정
+    sele_watch.login()
+    user_list = sele_watch.get_user_list()
+    save_list = requests.get(
+        url="http://panda-manager.com:3000/user/tmp-user",
         timeout=5,
     ).json()
-    backend_idle_users = requests.get(
-        "http://panda-manager.com:3000/bj?mode=idle",
-        timeout=5,
-    ).json()
-    wanted_play_list = sele_watch.filter_wanted_play_list(live, backend_idle_users)
-    wanted_stop_list = sele_watch.filter_wanted_stop_list(live, backend_live_users)
-    # sele_watch.goto_url("https://www.pandalive.co.kr/my/post")
-    # for bj in bj_lists:
-    # sele_watch.send_jjockji_message("k1990121", "awef")
-    print("end")
-
-
-main()
+    print(save_list)
+    for user in user_list:
+        if user["name"] in save_list:
+            continue
+        else:
+            sele_watch = SeleWatch()
+            sele_watch.create_selenium()
+            sele_watch.goto_url(
+                f"https://www.pandalive.co.kr/live/search?text={user['name']}#bj"
+            )
+            # 닫기 버튼 클릭
+            # sele_watch.element_click_with_css("button.btnClose")
+            sele_watch.add_user(user["name"])
+    print("one cycle clear")
+    time.sleep(300)
