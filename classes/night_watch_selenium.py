@@ -230,6 +230,17 @@ class SeleWatch:
         )
         success_btn.click()
 
+        self.driver.implicitly_wait(0)
+        try:
+            x_btn = self.driver.find_element(
+                By.XPATH,
+                "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[4]/div/div[1]/button",
+            )
+            x_btn.click()
+        except:
+            print("a")
+        self.driver.implicitly_wait(10)
+
     def add_book_mark_list(self, panda_id: str):
         """북마크 해야될 리스트에 추가"""
         self.bookmark_list.append(panda_id)
