@@ -8,8 +8,6 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
 
-from util.my_util import logging_debug
-
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
@@ -37,7 +35,7 @@ class SeleWatch:
         options.add_argument("disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
 
         # 크롬 드라이버 최신 버전 설정
         service = ChromeService(executable_path="/usr/bin/chromedriver")
@@ -91,7 +89,7 @@ class SeleWatch:
                 self.set_book_mark(book_mark_id, True)
             self.bookmark_list.clear()
             self.delete_bookmark_list.clear()
-            idle_users, live_users = self.get_user_status()
+            live_users = self.get_user_status()
             backend_live_users = requests.get(
                 url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
                 timeout=5,
@@ -101,8 +99,12 @@ class SeleWatch:
                 timeout=5,
             ).json()
             print("[start night watch] - filter_dict_by_list")
-            wanted_play_list = self.filter_dict_by_list(live_users, backend_idle_users)
-            wanted_stop_list = self.filter_dict_by_list(idle_users, backend_live_users)
+            wanted_play_list = self.filter_wanted_play_list(
+                live_users, backend_idle_users
+            )
+            wanted_stop_list = self.filter_wanted_stop_list(
+                live_users, backend_live_users
+            )
             print(f"watned play lsit = {wanted_play_list}")
             print(f"watend stop list = {wanted_stop_list}")
             # 이 부분 이후에 에러 발생 1
@@ -141,8 +143,8 @@ class SeleWatch:
     def get_user_status(self):
         """유저 상태를 가져옴"""
         self.driver.implicitly_wait(0)
-        idle_users = {}
-        live_users = {}
+        idle_users = []
+        live_users = []
         if self.driver.current_url != "https://www.pandalive.co.kr/pick#bookmark":
             print("북마크 페이지가 아닙니다. 북마크 페이지로 이동합니다.")
             self.goto_url("https://www.pandalive.co.kr/pick#bookmark")
@@ -155,15 +157,13 @@ class SeleWatch:
             nickname = nickname.replace(" ", "").replace("\n", "")
             try:
                 photo.find_element(By.CSS_SELECTOR, "span")
-                live_users[nickname] = True
+                live_users.append(nickname)
             except:  # pylint: disable=W0702
-                idle_users[nickname] = False
+                idle_users.append(nickname)
         self.driver.implicitly_wait(10)
         if self.bookmark_list_changed:
             self.bookmark_list_changed = False
-            idle_user_keys = list(idle_users.keys())
-            live_user_keys = list(live_users.keys())
-            combined_keys = idle_user_keys + live_user_keys
+            combined_keys = idle_users + live_users
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
                 json={
@@ -178,16 +178,55 @@ class SeleWatch:
                 json={"ip": PUBLIC_IP, "size": len(combined_keys)},
                 timeout=5,
             )
+        return live_users
 
-        return idle_users, live_users
-
-    def filter_dict_by_list(self, my_dict, my_list):
-        """list중 dict안에 존재하는 요소만 반납"""
+    def filter_wanted_play_list(self, current_live_list: list, backend_idle_list: list):
+        """idle_list 중 current_live_list안에 있는 요소만 반납"""
         ret_list = []
-        for user in my_list:
-            if user["nickname"] in my_dict:
-                ret_list.append(user["panda_id"])
+        for user in current_live_list:
+            if user in backend_idle_list:
+                ret_list.append(user)
         return ret_list
+
+    def filter_wanted_stop_list(self, current_live_list: list, backend_live_list: list):
+        """live_list에서 dict안에 존재하는 요소만 반납"""
+        ret_list = []
+        for user in backend_live_list:
+            if user not in current_live_list:
+                ret_list.append(user)
+        return ret_list
+
+    def send_jjockji_message(self, panda_id: str, message: str):
+        """쪽지 보내기"""
+        message_btn = self.driver.find_element(
+            By.XPATH, "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[3]"
+        )
+        message_btn.click()
+
+        input_panda_id = self.driver.find_element(
+            By.XPATH,
+            "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[4]/div/div[2]/div[1]/input",
+        )
+        input_message = self.driver.find_element(
+            By.XPATH,
+            "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[4]/div/div[2]/div[1]/textarea",
+        )
+        send_btn = self.driver.find_element(
+            By.XPATH,
+            "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[4]/div/div[2]/div[2]/span/input",
+        )
+        input_panda_id.send_keys(panda_id)
+        input_message.send_keys(message)
+        send_btn.click()
+        check_btn = self.driver.find_element(
+            By.XPATH, "/html/body/div[2]/div/div[3]/button[1]"
+        )
+        check_btn.click()
+        time.sleep(2)
+        success_btn = self.driver.find_element(
+            By.XPATH, "/html/body/div[2]/div/div[3]/button[1]"
+        )
+        success_btn.click()
 
     def add_book_mark_list(self, panda_id: str):
         """북마크 해야될 리스트에 추가"""

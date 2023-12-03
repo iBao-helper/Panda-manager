@@ -1,17 +1,37 @@
-import re
-from playwright.sync_api import Page, expect
+"""테스트용 모듈"""
+from classes import night_watch_selenium as nws
+import requests
 
-def test_has_title(page: Page):
-    page.goto("https://playwright.dev/")
+sele_watch: nws.SeleWatch = nws.SeleWatch()
 
-    # Expect a title "to contain" a substring.
-    expect(page).to_have_title(re.compile("Playwright"))
 
-def test_get_started_link(page: Page):
-    page.goto("https://playwright.dev/")
+def main():
+    """메인"""
 
-    # Click the get started link.
-    page.get_by_role("link", name="Get started").click()
+    # bj_lists = requests.get(
+    #     url="http://panda-manager.com:3000/master/tmp-user",
+    #     timeout=5,
+    # ).json()
+    # print(bj_lists)
+    sele_watch.create_selenium()
+    sele_watch.element_click_with_css("button.btnClose")
+    sele_watch.login("ibao123", "Adkflfkd1")
+    sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
+    idle, live = sele_watch.get_user_status()
+    backend_live_users = requests.get(
+        url="http://panda-manager.com:3000/bj?mode=playing",
+        timeout=5,
+    ).json()
+    backend_idle_users = requests.get(
+        "http://panda-manager.com:3000/bj?mode=idle",
+        timeout=5,
+    ).json()
+    wanted_play_list = sele_watch.filter_live_list(live, backend_idle_users)
+    wanted_stop_list = sele_watch.filter_idle_list(idle, backend_live_users)
+    # sele_watch.goto_url("https://www.pandalive.co.kr/my/post")
+    # for bj in bj_lists:
+    # sele_watch.send_jjockji_message("k1990121", "awef")
+    print("end")
 
-    # Expects page to have a heading with the name of Installation.
-    expect(page.get_by_role("heading", name="Installation")).to_be_visible()
+
+main()
