@@ -202,7 +202,7 @@ async def test():
     """테스트"""
     # asyncio.create_task(night_watch.test2())
     len(panda_managers)
-    return {"message": len(panda_managers)}
+    return {"manager_size": len(panda_managers)}
 
 
 ## Exception Handler 모음
