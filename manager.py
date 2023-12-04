@@ -132,7 +132,7 @@ async def destory_panda_manager(panda_id: str):
     if panda_id in panda_managers:
         await panda_managers[panda_id].destroy()
         del panda_managers[panda_id]
-        await logging_info(panda_id, "[리소스 회수 성공]", {panda_id: panda_id})
+        await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},
@@ -144,7 +144,7 @@ async def update_manager_command(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_commands()
-        await logging_info(panda_id, "[Front - 커맨드 업데이트]", {panda_id: panda_id})
+        await logging_info(panda_id, "[Front - 커맨드 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -156,7 +156,7 @@ async def update_manager_rc(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_recommend()
-        await logging_info(panda_id, "[Front - 추천 업데이트]", {panda_id: panda_id})
+        await logging_info(panda_id, "[Front - 추천 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -168,7 +168,7 @@ async def update_manager_hart(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_hart_message()
-        await logging_info(panda_id, "[Front - 하트 업데이트]", {panda_id: panda_id})
+        await logging_info(panda_id, "[Front - 하트 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -180,7 +180,7 @@ async def update_manager_pr(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_pr()
-        await logging_info(panda_id, "[Front - PR 업데이트]", {panda_id: panda_id})
+        await logging_info(panda_id, "[Front - PR 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -192,7 +192,7 @@ async def screen_shot(panda_id: str):
     """스크린샷"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].send_screenshot()
-        await logging_info(panda_id, "[스크린샷 요청 성공]", {panda_id: panda_id})
+        await logging_info(panda_id, "[스크린샷 요청 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
