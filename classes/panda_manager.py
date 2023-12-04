@@ -25,7 +25,7 @@ from util.my_util import (
     get_pr_period,
     get_rc_message,
     logging_debug,
-    logging_error
+    logging_error,
 )
 
 load_dotenv()
@@ -115,20 +115,32 @@ class PandaManager:
         4. bookmark 페이지로 이동
         """
         await self.page.get_by_role("button", name="닫기").click()
-        await logging_debug(self.data.panda_id, "[login] - 닫기", {"debug_message": "닫기 성공"})
+        await logging_debug(
+            self.data.panda_id, "[login] - 닫기", {"debug_message": "닫기 성공"}
+        )
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
-        await logging_debug(self.data.panda_id, "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"})
+        await logging_debug(
+            self.data.panda_id, "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"}
+        )
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
-        await logging_debug(self.data.panda_id, "[login] - 로그인 / 회원가입 링크 클릭", {"debug_message": "로그인 / 회원가입"})
+        await logging_debug(
+            self.data.panda_id,
+            "[login] - 로그인 / 회원가입 링크 클릭",
+            {"debug_message": "로그인 / 회원가입"},
+        )
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인").click()
-        await logging_debug(self.data.panda_id, "[login] - 로그인 링크 클릭", {"debug_message": "로그인"})
+        await logging_debug(
+            self.data.panda_id, "[login] - 로그인 링크 클릭", {"debug_message": "로그인"}
+        )
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
         await asyncio.sleep(2)
         await self.page.get_by_role("button", name="로그인", exact=True).click()
-        await logging_debug(self.data.panda_id, "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"})
+        await logging_debug(
+            self.data.panda_id, "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"}
+        )
         await asyncio.sleep(2)
         invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
         invalid_text_pw = await self.page.get_by_text(
@@ -137,10 +149,7 @@ class PandaManager:
         await logging_debug(
             self.data.panda_id,
             "[invalid-visible check]",
-            {
-                "id": invalid_text_id, 
-                "pw": invalid_text_pw
-            },
+            {"id": invalid_text_id, "pw": invalid_text_pw},
         )
         if invalid_text_id or invalid_text_pw:
             print("Invalid Id or PW")
@@ -157,10 +166,7 @@ class PandaManager:
         await logging_debug(
             self.data.panda_id,
             "[invalid-visible check]",
-            {
-                "id": invalid_text_id, 
-                "pw": invalid_text_pw
-			},
+            {"id": invalid_text_id, "pw": invalid_text_pw},
         )
         if invalid_label_id or invalid_label_pw:
             print("popup Invalid Id or PW")
@@ -178,10 +184,7 @@ class PandaManager:
         await logging_debug(
             self.data.panda_id,
             "[invalid-login_detect check]",
-            {
-                "invalid_login_detect": invalid_login_detect, 
-                "auto_detect": auto_detect
-			},
+            {"invalid_login_detect": invalid_login_detect, "auto_detect": auto_detect},
         )
         if invalid_login_detect or auto_detect:
             print("Invliad login popup")
@@ -199,19 +202,25 @@ class PandaManager:
                         f'iframe[name="{frame.name}"]'
                     )
             await click_frame.get_by_label("로봇이 아닙니다.").click()
-            await logging_debug(self.data.panda_id, "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."})
+            await logging_debug(
+                self.data.panda_id, "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."}
+            )
             await asyncio.sleep(1)
             # 리캡챠 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
             await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
-            await logging_debug(self.data.panda_id, "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"})
+            await logging_debug(
+                self.data.panda_id, "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
+            )
             await asyncio.sleep(1)
             # 보안문자 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
             test = await show_frame.get_by_role(
                 "link", name="또는 오디오를 MP3로 다운로드하세요."
             ).get_attribute("href")
-            await logging_debug(self.data.panda_id, "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": test})
+            await logging_debug(
+                self.data.panda_id, "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": test}
+            )
             await asyncio.sleep(1)
             urllib.request.urlretrieve(test, "stt/audio.mp3")
             response = sample_recognize("stt/audio.mp3")
@@ -219,12 +228,18 @@ class PandaManager:
                 print(response)
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
-                await logging_debug(self.data.panda_id, "[들리는대로 입력하세요 확인]", {"debug_message": "들리는대로 입력하세요 확인"})
+                await logging_debug(
+                    self.data.panda_id,
+                    "[들리는대로 입력하세요 확인]",
+                    {"debug_message": "들리는대로 입력하세요 확인"},
+                )
                 # 보안 문자 떳는지 확인
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.get_by_role("button", name="로그인", exact=True).click()
-                await logging_debug(self.data.panda_id, "마지막 로그인", {"debug_message": "마지막 로그인"})
+                await logging_debug(
+                    self.data.panda_id, "마지막 로그인", {"debug_message": "마지막 로그인"}
+                )
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.wait_for_selector("div.profile_img")
@@ -277,14 +292,10 @@ class PandaManager:
                         timeout=5,
                     )
                     self.commands = await get_commands(self.user.panda_id)
-                    await self.page.get_by_placeholder("채팅하기").fill("등록되었습니다")
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send("등록되었습니다")
                     return True
                 else:
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        "유효한 형태가 아닙니다/\n[!등록] [키워드] [응답]"
-                    )
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send("유효한 형태가 아닙니다/\n[!등록] [키워드] [응답]")
                     return True
             elif splited_chat[0] == "!삭제":
                 if len(splited_chat) >= 2:
@@ -298,14 +309,10 @@ class PandaManager:
                     print(response.text)
                     response = response.text
                     self.commands = await get_commands(self.user.panda_id)
-                    await self.page.get_by_placeholder("채팅하기").fill(response)
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send(response)
                     return True
                 else:
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        "유효한 포멧이 아닙니다/\n[!삭제] [키워드]"
-                    )
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send("유효한 포멧이 아닙니다/\n[!삭제] [키워드]")
                     return True
         except Exception as e:  # pylint: disable=W0718
             print(e)
@@ -322,12 +329,9 @@ class PandaManager:
         """명령어를 처리하기 위한 로직"""
         try:
             if splited_chat[0] == "!사용법":
-                await self.page.get_by_placeholder("채팅하기").fill(
-                    emoji.emojize(
-                        "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]"
-                    )
+                await self.chatting_send(
+                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]"
                 )
-                await self.page.get_by_role("button", name="보내기").click()
             elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
                 chat_user == data.nickname
                 or chat_user == "크기가전부는아니자나여"
@@ -407,10 +411,7 @@ class PandaManager:
                     command_response = self.check_command(chat, user)
                     if command_response is not None:
                         self.command_executed = True
-                        await self.page.get_by_placeholder("채팅하기").fill(
-                            emoji.emojize(command_response)
-                        )
-                        await self.page.get_by_role("button", name="보내기").click()
+                        await self.chatting_send(command_response)
                     await chat_l.evaluate("(element) => element.remove()")
         except Exception as e:  # pylint: disable=W0718
             print("chatting handler")
@@ -436,10 +437,7 @@ class PandaManager:
                     response_recommand_message = self.user.hart_message.replace(
                         r"{hart_user}", hart_user
                     ).replace(r"{hart_count}", hart_count)
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        emoji.emojize(response_recommand_message)
-                    )
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send(response_recommand_message)
                 requests.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{self.user.nickname}",
                     json={
@@ -464,10 +462,7 @@ class PandaManager:
                     response_recommand_message = self.user.rc_message.replace(
                         r"{user_name}", user_name
                     )
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        emoji.emojize(response_recommand_message)
-                    )
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send(response_recommand_message)
         except Exception as e:  # pylint: disable=W0718
             print("recommand handler")
             print(e)
@@ -498,7 +493,9 @@ class PandaManager:
         print("retry_detect", retry_detect)
         if retry_detect:
             print("잦은 재시도 탐지에 걸림")
-            await logging_error(self.data.panda_id, "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"})
+            await logging_error(
+                self.data.panda_id, "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"}
+            )
             raise ex.PlayWrightException(
                 ex.PWEEnum.PD_LOGIN_STT_FAILED,
                 panda_id=self.data.panda_id,
@@ -520,8 +517,7 @@ class PandaManager:
                 timeout=5,
             )
             self.user.rc_message = response.text
-            await self.page.get_by_placeholder("채팅하기").fill("추천 메세지가 등록되었습니다")
-            await self.page.get_by_role("button", name="보내기").click()
+            await self.chatting_send("추천 메세지가 등록되었습니다")
             return True
         except:  # pylint: disable=W0702
             return False
@@ -535,8 +531,7 @@ class PandaManager:
                 timeout=5,
             )
             self.user.hart_message = response.text
-            await self.page.get_by_placeholder("채팅하기").fill("하트 메세지가 등록되었습니다")
-            await self.page.get_by_role("button", name="보내기").click()
+            await self.chatting_send("하트 메세지가 등록되었습니다")
             return True
         except:  # pylint: disable=W0702
             return False
@@ -558,17 +553,11 @@ class PandaManager:
                             message
                             + f"[{data['user_name']}] -> [{data['bj_name']}] ♥{data['count']}개\n"
                         )
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        emoji.emojize(message)
-                    )
-                    await self.page.get_by_role("button", name="보내기").click()
+                    await self.chatting_send(message)
                 else:
-                    await self.page.get_by_placeholder("채팅하기").fill(
-                        emoji.emojize(
-                            f"{user}님의 하트 내역이 없습니다. 하트 내역은 매니저봇이 있는 방에서만 집계됩니다."
-                        )
+                    await self.chatting_send(
+                        f"{user}님의 하트 내역이 없습니다. 하트 내역은 매니저봇이 있는 방에서만 집계됩니다."
                     )
-                    await self.page.get_by_role("button", name="보내기").click()
                 return True
             elif command == "!합계":
                 response = requests.get(
@@ -577,8 +566,7 @@ class PandaManager:
                 )
                 print(response)
                 message = f"{user} : {response.text}개"
-                await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
-                await self.page.get_by_role("button", name="보내기").click()
+                await self.chatting_send(message)
                 return True
         except:  # pylint: disable=W0702
             return False  # pylint: disable=W0702
@@ -588,16 +576,12 @@ class PandaManager:
         if self.timer_message_boolean and self.time > 0:
             time_min = self.time // 60
             time_sec = self.time % 60
-            await self.page.get_by_placeholder("채팅하기").fill(
-                f"{time_min}분 {time_sec}초 남았습니다"
-            )
-            await self.page.get_by_role("button", name="보내기").click()
+            await self.chatting_send(f"{time_min}분 {time_sec}초 남았습니다")
             self.timer_message_boolean = False
         if self.timer_complete:
             self.timer_complete = False
             self.time = 0
-            await self.page.get_by_placeholder("채팅하기").fill("타이머가 완료되었습니다")
-            await self.page.get_by_role("button", name="보내기").click()
+            await self.chatting_send("타이머가 완료되었습니다")
 
     async def set_timer(self, time: int, time_period: int = 60):
         """타이머 설정"""
@@ -717,5 +701,10 @@ class PandaManager:
 
     async def chatting_send(self, message):
         """채팅 전송"""
-        await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
-        await self.page.get_by_role("button", name="보내기").click()
+        try:
+            await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
+            await self.page.get_by_role("button", name="보내기").click()
+        except Exception as e:  # pylint: disable=W0718
+            await self.send_screenshot()
+            await logging_error(self.data.panda_id, "채팅 전송 실패", {"debug_message": e})
+            await self.page.get_by_role("button", name="확인").click()
