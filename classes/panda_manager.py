@@ -707,4 +707,6 @@ class PandaManager:
         except Exception as e:  # pylint: disable=W0718
             await self.send_screenshot()
             await logging_error(self.data.panda_id, "채팅 전송 실패", {"debug_message": e})
-            await self.page.get_by_role("button", name="확인").click()
+            await self.page.query_selector(
+                "/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div/div[3]/span/input"
+            ).click()
