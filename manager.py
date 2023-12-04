@@ -12,7 +12,7 @@ from classes import night_watch as nw
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
-from util.my_util import User, logging_debug, logging_error
+from util.my_util import User, logging_debug, logging_error, logging_info
 from dotenv import load_dotenv
 import traceback
 
@@ -35,9 +35,9 @@ panda_managers: Dict[str, pm.PandaManager] = {}
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    await logging_debug(
+    await logging_info(
         body.panda_id,
-        f"[panda_manager_start] - {body.panda_id}",
+        f"[매니저 요청 루틴 시작] - {body.panda_id}",
         {
             "panda_id": body.panda_id,
             "proxy_ip": body.proxy_ip,
@@ -84,12 +84,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         raise ex.PlayWrightException(
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
         ) from TimeoutError
-
-    await logging_debug(
-        body.panda_id,
-        "[panda_manager_start] - goto url",
-        {"url": f"https://www.pandalive.co.kr/live/play/{panda_id}"},
-    )
+    await logging_info(body.panda_id, "로그인 작업 성공", {"message": "로그인 작업 성공"})
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
     try:
@@ -123,8 +118,9 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     )
     user = User(**data.json())
     panda_manager.set_user(user)
-    print("response user relation data : ", user)
+    await logging_debug(body.panda_id, "[매니저 정보 획득]", user)
     await panda_manager.remove_elements()
+    await logging_info(body.panda_id, "[delete elements]", {"message": "elements"})
     asyncio.create_task(panda_manager.macro())
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
@@ -136,6 +132,7 @@ async def destory_panda_manager(panda_id: str):
     if panda_id in panda_managers:
         await panda_managers[panda_id].destroy()
         del panda_managers[panda_id]
+        await logging_info(panda_id, "[리소스 회수 성공]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},
@@ -147,6 +144,7 @@ async def update_manager_command(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_commands()
+        await logging_info(panda_id, "[Front - 커맨드 업데이트]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -158,6 +156,7 @@ async def update_manager_rc(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_recommend()
+        await logging_info(panda_id, "[Front - 추천 업데이트]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -169,6 +168,7 @@ async def update_manager_hart(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_hart_message()
+        await logging_info(panda_id, "[Front - 하트 업데이트]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -180,6 +180,7 @@ async def update_manager_pr(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_pr()
+        await logging_info(panda_id, "[Front - PR 업데이트]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -191,6 +192,7 @@ async def screen_shot(panda_id: str):
     """스크린샷"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].send_screenshot()
+        await logging_info(panda_id, "[스크린샷 요청 성공]", {panda_id: panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
