@@ -118,7 +118,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     )
     user = User(**data.json())
     panda_manager.set_user(user)
-    await logging_info(body.panda_id, "[매니저 정보 획득]", user.__dict__)
+    await logging_info(body.panda_id, "[매니저 정보 획득]", {"message": "매니저 정보 획득"})
     await panda_manager.remove_elements()
     await logging_info(body.panda_id, "[delete elements]", {"message": "elements"})
     asyncio.create_task(panda_manager.macro())
