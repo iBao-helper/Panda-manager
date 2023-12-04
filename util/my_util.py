@@ -72,6 +72,16 @@ async def get_pr_period(panda_id: str):
     return message
 
 
+async def error_in_chatting_room(panda_id: str):
+    """채팅보내기 버튼이 눌러지지 않는 경우(다른 기기 로그인, 비정상 탐지 등) 리소스 회수하고 재시작"""
+    message = requests.post(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/error-in-chatting-room",
+        data={"panda_id": panda_id},
+        timeout=5,
+    )
+    return message
+
+
 async def logging_debug(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(

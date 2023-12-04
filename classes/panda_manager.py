@@ -19,6 +19,7 @@ from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
 from util.my_util import (
     User,
+    error_in_chatting_room,
     get_commands,
     get_hart_message,
     get_pr_message,
@@ -707,6 +708,4 @@ class PandaManager:
         except Exception as e:  # pylint: disable=W0718
             await self.send_screenshot()
             await logging_error(self.data.panda_id, "채팅 전송 실패", {"debug_message": e})
-            await self.page.query_selector(
-                "/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div/div[3]/span/input"
-            ).click()
+            await error_in_chatting_room(self.data.panda_id)
