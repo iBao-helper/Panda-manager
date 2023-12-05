@@ -710,7 +710,11 @@ class PandaManager:
         try:
             await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
             await self.page.get_by_role("button", name="보내기").click()
-        except Exception as e:  # pylint: disable=W0718
+        except Exception as e:  # pylint: disable=W0718, W0612
             await self.send_screenshot()
-            await logging_error(self.data.panda_id, "채팅 전송 실패", {"debug_message": e})
+            await logging_error(
+                self.data.panda_id,
+                "채팅 보내기 실패",
+                {"panda_id": self.data.panda_id},
+            )
             await error_in_chatting_room(self.data.panda_id)
