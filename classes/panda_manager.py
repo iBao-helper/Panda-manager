@@ -652,29 +652,33 @@ class PandaManager:
 
     async def update_commands(self):
         """커맨드 업데이트"""
-        self.commands = await get_commands(self.user.panda_id)
+        if self.user:
+            self.commands = await get_commands(self.user.panda_id)
 
     async def update_recommend(self):
         """커맨드 업데이트"""
-        response = await get_rc_message(self.user.panda_id)
-        self.user.rc_message = response.text
-        print(self.user.rc_message)
+        if self.user:
+            response = await get_rc_message(self.user.panda_id)
+            self.user.rc_message = response.text
+            print(self.user.rc_message)
 
     async def update_hart_message(self):
         """커맨드 업데이트"""
-        response = await get_hart_message(self.user.panda_id)
-        self.user.hart_message = response.text
-        print(self.user.hart_message)
+        if self.user:
+            response = await get_hart_message(self.user.panda_id)
+            self.user.hart_message = response.text
+            print(self.user.hart_message)
 
     async def update_pr(self):
         """PR 업데이트"""
-        pr_message = await get_pr_message(self.user.panda_id)
-        self.user.pr_message = pr_message.text
-        print(self.user.pr_message)
+        if self.user:
+            pr_message = await get_pr_message(self.user.panda_id)
+            self.user.pr_message = pr_message.text
+            print(self.user.pr_message)
 
-        pr_period = await get_pr_period(self.user.panda_id)
-        self.user.pr_period = int(pr_period.text)
-        print(self.user.pr_period)
+            pr_period = await get_pr_period(self.user.panda_id)
+            self.user.pr_period = int(pr_period.text)
+            print(self.user.pr_period)
 
     async def pr_timer(self):
         """신청곡 타이머"""
