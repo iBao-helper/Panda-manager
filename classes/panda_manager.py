@@ -619,6 +619,7 @@ class PandaManager:
     async def destroy(self):
         """free memory"""
         self.loop = False
+        self.time = 0
         await self.browser.close()
 
     def set_user(self, user):
