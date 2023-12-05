@@ -17,7 +17,7 @@ from classes import night_watch as nw
 from classes import night_watch_selenium as nws
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
-from util.my_util import logging_debug, logging_error
+from util.my_util import logging_debug, logging_error, logging_info
 
 load_dotenv()
 
@@ -80,7 +80,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         locale="ko-KR",
     )
     page = await context.new_page()
-    await logging_debug(
+    await logging_info(
         "check_manager_login",
         "매니저 체크",
         {"manager_id": manager_id, "manager_pw": manager_pw},
@@ -94,9 +94,9 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     except ex.PlayWrightException as exc:  # pylint: disable=W0718 W0702
         await page.goto("http://pandalive.co.kr")
         if exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
-            await logging_debug(
+            await logging_info(
                 "check_manager_login",
-                "매니저 체크 실패",
+                "ID/PW 불일치",
                 {
                     "manager_id": manager_id,
                     "manager_pw": manager_pw,
@@ -106,12 +106,12 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             try:
                 await login(page, "resetaccount", "Adkflfkd1")
             except Exception as e:  # pylint: disable=W0702 W0612 W0718
-                await logging_error(
+                await logging_info(
                     "check_manager_login",
-                    "매니저 리셋 로그인도 실패. ",
+                    "매니저 초기화 로그인 실패",
                     {
-                        "manager_id": manager_id,
-                        "manager_pw": manager_pw,
+                        "manager_id": "resetaccount",
+                        "manager_pw": "Adkflfkd1",
                         "err_message": str(e),
                     },
                 )
@@ -119,9 +119,9 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"message": "ID/PW 불일치"}
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
-            await logging_debug(
+            await logging_info(
                 "check_manager_login",
-                "매니저 체크 실패",
+                "STT 실패",
                 {
                     "manager_id": manager_id,
                     "manager_pw": manager_pw,
