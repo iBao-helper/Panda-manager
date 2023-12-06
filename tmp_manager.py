@@ -10,8 +10,6 @@ from playwright.async_api import Browser
 from playwright.async_api import BrowserContext
 from pydantic import BaseModel  # pylint: disable=C0411
 from dotenv import load_dotenv
-
-from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
 
 load_dotenv()
@@ -35,7 +33,7 @@ class CreateManagerDto(BaseModel):
 class PandaManager:
     """PandaWrapper 클래스"""
 
-    def __init__(self, body: CreateManagerDto) -> None:
+    def __init__(self) -> None:
         self.page: Page
         self.browser = Browser
         self.context = BrowserContext
@@ -46,7 +44,7 @@ class PandaManager:
             apw = await async_playwright().start()
             if SERVER_KIND == "local":
                 self.browser = await apw.chromium.launch(
-                    headless=True,
+                    headless=False,
                     # proxy={"server": f"{proxy_ip}:8888"}
                     # headless=HEADLESS,
                 )
@@ -95,12 +93,6 @@ class PandaManager:
         if invalid_label_id or invalid_label_pw:
             print("popup Invalid Id or PW")
             await self.page.get_by_role("button", name="확인").click()
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
-                message="아뒤 비번 틀렸음(팝업)",
-            )
         invalid_login_detect = await self.page.get_by_label(
             "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
         ).is_visible()
