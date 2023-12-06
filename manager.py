@@ -1,20 +1,17 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
 import os
 import asyncio
-import re
 from typing import Dict
+import traceback
 import uvicorn
 import requests
-from fastapi import FastAPI, Response, status, Request
+from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
-from playwright.async_api import async_playwright
-from classes import night_watch as nw
+from dotenv import load_dotenv
 from classes import panda_manager as pm
 from custom_exception import custom_exceptions as ex
-from stt_v2 import sample_recognize
 from util.my_util import User, logging_debug, logging_error, logging_info
-from dotenv import load_dotenv
-import traceback
+
 
 load_dotenv()
 
@@ -28,7 +25,6 @@ INSTANCE_ID = os.getenv("INSTANCE_ID")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 app = FastAPI()
-night_watch: nw.NightWatch = nw.NightWatch()
 panda_managers: Dict[str, pm.PandaManager] = {}
 
 
