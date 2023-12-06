@@ -51,7 +51,7 @@ class SeleWatch:
         """url 이동"""
         self.driver.get(url)
 
-    def login(self, manager_id="xptmxmdyd123", manager_pw="Adkflfkd1"):
+    def login(self, manager_id="siveriness1", manager_pw="Adkflfkd1"):
         """로그인 함수"""
         self.element_click_with_css(".btn_login.btn_my_infor")
         self.element_click_with_css("div.profile_infor > a > span.name")
