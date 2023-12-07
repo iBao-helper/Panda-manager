@@ -202,6 +202,10 @@ class SeleWatch:
                     ret_list.append(backend_user["panda_id"])
         return ret_list
 
+    async def destroy(self):
+        """free memory"""
+        await self.driver.close()
+
     def send_jjockji_message(self, panda_id: str, message: str):
         """쪽지 보내기"""
         message_btn = self.driver.find_element(
@@ -241,7 +245,7 @@ class SeleWatch:
                 "/html/body/div/div/div/div[2]/div[2]/div/div[3]/div[2]/div[4]/div/div[1]/button",
             )
             x_btn.click()
-        except:
+        except:  # pylint: disable=W0702
             print("a")
         self.driver.implicitly_wait(10)
 

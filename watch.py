@@ -13,7 +13,6 @@ from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import FrameLocator
 from dotenv import load_dotenv
-from classes import night_watch as nw
 from classes import night_watch_selenium as nws
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
@@ -25,7 +24,6 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
-night_watch: nw.NightWatch = nw.NightWatch()
 sele_watch: nws.SeleWatch = nws.SeleWatch()
 
 # ThreadPoolExecutor를 생성하여 loop2 함수를 별도의 스레드에서 실행합니다.
@@ -56,8 +54,7 @@ async def night_watch_start():
 @app.delete("/NightWatch")
 async def night_watch_stop():
     """감시자 종료"""
-    await night_watch.destroy()
-    await night_watch.stop()
+    await sele_watch.destroy()
     return {"message": "NightWatch"}
 
 
@@ -196,16 +193,16 @@ async def play_wright_handler(exc: ex.PlayWrightException):
     if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
         # nw 가동 실패
         print(exc)
-        await night_watch.destroy()
+        await sele_watch.destroy()
 
     elif exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
         print(exc)
-        await night_watch.destroy()
+        await sele_watch.destroy()
     elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
         # STT 실패
         print(exc)
-        await night_watch.destroy()
+        await sele_watch.destroy()
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
