@@ -193,9 +193,10 @@ class SeleWatch:
     def filter_wanted_stop_list(self, current_live_list: list, backend_live_list: list):
         """live_list에서 dict안에 존재하는 요소만 반납"""
         ret_list = []
-        for user in backend_live_list:
-            if user["nickname"] not in current_live_list:
-                ret_list.append(user["panda_id"])
+        for current_user in current_live_list:
+            for backend_user in backend_live_list:
+                if backend_user["nickname"] == current_user:
+                    ret_list.append(current_user)
         return ret_list
 
     def send_jjockji_message(self, panda_id: str, message: str):
