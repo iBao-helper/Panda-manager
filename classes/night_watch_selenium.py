@@ -89,7 +89,7 @@ class SeleWatch:
                 self.set_book_mark(book_mark_id, True)
             self.bookmark_list.clear()
             self.delete_bookmark_list.clear()
-            live_users = self.get_user_status()
+            idle_users, live_users = self.get_user_status()
             backend_live_users = requests.get(
                 url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
                 timeout=5,
@@ -103,7 +103,7 @@ class SeleWatch:
                 live_users, backend_idle_users
             )
             wanted_stop_list = self.filter_wanted_stop_list(
-                live_users, backend_live_users
+                idle_users, backend_live_users
             )
             print(f"watned play lsit = {wanted_play_list}")
             print(f"watend stop list = {wanted_stop_list}")
@@ -178,7 +178,7 @@ class SeleWatch:
                 json={"ip": PUBLIC_IP, "size": len(combined_keys)},
                 timeout=5,
             )
-        return live_users
+        return idle_users, live_users
 
     def filter_wanted_play_list(self, current_live_list: list, backend_idle_list: list):
         """idle_list 중 current_live_list안에 있는 요소만 반납"""
