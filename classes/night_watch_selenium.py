@@ -126,19 +126,22 @@ class SeleWatch:
 
     def set_book_mark(self, panda_id: str, state: bool):
         """북마크 세팅. state상태로 세팅함"""
-        self.goto_url(f"https://www.pandalive.co.kr/channel/{panda_id}/notice")
-        time.sleep(1)
-        book_mark = self.find_element_with_css("span.btn_bookmark")
-        book_mark_class = book_mark.get_attribute("class")
-        self.bookmark_list_changed = True
-        # 이미 북마크가 되어있다면
-        if "on" in book_mark_class:
-            if state is False:
-                book_mark.click()
-        # 북마크가 되어있지 않다면
-        else:
-            if state is True:
-                book_mark.click()
+        try:
+            self.goto_url(f"https://www.pandalive.co.kr/channel/{panda_id}/notice")
+            time.sleep(1)
+            book_mark = self.find_element_with_css("span.btn_bookmark")
+            book_mark_class = book_mark.get_attribute("class")
+            self.bookmark_list_changed = True
+            # 이미 북마크가 되어있다면
+            if "on" in book_mark_class:
+                if state is False:
+                    book_mark.click()
+            # 북마크가 되어있지 않다면
+            else:
+                if state is True:
+                    book_mark.click()
+        except Exception as e:  # pylint: disable=W0703
+            print(e)
 
     def get_user_status(self):
         """유저 상태를 가져옴"""
