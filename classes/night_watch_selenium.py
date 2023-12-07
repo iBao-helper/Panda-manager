@@ -129,9 +129,9 @@ class SeleWatch:
         try:
             self.goto_url(f"https://www.pandalive.co.kr/channel/{panda_id}/notice")
             time.sleep(1)
+            self.bookmark_list_changed = True
             book_mark = self.find_element_with_css("span.btn_bookmark")
             book_mark_class = book_mark.get_attribute("class")
-            self.bookmark_list_changed = True
             # 이미 북마크가 되어있다면
             if "on" in book_mark_class:
                 if state is False:
@@ -199,7 +199,7 @@ class SeleWatch:
         for current_user in current_live_list:
             for backend_user in backend_live_list:
                 if backend_user["nickname"] == current_user:
-                    ret_list.append(current_user)
+                    ret_list.append(backend_user["panda_id"])
         return ret_list
 
     def send_jjockji_message(self, panda_id: str, message: str):
