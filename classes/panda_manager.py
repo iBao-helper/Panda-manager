@@ -457,7 +457,9 @@ class PandaManager:
             recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
             for recommand_element in recommand_elements:
                 recommand_message = await recommand_element.inner_text()
-                if ["매니저", "채팅금지"] in recommand_message:
+                if "매니저" in recommand_message:
+                    continue
+                if "채팅금지" in recommand_message:
                     continue
                 user_name = recommand_message.split(" ")[0].replace("님께서", "")
                 await recommand_element.evaluate("(element) => element.remove()")
