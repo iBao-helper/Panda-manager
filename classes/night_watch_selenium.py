@@ -167,6 +167,7 @@ class SeleWatch:
         if self.bookmark_list_changed:
             self.bookmark_list_changed = False
             combined_keys = idle_users + live_users
+            combined_keys.append(f"nightWatch length = {len(combined_keys)}")
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
                 json={
