@@ -54,7 +54,7 @@ class ChannelApiData:
         print(url)
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
-            self.user_list = response
+            self.user_list = response.json()
         except:  # pylint: disable= W0702
             self.is_manager = False
         return response
