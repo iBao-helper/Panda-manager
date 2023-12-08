@@ -117,6 +117,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     await logging_info(body.panda_id, "[매니저 정보 획득]", {"message": "매니저 정보 획득"})
     await panda_manager.remove_elements()
     await logging_info(body.panda_id, "[delete elements]", {"message": "elements"})
+    await panda_manager.set_interceptor()
     asyncio.create_task(panda_manager.macro())
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
