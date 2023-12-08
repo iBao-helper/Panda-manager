@@ -57,7 +57,7 @@ class ChannelApiData:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
             self.prev_user_list = self.user_list
-            self.user_list = [user["nick"] for user in tmp]
+            self.user_list = [user["nick"] for user in tmp if user["nick"] != "게스트"]
             new_users = [
                 user for user in self.user_list if user not in self.prev_user_list
             ]
