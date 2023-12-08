@@ -480,7 +480,7 @@ class PandaManager:
         if len(self.new_users) > 0:
             combined_str = ", ".join(self.new_users)
             self.new_users = []
-            await self.chatting_send(f"'{combined_str}'님 어서오세요~!")
+            await self.chatting_send(f"'{combined_str}' 님 어서오세요~!")
 
     async def macro(self):
         """테스트용"""
