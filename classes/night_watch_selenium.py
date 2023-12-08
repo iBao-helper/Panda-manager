@@ -112,7 +112,7 @@ class SeleWatch:
                 requests.post(
                     url=f"http://{self.backend_url}:{self.backend_port}/log/info",
                     json={
-                        "panda_id": "NightWatch",
+                        "panda_id": "Night-Watch",
                         "description": "Detect - 방송시작",
                         "data": wanted_play_list,
                     },
@@ -127,7 +127,7 @@ class SeleWatch:
                 requests.post(
                     url=f"http://{self.backend_url}:{self.backend_port}/log/info",
                     json={
-                        "panda_id": "NightWatch",
+                        "panda_id": "Night-Watch",
                         "description": "Detect - 방송종료",
                         "data": wanted_stop_list,
                     },
@@ -189,7 +189,7 @@ class SeleWatch:
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/info",
                 json={
-                    "panda_id": "NightWatch",
+                    "panda_id": "Night-Watch",
                     "description": "Current Regist User",
                     "data": combined_keys,
                 },
