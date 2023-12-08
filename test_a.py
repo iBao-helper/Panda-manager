@@ -21,10 +21,6 @@ async def intercept_websocket(route, request):
     #             print(await response.json())
     if "websocket" in request.url:
         print(request.url)
-        headers = request.headers
-        async with aiohttp.ClientSession() as session:
-            async with session.get(request.url, headers=headers) as response:
-                print(await response.json())
     await route.continue_()
 
 
@@ -34,7 +30,7 @@ async def main():
         context = await browser.new_context()
 
         # WebSocket 요청을 인터셉트하는 함수를 등록
-        await context.route("**/*", intercept_websocket)
+        # await context.route("**/*", intercept_websocket)
 
         # 새 페이지 열기
         page = await context.new_page()

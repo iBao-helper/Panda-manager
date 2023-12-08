@@ -169,7 +169,7 @@ class SeleWatch:
             combined_keys = idle_users + live_users
             combined_keys.append(f"nightWatch length = {len(combined_keys)}")
             requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
+                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/info",
                 json={
                     "panda_id": "NightWatch",
                     "description": "Current Regist User",

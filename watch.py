@@ -164,6 +164,13 @@ async def delete_book_mark(bj_id: str):
     return {"message": "success"}
 
 
+@app.get("/check-bookmark", status_code=status.HTTP_200_OK)
+async def check_book_mark():
+    """북마크 상태 체크"""
+    sele_watch.bookmark_list_changed = True
+    return {"message": "success"}
+
+
 # @app.on_event("startup")
 # async def startup_event():
 #     """
