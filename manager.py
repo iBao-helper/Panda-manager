@@ -232,6 +232,18 @@ async def update_pr_toggle(panda_id: str):
     )
 
 
+@app.put("/panda_manager/{panda_id}/greet-message/toggle")
+async def update_greet_toggle(panda_id: str):
+    """Greet 토글 업데이트"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].toggle_greet()
+        await logging_info(panda_id, "[Front - PR 토글 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
 @app.get("/screen-shot/{panda_id}")
 async def screen_shot(panda_id: str):
     """스크린샷"""
