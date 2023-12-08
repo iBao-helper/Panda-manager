@@ -492,12 +492,16 @@ class PandaManager:
             self.command_executed = False
             try:
                 await self.chatting_handler()
-                await self.hart_handler()
-                await self.recommand_handler()
-                await self.timer_handler()
-                await self.pr_handler()
-                if self.user.auto_greet:
+                if self.user.toggle_hart:
+                    await self.hart_handler()
+                if self.user.toggle_rc:
+                    await self.recommand_handler()
+                if self.user.toggle_pr:
+                    await self.pr_handler()
+                if self.user.toggle_greet:
                     await self.new_user_handler()
+                await self.timer_handler()
+                
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)

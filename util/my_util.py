@@ -24,7 +24,10 @@ class User(BaseModel):
     pr_message: str
     pr_period: int
     resource_id: int | None
-    auto_greet: bool
+    toggle_greet: bool
+    toggle_hart: bool
+    toggle_rc: bool
+    toggle_pr: bool
 
 
 async def get_commands(panda_id: str):
