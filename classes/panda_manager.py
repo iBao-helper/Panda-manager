@@ -708,21 +708,21 @@ class PandaManager:
         if self.user:
             response = await get_rc_toggle(self.user.panda_id)
             self.user.toggle_rc = bool(response.text)
-            print(self.user.rc_message)
+            print(self.user.toggle_rc)
 
     async def toggle_hart(self):
         """Hart 토글 업데이트"""
         if self.user:
             response = await get_hart_toggle(self.user.panda_id)
             self.user.toggle_hart = bool(response.text)
-            print(self.user.hart_message)
+            print(self.user.toggle_hart)
 
     async def toggle_pr(self):
         """PR 토글 업데이트"""
         if self.user:
             response = await get_pr_toggle(self.user.panda_id)
             self.user.toggle_pr = bool(response.text)
-            print(self.user.pr_message)
+            print(self.user.toggle_pr)
 
     async def pr_timer(self):
         """신청곡 타이머"""
