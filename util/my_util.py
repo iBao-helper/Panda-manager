@@ -67,6 +67,33 @@ async def get_pr_message(panda_id: str):
     return message
 
 
+async def get_rc_toggle(panda_id: str):
+    """panda_id의 추천 토글 상태를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/rc-message/{panda_id}/toggle",
+        timeout=5,
+    )
+    return message
+
+
+async def get_hart_toggle(panda_id: str):
+    """panda_id의 하트 토글 상태를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{panda_id}/toggle",
+        timeout=5,
+    )
+    return message
+
+
+async def get_pr_toggle(panda_id: str):
+    """panda_id의 PR 토글 상태를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/pr-message/{panda_id}/toggle",
+        timeout=5,
+    )
+    return message
+
+
 async def get_pr_period(panda_id: str):
     """panda_id의 command리스트를 가져온다"""
     message = requests.get(

@@ -23,9 +23,12 @@ from util.my_util import (
     error_in_chatting_room,
     get_commands,
     get_hart_message,
+    get_hart_toggle,
     get_pr_message,
     get_pr_period,
+    get_pr_toggle,
     get_rc_message,
+    get_rc_toggle,
     logging_debug,
     logging_error,
 )
@@ -501,7 +504,7 @@ class PandaManager:
                 if self.user.toggle_greet:
                     await self.new_user_handler()
                 await self.timer_handler()
-                
+
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -699,6 +702,27 @@ class PandaManager:
             pr_period = await get_pr_period(self.user.panda_id)
             self.user.pr_period = int(pr_period.text)
             print(self.user.pr_period)
+
+    async def toggle_rc(self):
+        """RC 토글 업데이트"""
+        if self.user:
+            response = await get_rc_toggle(self.user.panda_id)
+            self.user.toggle_rc = bool(response.text)
+            print(self.user.rc_message)
+
+    async def toggle_hart(self):
+        """Hart 토글 업데이트"""
+        if self.user:
+            response = await get_hart_toggle(self.user.panda_id)
+            self.user.toggle_hart = bool(response.text)
+            print(self.user.hart_message)
+
+    async def toggle_pr(self):
+        """PR 토글 업데이트"""
+        if self.user:
+            response = await get_pr_toggle(self.user.panda_id)
+            self.user.toggle_pr = bool(response.text)
+            print(self.user.pr_message)
 
     async def pr_timer(self):
         """신청곡 타이머"""

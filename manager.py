@@ -184,6 +184,42 @@ async def update_manager_pr(panda_id: str):
     )
 
 
+@app.put("/panda_manager/{panda_id}/rc-message/toggle")
+async def update_rc_toggle(panda_id: str):
+    """RC 토글 업데이트"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].toggle_rc()
+        await logging_info(panda_id, "[Front - 추천 토글 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
+@app.put("/panda_manager/{panda_id}/hart-message/toggle")
+async def update_hart_toggle(panda_id: str):
+    """Hart 토글 업데이트"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].toggle_hart()
+        await logging_info(panda_id, "[Front - 하트 토글 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
+@app.put("/panda_manager/{panda_id}/pr-message/toggle")
+async def update_pr_toggle(panda_id: str):
+    """PR 토글 업데이트"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].toggle_pr()
+        await logging_info(panda_id, "[Front - PR 토글 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
 @app.get("/screen-shot/{panda_id}")
 async def screen_shot(panda_id: str):
     """스크린샷"""
