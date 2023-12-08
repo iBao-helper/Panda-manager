@@ -82,6 +82,7 @@ class PandaManager:
         self.timer_complete = False
         self.time = 0
         self.channel_api = ChannelApiData()
+        self.new_users = []
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -474,6 +475,12 @@ class PandaManager:
             print("recommand handler")
             print(e)
 
+    async def new_user_handler(self):
+        """새로운 유저 핸들러"""
+        if len(self.new_users) > 0:
+            combined_str = ", ".join(self.new_users)
+            await self.chatting_send(f"{combined_str}님 어서오세요~!")
+
     async def macro(self):
         """테스트용"""
         self.loop = True
@@ -488,6 +495,7 @@ class PandaManager:
                 await self.recommand_handler()
                 await self.timer_handler()
                 await self.pr_handler()
+                await self.new_user_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)
@@ -738,7 +746,7 @@ class PandaManager:
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
         if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
-            await self.channel_api.send_channel_user_list()
+            self.new_users = await self.channel_api.get_new_users()
             if response.status_code == 200:
                 print(response.json())
                 print(self.channel_api.get_user_list())

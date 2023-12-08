@@ -46,8 +46,8 @@ class ChannelApiData:
             self.valid = False
         return response
 
-    async def send_channel_user_list(self):
-        """채널의 유저 수를 요청하는 함수"""
+    async def get_new_users(self):
+        """새로 들어온 유저를 반환하는 함수"""
         url = (
             "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
             f"channel={self.channel}&token={self.token}"
@@ -61,10 +61,27 @@ class ChannelApiData:
             new_users = [
                 user for user in self.user_list if user not in self.prev_user_list
             ]
-            print(new_users)
+            return new_users
         except:  # pylint: disable= W0702
             self.is_manager = False
-        return response
+        return []
+
+    async def get_current_user(self):
+        """새로 들어온 유저를 반환하는 함수"""
+        url = (
+            "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
+            f"channel={self.channel}&token={self.token}"
+        )
+        print(url)
+        try:
+            response = requests.get(url, headers=self.headers, timeout=5)
+            tmp = response.json()["list"]
+            self.prev_user_list = self.user_list
+            self.user_list = [user["nick"] for user in tmp]
+            return self.user_list
+        except:  # pylint: disable= W0702
+            self.is_manager = False
+        return []
 
     def get_user_list(self):
         """현재 접속중인 유저리스트 반환"""
