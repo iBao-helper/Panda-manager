@@ -740,40 +740,12 @@ class PandaManager:
         await self.context.route(
             "**/channel_user_count*", self.intercept_channel_user_count
         )
-        # await self.context.route(
-        #     "**/channel_user_list*", self.intercept_channel_user_list
-        # )
 
     async def intercept_channel_user_count(self, route, request):
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
         if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
             self.new_users = await self.channel_api.get_new_users()
-            if response.status_code == 200:
-                print(response.json())
-                print(self.channel_api.get_user_list())
-            else:
-                print(response.status_code)
-            await route.fulfill(
-                status=response.status_code,
-                headers=response.headers,
-                body=response.text,
-            )
-        else:
-            query = request.url.split("?")[1].split("&")
-            channel = query[0].split("=")[1]
-            token = query[1].split("=")[1]
-            self.channel_api.set_data(request.headers, channel=channel, token=token)
-            await route.continue_()
-
-    async def intercept_channel_user_list(self, route, request):
-        """채널의 유저 리스트를 요청을 인터셉트하는 함수"""
-        if self.channel_api.is_list_enabled():
-            response = await self.channel_api.send_channel_user_list()
-            if response.status_code == 200:
-                print(response.json())
-            else:
-                print(response.status_code)
             await route.fulfill(
                 status=response.status_code,
                 headers=response.headers,

@@ -52,7 +52,6 @@ class ChannelApiData:
             "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
             f"channel={self.channel}&token={self.token}"
         )
-        print(url)
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
@@ -72,7 +71,6 @@ class ChannelApiData:
             "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
             f"channel={self.channel}&token={self.token}"
         )
-        print(url)
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
