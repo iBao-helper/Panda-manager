@@ -496,7 +496,8 @@ class PandaManager:
                 await self.recommand_handler()
                 await self.timer_handler()
                 await self.pr_handler()
-                await self.new_user_handler()
+                if self.user.auto_greet:
+                    await self.new_user_handler()
                 await asyncio.sleep(0.1)
             except Exception as e:  # pylint: disable=W0718
                 print(e)

@@ -24,6 +24,7 @@ class User(BaseModel):
     pr_message: str
     pr_period: int
     resource_id: int | None
+    auto_greet: bool
 
 
 async def get_commands(panda_id: str):
