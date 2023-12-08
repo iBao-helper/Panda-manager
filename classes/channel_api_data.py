@@ -55,6 +55,7 @@ class ChannelApiData:
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
+            print("tmp = ", tmp)
             self.user_list = [user["nickn"] for user in tmp]
         except:  # pylint: disable= W0702
             self.is_manager = False
