@@ -184,6 +184,18 @@ async def update_manager_pr(panda_id: str):
     )
 
 
+@app.put("/panda_manager/{panda_id}/greet-message")
+async def update_manager_greet(panda_id: str):
+    """백엔드로부터 커맨드가 업데이트 될 경우"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].update_greet_message()
+        await logging_info(panda_id, "[Front - PR 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
 @app.put("/panda_manager/{panda_id}/rc-message/toggle")
 async def update_rc_toggle(panda_id: str):
     """RC 토글 업데이트"""

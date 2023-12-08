@@ -22,6 +22,7 @@ from util.my_util import (
     User,
     error_in_chatting_room,
     get_commands,
+    get_greet_toggle,
     get_hart_message,
     get_hart_toggle,
     get_pr_message,
@@ -692,6 +693,13 @@ class PandaManager:
             self.user.hart_message = response.text
             print(self.user.hart_message)
 
+    async def update_greet_message(self):
+        """커맨드 업데이트"""
+        if self.user:
+            response = await get_greet_message(self.user.panda_id)
+            self.user.hart_message = response.text
+            print(self.user.hart_message)
+
     async def update_pr(self):
         """PR 업데이트"""
         if self.user:
@@ -723,6 +731,13 @@ class PandaManager:
             response = await get_pr_toggle(self.user.panda_id)
             self.user.toggle_pr = response.json()
             print(self.user.toggle_pr)
+
+    async def toggle_greet(self):
+        """Greet 토글 업데이트"""
+        if self.user:
+            response = await get_greet_toggle(self.user.panda_id)
+            self.user.toggle_greet = response.json()
+            print(self.user.toggle_greet)
 
     async def pr_timer(self):
         """신청곡 타이머"""
