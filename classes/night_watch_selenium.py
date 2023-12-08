@@ -110,11 +110,29 @@ class SeleWatch:
             # 이 부분 이후에 에러 발생 1
             if len(wanted_play_list) > 0:
                 requests.post(
+                    url=f"http://{self.backend_url}:{self.backend_port}/log/info",
+                    json={
+                        "panda_id": "NightWatch",
+                        "description": "Detect - 방송시작",
+                        "data": wanted_play_list,
+                    },
+                    timeout=5,
+                )
+                requests.post(
                     url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
                     json={"panda_ids": wanted_play_list},
                     timeout=5,
                 )
             if len(wanted_stop_list) > 0:
+                requests.post(
+                    url=f"http://{self.backend_url}:{self.backend_port}/log/info",
+                    json={
+                        "panda_id": "NightWatch",
+                        "description": "Detect - 방송종료",
+                        "data": wanted_stop_list,
+                    },
+                    timeout=5,
+                )
                 requests.delete(
                     url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
                     json={"panda_ids": wanted_stop_list},
