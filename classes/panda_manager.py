@@ -730,16 +730,18 @@ class PandaManager:
         await self.context.route(
             "**/channel_user_count*", self.intercept_channel_user_count
         )
-        await self.context.route(
-            "**/channel_user_list*", self.intercept_channel_user_list
-        )
+        # await self.context.route(
+        #     "**/channel_user_list*", self.intercept_channel_user_list
+        # )
 
     async def intercept_channel_user_count(self, route, request):
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
-        if self.channel_api.is_valid():
+        if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
+            await self.channel_api.send_channel_user_list()
             if response.status_code == 200:
                 print(response.json())
+                print(self.channel_api.get_user_list())
             else:
                 print(response.status_code)
             await route.fulfill(

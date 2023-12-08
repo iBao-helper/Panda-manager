@@ -54,6 +54,11 @@ class ChannelApiData:
         print(url)
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
+            self.user_list = response
         except:  # pylint: disable= W0702
             self.is_manager = False
         return response
+
+    def get_user_list(self):
+        """현재 접속중인 유저리스트 반환"""
+        return self.user_list
