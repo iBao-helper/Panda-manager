@@ -12,6 +12,7 @@ class ChannelApiData:
         self.valid = False
         self.is_manager = False
         self.user_list = []
+        self.prev_user_list = []
         self.count = 0
         self.real_count = 0
         self.guest_count = 0
@@ -55,8 +56,12 @@ class ChannelApiData:
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
-            print("tmp = ", tmp)
+            self.prev_user_list = self.user_list
             self.user_list = [user["nick"] for user in tmp]
+            new_users = [
+                user for user in self.user_list if user not in self.prev_user_list
+            ]
+            print(new_users)
         except:  # pylint: disable= W0702
             self.is_manager = False
         return response
