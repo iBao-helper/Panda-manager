@@ -22,6 +22,7 @@ from util.my_util import (
     User,
     error_in_chatting_room,
     get_commands,
+    get_greet_message,
     get_greet_toggle,
     get_hart_message,
     get_hart_toggle,
@@ -697,7 +698,7 @@ class PandaManager:
         """커맨드 업데이트"""
         if self.user:
             response = await get_greet_message(self.user.panda_id)
-            self.user.hart_message = response.text
+            self.user.greet_message = response.text
             print(self.user.hart_message)
 
     async def update_pr(self):
