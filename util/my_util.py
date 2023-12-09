@@ -23,12 +23,14 @@ class User(BaseModel):
     hart_message: str
     pr_message: str
     greet_message: str
+    doosan_message: str
     pr_period: int
     resource_id: int | None
     toggle_greet: bool
     toggle_hart: bool
     toggle_rc: bool
     toggle_pr: bool
+    toggle_doosan: bool
 
 
 async def get_commands(panda_id: str):
@@ -77,6 +79,15 @@ async def get_greet_message(panda_id: str):
     return message
 
 
+async def get_doosan_message(panda_id: str):
+    """panda_id의 자동인사 메세지를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/doosan-message/{panda_id}",
+        timeout=5,
+    )
+    return message
+
+
 async def get_rc_toggle(panda_id: str):
     """panda_id의 추천 토글 상태를 가져온다"""
     message = requests.get(
@@ -108,6 +119,15 @@ async def get_greet_toggle(panda_id: str):
     """panda_id의 PR 토글 상태를 가져온다"""
     message = requests.get(
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/greet-message/{panda_id}/toggle",
+        timeout=5,
+    )
+    return message
+
+
+async def get_doosan_toggle(panda_id: str):
+    """panda_id의 PR 토글 상태를 가져온다"""
+    message = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/doosan-message/{panda_id}/toggle",
         timeout=5,
     )
     return message

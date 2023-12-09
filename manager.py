@@ -189,7 +189,19 @@ async def update_manager_greet(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_greet_message()
-        await logging_info(panda_id, "[Front - PR 업데이트]", {"panda_id": panda_id})
+        await logging_info(panda_id, "[Front - Greet 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
+@app.put("/panda_manager/{panda_id}/doosan-message")
+async def update_manager_doosan(panda_id: str):
+    """백엔드로부터 커맨드가 업데이트 될 경우"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].update_doosan_message()
+        await logging_info(panda_id, "[Front - Doosan 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -238,6 +250,18 @@ async def update_greet_toggle(panda_id: str):
     if panda_id in panda_managers:
         await panda_managers[panda_id].toggle_greet()
         await logging_info(panda_id, "[Front - Greet 토글 업데이트]", {"panda_id": panda_id})
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": f"{panda_id} is command updated"},
+    )
+
+
+@app.put("/panda_manager/{panda_id}/doosan-message/toggle")
+async def update_doosan_toggle(panda_id: str):
+    """Greet 토글 업데이트"""
+    if panda_id in panda_managers:
+        await panda_managers[panda_id].toggle_doosan()
+        await logging_info(panda_id, "[Front - Doosan 토글 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},

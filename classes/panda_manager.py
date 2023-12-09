@@ -15,6 +15,7 @@ from pydantic import BaseModel  # pylint: disable=C0411
 import requests
 from dotenv import load_dotenv
 from classes.channel_api_data import ChannelApiData
+from classes.chatting_api_data import ChattingApiData
 
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
@@ -22,6 +23,8 @@ from util.my_util import (
     User,
     error_in_chatting_room,
     get_commands,
+    get_doosan_message,
+    get_doosan_toggle,
     get_greet_message,
     get_greet_toggle,
     get_hart_message,
@@ -69,6 +72,8 @@ class PandaManager:
         self.song_list = []
         self.is_pr_message_sendable = False
         self.song_message_boolean = False
+        self.error_check_boolean = False
+        self.error_timer_boolean = False
         self.command_executed = False
         self.command_list = [
             "!등록",
@@ -87,7 +92,10 @@ class PandaManager:
         self.timer_complete = False
         self.time = 0
         self.channel_api = ChannelApiData()
+        self.chatting_api = ChattingApiData()
         self.new_users = []
+        self.doosan_count = 0
+        self.prev_hart_count = 0
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -438,12 +446,20 @@ class PandaManager:
                 hart_count = (
                     (await hart_count_tag.inner_text()).strip().replace("개", "")
                 )
+                message = self.user.hart_message
+                if hart_count == str(self.prev_hart_count + 1):
+                    self.doosan_count += 1
+                    if self.doosan_count > 2 and self.user.toggle_doosan:
+                        message = self.user.doosan_message
+                else:
+                    self.doosan_count = 0
+                self.prev_hart_count = int(hart_count)
                 await hart_box.evaluate("(element) => element.remove()")
                 print(
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"), hart_user, hart_count
                 )
                 if self.user.hart_message != "":
-                    response_recommand_message = self.user.hart_message.replace(
+                    response_recommand_message = message.replace(
                         r"{hart_user}", hart_user
                     ).replace(r"{hart_count}", hart_count)
                     await self.chatting_send(response_recommand_message)
@@ -492,11 +508,14 @@ class PandaManager:
         """테스트용"""
         self.loop = True
         self.commands = await get_commands(self.user.panda_id)
+        asyncio.create_task(self.set_error_check_timer())
         asyncio.create_task(self.pr_timer())
         print("[Receive default commands]", self.commands)
         while self.loop:
             self.command_executed = False
             try:
+                if self.error_check_boolean:
+                    await self.error_detect_handler()
                 await self.chatting_handler()
                 if self.user.toggle_hart:
                     await self.hart_handler()
@@ -610,6 +629,13 @@ class PandaManager:
             self.time = 0
             await self.chatting_send("타이머가 완료되었습니다")
 
+    async def set_error_check_timer(self):
+        """에러가 발생했는지 체크하는 타이머"""
+        self.error_timer_boolean = True
+        while self.error_timer_boolean:
+            self.error_check_boolean = True
+            await asyncio.sleep(5)
+
     async def set_timer(self, time: int, time_period: int = 60):
         """타이머 설정"""
         if self.time > 0:
@@ -646,6 +672,7 @@ class PandaManager:
         """free memory"""
         self.loop = False
         self.time = 0
+        self.error_timer_boolean = False
         await self.browser.close()
 
     def set_user(self, user):
@@ -702,6 +729,13 @@ class PandaManager:
             self.user.greet_message = response.text
             print(self.user.hart_message)
 
+    async def update_doosan_message(self):
+        """커맨드 업데이트"""
+        if self.user:
+            response = await get_doosan_message(self.user.panda_id)
+            self.user.doosan_message = response.text
+            print(self.user.doosan_message)
+
     async def update_pr(self):
         """PR 업데이트"""
         if self.user:
@@ -741,6 +775,13 @@ class PandaManager:
             self.user.toggle_greet = response.json()
             print(self.user.toggle_greet)
 
+    async def toggle_doosan(self):
+        """Doosan 토글 업데이트"""
+        if self.user:
+            response = await get_doosan_toggle(self.user.panda_id)
+            self.user.toggle_greet = response.json()
+            print(self.user.toggle_greet)
+
     async def pr_timer(self):
         """신청곡 타이머"""
         while True:
@@ -768,23 +809,39 @@ class PandaManager:
 
     async def chatting_send(self, message):
         """채팅 전송"""
-        try:
+        self.chatting_api.set_mesage(emoji.emojize(message))
+        is_success = await self.chatting_api.send_chatting_message()
+        if not is_success:
+            await self.context.route("**/chat/message", self.intercept_chatting_message)
             await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
             await self.page.get_by_role("button", name="보내기").click()
-        except Exception as e:  # pylint: disable=W0718, W0612
-            await self.send_screenshot()
-            await logging_error(
-                self.data.panda_id,
-                "채팅 보내기 실패",
-                {"panda_id": self.data.panda_id},
-            )
-            await error_in_chatting_room(self.data.panda_id)
+
+    async def error_detect_handler(self):
+        """채팅방에서 에러가 발생했는지 탐지하고 처리하는 함수"""
+        title = await self.page.query_selector("xpath=/html/body/div[3]/div/div[1]/h2")
+        error_btn = await self.page.query_selector(
+            "xpath=/html/body/div[3]/div/div[3]/button[1]"
+        )
+        if title:
+            title_text = await title.inner_text()
+            print(title_text)
+            if "다른 기기" in title_text:
+                await self.send_screenshot()
+                await logging_error(
+                    self.data.panda_id,
+                    "다른 기기에서 로그인",
+                    {"panda_id": self.data.panda_id},
+                )
+                await error_in_chatting_room(self.data.panda_id)
+            await error_btn.click()
+        self.error_check_boolean = False
 
     async def set_interceptor(self):
         """인터셉터 설정"""
         await self.context.route(
             "**/channel_user_count*", self.intercept_channel_user_count
         )
+        await self.context.route("**/chat/message", self.intercept_chatting_message)
 
     async def intercept_channel_user_count(self, route, request):
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
@@ -802,3 +859,25 @@ class PandaManager:
             token = query[1].split("=")[1]
             self.channel_api.set_data(request.headers, channel=channel, token=token)
             await route.continue_()
+
+    async def intercept_chatting_message(self, route, request):
+        """채팅 메시지를 요청을 인터셉트하는 함수"""
+        query = request.post_data.split("&")
+        message = query[0].split("=")[1]
+        roomid = query[1].split("=")[1]
+        chatoken = query[2].split("=")[1]
+        t = query[3].split("=")[1]
+        channel = query[4].split("=")[1]
+        token = query[5].split("=")[1]
+        self.chatting_api.set_data(
+            message=message,
+            roomid=roomid,
+            chatoken=chatoken,
+            t=t,
+            channel=channel,
+            token=token,
+            headers=request.headers,
+        )
+        print("set_data OK")
+        await route.continue_()
+        await self.context.unroute("**/chat/message", self.intercept_chatting_message)
