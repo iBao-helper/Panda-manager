@@ -237,7 +237,7 @@ async def update_greet_toggle(panda_id: str):
     """Greet 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].toggle_greet()
-        await logging_info(panda_id, "[Front - PR 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(panda_id, "[Front - Greet 토글 업데이트]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
