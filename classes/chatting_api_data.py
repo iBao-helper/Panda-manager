@@ -67,6 +67,7 @@ class ChattingApiData:
                 print(json)
                 if json["result"] is False:
                     self.valid = False
+                    return False
                 return True
             except Exception as e:  # pylint: disable= W0702
                 print("채팅 요청에 실패했습니다.")
