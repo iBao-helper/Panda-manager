@@ -64,6 +64,7 @@ class ChattingApiData:
                     url, headers=self.headers, data=post_data, timeout=5
                 )
                 json = response.json()
+                print(json)
                 if json["result"] is False:
                     self.valid = False
                 return True
