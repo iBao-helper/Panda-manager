@@ -878,6 +878,5 @@ class PandaManager:
             token=token,
             headers=request.headers,
         )
-        print("set_data OK")
         await route.continue_()
         await self.context.unroute("**/chat/message", self.intercept_chatting_message)
