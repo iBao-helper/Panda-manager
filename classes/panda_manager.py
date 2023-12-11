@@ -1,9 +1,10 @@
 """ this is night wiath.py"""
 import asyncio
+import emoji
 import os
 import urllib.request
 from datetime import datetime
-import emoji
+import aiohttp
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
@@ -856,7 +857,19 @@ class PandaManager:
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
         if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
-            self.new_users = await self.channel_api.get_new_users()
+            self.new_users, remove_users = await self.channel_api.get_new_users()
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/add-users/{self.user.panda_id}",
+                    data={"add_users": self.new_users},
+                ):
+                    pass
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/remove-users/{self.user.panda_id}",
+                    data={"remove_users": self.remove_users},
+                ):
+                    pass
             await route.fulfill(
                 status=response.status_code,
                 headers=response.headers,

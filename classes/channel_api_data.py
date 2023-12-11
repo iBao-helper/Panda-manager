@@ -11,8 +11,8 @@ class ChannelApiData:
         self.token = ""
         self.valid = False
         self.is_manager = False
-        self.user_list = []
-        self.prev_user_list = []
+        self.user_list = {}
+        self.prev_user_list = {}
         self.count = 0
         self.real_count = 0
         self.guest_count = 0
@@ -64,10 +64,10 @@ class ChannelApiData:
             idle_users = {
                 user for user in self.prev_user_list if user not in self.user_list
             }
-            return new_users
+            return new_users, idle_users
         except:  # pylint: disable= W0702
             self.is_manager = False
-        return []
+        return {}, {}
 
     async def get_current_user(self):
         """새로 들어온 유저를 반환하는 함수"""
