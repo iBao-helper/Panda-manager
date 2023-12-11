@@ -867,7 +867,7 @@ class PandaManager:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/remove-users/{self.user.panda_id}",
-                    data={"remove_users": self.remove_users},
+                    data={"remove_users": remove_users},
                 ):
                     pass
             await route.fulfill(
