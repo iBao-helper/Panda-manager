@@ -93,7 +93,7 @@ class PandaManager:
         self.time = 0
         self.channel_api = ChannelApiData()
         self.chatting_api = ChattingApiData()
-        self.new_users = []
+        self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
         print(f"data = {self.data}")
@@ -500,7 +500,7 @@ class PandaManager:
         """새로운 유저 핸들러"""
         if len(self.new_users) > 0:
             combined_str = ", ".join(self.new_users)
-            self.new_users = []
+            self.new_users = {}
             message = self.user.greet_message.replace(r"{list}", combined_str)
             await self.chatting_send(message)
 
