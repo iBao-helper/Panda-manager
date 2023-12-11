@@ -859,19 +859,25 @@ class PandaManager:
             response = await self.channel_api.send_channel_user_count()
             self.new_users, remove_users = await self.channel_api.get_new_users()
             if len(self.new_users) > 0:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/add-users/{self.user.panda_id}",
-                        data={"add_users": self.new_users},
-                    ):
-                        pass
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/add-users/{self.user.panda_id}",
+                            data={"add_users": self.new_users},
+                        ):
+                            pass
+                except:  # pylint: disable=W0702
+                    pass
             if len(remove_users) > 0:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/remove-users/{self.user.panda_id}",
-                        data={"remove_users": remove_users},
-                    ):
-                        pass
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/remove-users/{self.user.panda_id}",
+                            data={"remove_users": remove_users},
+                        ):
+                            pass
+                except:  # pylint: disable=W0702
+                    pass
             await route.fulfill(
                 status=response.status_code,
                 headers=response.headers,
