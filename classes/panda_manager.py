@@ -822,6 +822,9 @@ class PandaManager:
         error_btn = await self.page.query_selector(
             "xpath=/html/body/div[3]/div/div[3]/button[1]"
         )
+        send_btn = await self.page.query_selector(
+            "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/input"
+        )
         if title:
             title_text = await title.inner_text()
             print(title_text)
@@ -834,6 +837,14 @@ class PandaManager:
                 )
                 await error_in_chatting_room(self.data.panda_id)
             await error_btn.click()
+        elif not send_btn:
+            await self.send_screenshot()
+            await logging_error(
+                self.data.panda_id,
+                "채팅창 보내기 버튼이 없어짐",
+                {"panda_id": self.data.panda_id},
+            )
+            await error_in_chatting_room(self.data.panda_id)
         self.error_check_boolean = False
 
     async def set_interceptor(self):
