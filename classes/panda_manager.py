@@ -825,6 +825,7 @@ class PandaManager:
         send_btn = await self.page.query_selector(
             "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/input"
         )
+        print(send_btn)
         if title:
             title_text = await title.inner_text()
             print(title_text)
