@@ -866,21 +866,21 @@ class PandaManager:
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
                             data={
                                 "panda_id": self.user.panda_id,
-                                "user_list": list(self.new_users),
+                                "user_list": [user for user in self.new_users],
                             },
                         ):
                             pass
                 except:  # pylint: disable=W0702
                     pass
             if len(remove_users) > 0:
-                print(self.remove_users, len(self.remove_users))
+                print(remove_users, len(self.remove_users))
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.delete(
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
                             data={
                                 "panda_id": self.user.panda_id,
-                                "user_list": list(self.new_users),
+                                "user_list": [user for user in remove_users],
                             },
                         ):
                             pass
