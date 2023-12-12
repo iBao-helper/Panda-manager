@@ -862,8 +862,11 @@ class PandaManager:
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.post(
-                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/add-users/{self.user.panda_id}",
-                            data={"add_users": self.new_users},
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+                            data={
+                                "panda_id": self.user.panda_id,
+                                "user_list": self.new_users,
+                            },
                         ):
                             pass
                 except:  # pylint: disable=W0702
@@ -871,9 +874,12 @@ class PandaManager:
             if len(remove_users) > 0:
                 try:
                     async with aiohttp.ClientSession() as session:
-                        async with session.post(
-                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/events/remove-users/{self.user.panda_id}",
-                            data={"remove_users": remove_users},
+                        async with session.delete(
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+                            data={
+                                "panda_id": self.user.panda_id,
+                                "user_list": self.new_users,
+                            },
                         ):
                             pass
                 except:  # pylint: disable=W0702
