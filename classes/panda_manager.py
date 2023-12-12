@@ -866,7 +866,7 @@ class PandaManager:
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
                             data={
                                 "panda_id": self.user.panda_id,
-                                "user_list": self.new_users,
+                                "user_list": list(self.new_users),
                             },
                         ):
                             pass
@@ -880,7 +880,7 @@ class PandaManager:
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
                             data={
                                 "panda_id": self.user.panda_id,
-                                "user_list": self.new_users,
+                                "user_list": list(self.new_users),
                             },
                         ):
                             pass
