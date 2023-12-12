@@ -873,10 +873,10 @@ class PandaManager:
                 except:  # pylint: disable=W0702
                     pass
             if len(remove_users) > 0:
-                print(remove_users, len(self.remove_users))
+                print(remove_users, len(remove_users))
                 try:
                     async with aiohttp.ClientSession() as session:
-                        async with session.delete(
+                        async with session.patch(
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
                             json={
                                 "panda_id": self.user.panda_id,
