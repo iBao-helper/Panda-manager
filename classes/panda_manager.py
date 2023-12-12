@@ -864,7 +864,7 @@ class PandaManager:
                     async with aiohttp.ClientSession() as session:
                         async with session.post(
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-                            data={
+                            json={
                                 "panda_id": self.user.panda_id,
                                 "user_list": [user for user in self.new_users],
                             },
@@ -878,7 +878,7 @@ class PandaManager:
                     async with aiohttp.ClientSession() as session:
                         async with session.delete(
                             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-                            data={
+                            json={
                                 "panda_id": self.user.panda_id,
                                 "user_list": [user for user in remove_users],
                             },
