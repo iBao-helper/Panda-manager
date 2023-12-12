@@ -858,6 +858,7 @@ class PandaManager:
         if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
             self.new_users, remove_users = await self.channel_api.get_new_users()
+            print(self.new_users, len(self.new_users))
             if len(self.new_users) > 0:
                 try:
                     async with aiohttp.ClientSession() as session:
@@ -872,6 +873,7 @@ class PandaManager:
                 except:  # pylint: disable=W0702
                     pass
             if len(remove_users) > 0:
+                print(self.remove_users, len(self.remove_users))
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.delete(
