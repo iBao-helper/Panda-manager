@@ -835,7 +835,9 @@ class PandaManager:
                     {"panda_id": self.data.panda_id},
                 )
                 await error_in_chatting_room(self.data.panda_id)
-            await error_btn.click()
+                await error_btn.click()
+            elif "종료" in title_text:
+                pass
         elif not send_btn:
             await self.send_screenshot()
             await logging_error(
