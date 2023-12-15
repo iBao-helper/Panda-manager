@@ -101,13 +101,13 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
                 },
             )
             try:
-                await login(page, "siveriness01", "Adkflfkd1")
+                await login(page, "resetaccount2", "Adkflfkd1")
             except Exception as e:  # pylint: disable=W0702 W0612 W0718
                 await logging_info(
                     "check_manager_login",
                     "매니저 초기화 로그인 실패",
                     {
-                        "manager_id": "resetaccount",
+                        "manager_id": "resetaccount2",
                         "manager_pw": "Adkflfkd1",
                         "err_message": str(e),
                     },
