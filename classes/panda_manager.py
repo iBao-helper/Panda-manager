@@ -850,9 +850,9 @@ class PandaManager:
 
     async def set_interceptor(self):
         """인터셉터 설정"""
-        # await self.context.route(
-        #     "**/channel_user_count*", self.intercept_channel_user_count
-        # )
+        await self.context.route(
+            "**/channel_user_count*", self.intercept_channel_user_count
+        )
         await self.context.route("**/chat/message", self.intercept_chatting_message)
 
     async def intercept_channel_user_count(self, route, request):
