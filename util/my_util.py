@@ -152,6 +152,24 @@ async def error_in_chatting_room(panda_id: str):
     return message
 
 
+async def create_room_user(panda_id: str, user_list: list):
+    """새로 접속한 유저를 입력한다"""
+    requests.post(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+        json={"panda_id": panda_id, "user_list": user_list},
+        timeout=5,
+    )
+
+
+async def delete_room_user(panda_id: str, user_list: list):
+    """나간 유저를 삭제함"""
+    requests.delete(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+        json={"panda_id": panda_id, "user_list": user_list},
+        timeout=5,
+    )
+
+
 async def logging_debug(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(

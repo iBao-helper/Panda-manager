@@ -1,9 +1,10 @@
 """ this is night wiath.py"""
 import asyncio
+import emoji
 import os
 import urllib.request
 from datetime import datetime
-import emoji
+import aiohttp
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import Browser
@@ -93,7 +94,7 @@ class PandaManager:
         self.time = 0
         self.channel_api = ChannelApiData()
         self.chatting_api = ChattingApiData()
-        self.new_users = []
+        self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
         print(f"data = {self.data}")
@@ -347,7 +348,7 @@ class PandaManager:
         try:
             if splited_chat[0] == "!사용법":
                 await self.chatting_send(
-                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]"
+                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]\n!꺼"
                 )
             elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
                 chat_user == data.nickname
@@ -500,7 +501,7 @@ class PandaManager:
         """새로운 유저 핸들러"""
         if len(self.new_users) > 0:
             combined_str = ", ".join(self.new_users)
-            self.new_users = []
+            self.new_users = {}
             message = self.user.greet_message.replace(r"{list}", combined_str)
             await self.chatting_send(message)
 
@@ -834,7 +835,18 @@ class PandaManager:
                     {"panda_id": self.data.panda_id},
                 )
                 await error_in_chatting_room(self.data.panda_id)
-            await error_btn.click()
+                await error_btn.click()
+            elif "API" in title_text:
+                await self.send_screenshot()
+                await logging_error(
+                    self.data.panda_id,
+                    "API 요청을 실패했습니다.",
+                    {"panda_id": self.data.panda_id},
+                )
+                await error_in_chatting_room(self.data.panda_id)
+                await error_btn.click()
+            elif "종료" in title_text:
+                pass
         elif not send_btn:
             await self.send_screenshot()
             await logging_error(
@@ -856,7 +868,33 @@ class PandaManager:
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
         if self.channel_api.is_list_enabled():
             response = await self.channel_api.send_channel_user_count()
-            self.new_users = await self.channel_api.get_new_users()
+            self.new_users, remove_users = await self.channel_api.get_new_users()
+            if len(self.new_users) > 0:
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+                            json={
+                                "panda_id": self.user.panda_id,
+                                "user_list": [user for user in self.new_users],
+                            },
+                        ):
+                            pass
+                except:  # pylint: disable=W0702
+                    pass
+            if len(remove_users) > 0:
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.patch(
+                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+                            json={
+                                "panda_id": self.user.panda_id,
+                                "user_list": [user for user in remove_users],
+                            },
+                        ):
+                            pass
+                except:  # pylint: disable=W0702
+                    pass
             await route.fulfill(
                 status=response.status_code,
                 headers=response.headers,

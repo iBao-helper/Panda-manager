@@ -11,8 +11,8 @@ class ChannelApiData:
         self.token = ""
         self.valid = False
         self.is_manager = False
-        self.user_list = []
-        self.prev_user_list = []
+        self.user_list = {}
+        self.prev_user_list = {}
         self.count = 0
         self.real_count = 0
         self.guest_count = 0
@@ -56,14 +56,18 @@ class ChannelApiData:
             response = requests.get(url, headers=self.headers, timeout=5)
             tmp = response.json()["list"]
             self.prev_user_list = self.user_list
-            self.user_list = [user["nick"] for user in tmp if user["nick"] != "게스트"]
-            new_users = [
+            self.user_list = {user["nick"] for user in tmp if user["nick"] != "게스트"}
+            # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
+            new_users = {
                 user for user in self.user_list if user not in self.prev_user_list
-            ]
-            return new_users
+            }
+            idle_users = {
+                user for user in self.prev_user_list if user not in self.user_list
+            }
+            return new_users, idle_users
         except:  # pylint: disable= W0702
             self.is_manager = False
-        return []
+        return {}, {}
 
     async def get_current_user(self):
         """새로 들어온 유저를 반환하는 함수"""
