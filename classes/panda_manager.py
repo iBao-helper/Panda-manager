@@ -88,6 +88,7 @@ class PandaManager:
             "!꺼",
             "!신청",
             "!리스트",
+            "!신청곡리셋"
         ]
         self.timer_message_boolean = False
         self.timer_complete = False
@@ -348,7 +349,7 @@ class PandaManager:
         try:
             if splited_chat[0] == "!사용법":
                 await self.chatting_send(
-                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!타이머 [시간] [알림간격]\n!꺼"
+                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!신청 [노래제목]\n!리스트\n!신청곡리셋\n!타이머 [시간] [알림간격]\n!꺼"
                 )
             elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
                 chat_user == data.nickname
