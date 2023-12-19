@@ -88,7 +88,7 @@ class PandaManager:
             "!꺼",
             "!신청",
             "!리스트",
-            "!신청곡리셋"
+            "!신청곡리셋",
         ]
         self.timer_message_boolean = False
         self.timer_complete = False
@@ -382,7 +382,7 @@ class PandaManager:
                 await self.regist_song(" ".join(splited_chat[1:]))
             elif splited_chat[0] == "!리스트":
                 await self.send_song_list(chat_user)
-            elif splited_chat[0] == "!신청곡리셋"
+            elif splited_chat[0] == "!신청곡리셋":
                 await self.reset_song_list()
             return True
 
@@ -700,7 +700,7 @@ class PandaManager:
         if len(self.song_list) > 0 and chat_user == self.user.nickname:
             self.song_list.remove(self.song_list[0])
         await self.chatting_send(message)
-    
+
     async def reset_song_list(self):
         self.song_list = []
         await self.chatting_send("신청곡 리스트가 초기화 되었습니다")

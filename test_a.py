@@ -2,197 +2,270 @@ import asyncio
 import aiohttp
 import requests
 from playwright.async_api import async_playwright
-from playwright.async_api import Page
 
 
-async def element_click_with_css(page: Page, css_selector: str):
-    """css 엘리먼트 클릭"""
-    try:
-        element = await page.query_selector(css_selector)
-        if element:
-            await element.click()
-    except:
-        pass
+class ChannelApiData:
+    """채널 요청에 관련된 Api에 필요한 데이터"""
 
+    def __init__(self):
+        self.headers = None
+        self.channel = ""
+        self.token = ""
+        self.valid = False
+        self.is_manager = False
 
-async def element_fill_with_css(page: Page, css_selector, value):
-    """css 엘리먼트 입력"""
-    element = await page.query_selector(css_selector)
-    if element:
-        await element.fill(value)
+    def is_valid(self):
+        """현재 토큰이 올바른지 변수"""
+        return self.valid
 
+    def is_list_enabled(self):
+        """직전 list요청이 성공했는지 여부"""
+        return self.is_manager
 
-async def login(page: Page, manager_id, manager_pw):
-    """login기능"""
-    await element_click_with_css(page, ".btn_login.btn_my_infor")
-    await element_click_with_css(page, "div.profile_infor > a > span.name")
-    await element_click_with_css(page, "ul.memTab > li > a")
-    await element_click_with_css(page, "div.input_set > input#login-user-id")
-    await element_fill_with_css(page, "div.input_set > input#login-user-id", manager_id)
-    await element_click_with_css(page, "div.input_set > input#login-user-pw")
-    await element_fill_with_css(page, "div.input_set > input#login-user-pw", manager_pw)
-    await element_click_with_css(page, "div.btnList > span.btnBc > input[type=button]")
-    await element_click_with_css(page, "div.profile_img")
+    def set_data(self, headers, channel: str, token: str):
+        """API에 필요한 데이터를 설정 하는 함수"""
+        self.headers = headers
+        self.channel = channel
+        self.token = token
+        self.valid = True
 
-
-async def is_scroll_at_bottom(page: Page) -> bool:
-    """스크롤이 가장 밑에 있나"""
-    scroll_height = await page.evaluate("document.documentElement.scrollHeight")
-    scroll_top = await page.evaluate(
-        "window.pageYOffset || document.documentElement.scrollTop"
-    )
-    scroll_inner_height = await page.evaluate("window.innerHeight")
-    # If the scroll top plus window height is greater than or equal to scroll height,
-    # we consider it to be at the bottom
-    return scroll_top + scroll_inner_height >= (scroll_height - 200)
-
-
-async def scroll_down(page: Page):
-    """page를 스크롤 끝까지 내리는 함수"""
-    page.set_default_timeout(0)
-    while True:
+    async def send_channel_user_count(self):
+        """채널의 유저 수를 요청하는 함수"""
+        url = (
+            "https://api.pandalive.co.kr/v1/chat/channel_user_count?"
+            f"channel={self.channel}&token={self.token}"
+        )
+        # print(url)
         try:
-            is_bottom = await is_scroll_at_bottom(page)
-            if not is_bottom:
-                element = await page.query_selector("div.listBtnMore")
-                await element.click()
-                await asyncio.sleep(2)
-                print(await is_scroll_at_bottom(page))
-            else:
-                break
-        except Exception as e:  # pylint: disable=W0703 W0612
-            break
-    page.set_default_timeout(30000)
+            response = requests.get(url, headers=self.headers, timeout=5)
+        except:  # pylint: disable= W0702
+            self.valid = False
+        return response
+
+    async def send_channel_user_list(self):
+        """채널의 유저 수를 요청하는 함수"""
+        url = (
+            "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
+            f"channel={self.channel}&token={self.token}"
+        )
+        print(url)
+        try:
+            response = requests.get(url, headers=self.headers, timeout=5)
+        except:  # pylint: disable= W0702
+            self.valid = False
+        return response
 
 
-async def get_proceed_data_list(page: Page):
-    """진행중인 방송 리스트를 가져옴"""
-    ret_list = []
-    lists = await page.query_selector_all("div.liveList > ul > li")
-    for list_item in lists:
-        name = await list_item.query_selector("div.infor > span.name")
-        viewer = await list_item.query_selector("div.infor > span.viewr")
-        name_text = await name.inner_text()
-        viewer_text = await viewer.inner_text()
-        if viewer_text == "FULL":
-            view_count = 700
+class ChattingApiData:
+    """채팅 요청에 관련된 Api에 필요한 데이터"""
+
+    def __init__(self):
+        self.message = ""
+        self.roomid = None
+        self.chatoken = None
+        self.t = None
+        self.channel = None
+        self.token = None
+        self.valid = False
+        self.headers = None
+
+    def set_data(
+        self,
+        message: str,
+        roomid: str,
+        chatoken: str,
+        t: str,
+        channel: str,
+        token: str,
+        headers,
+    ):
+        """API에 필요한 데이터를 설정 하는 함수"""
+        self.message = message
+        self.roomid = roomid
+        self.chatoken = chatoken
+        self.t = t
+        self.channel = channel
+        self.token = token
+        self.headers = headers
+        self.valid = True
+
+    def set_mesage(self, message: str):
+        """채팅 메시지 설정"""
+        self.message = message
+
+    async def send_chatting_message(self):
+        """채널의 유저 수를 요청하는 함수"""
+        url = "https://api.pandalive.co.kr/v1/chat/message"
+        try:
+            post_data = (
+                "message="
+                + self.message
+                + "&roomid="
+                + self.roomid
+                + "&chaToken="
+                + self.chatoken
+                + "&t="
+                + self.t
+                + "&channel="
+                + self.channel
+                + "&token="
+                + self.token
+            )
+            print(post_data)
+            response = requests.post(
+                url, headers=self.headers, data=post_data, timeout=1
+            )
+        except:  # pylint: disable= W0702
+            self.valid = False
+        return response
+
+
+class BookMarkAPIData:
+    """ "북마크 API 요청 데이터"""
+
+    def __init__(self):
+        self.offset = 0
+        self.limit = 200
+        self.is_live = ""
+        self.hide_only: "N"
+        self.token = ""
+        self.is_valid = False
+        self.headers = None
+
+    def set_data(self, headers, token):
+        """API에 필요한 데이터를 설정 하는 함수"""
+        self.token = token
+        self.headers = headers
+        self.is_valid = True
+
+    async def get_bookmark_list(self):
+        """북마크 리스트를 요청하는 함수"""
+        url = (
+            "https://api.pandalive.co.kr/v1/live/bookmark?"
+            f"offset={self.offset}&limit={self.limit}&is_live={self.is_live}&hide_only={self.hide_only}"
+        )
+        print(url)
+        try:
+            response = requests.get(url, headers=self.headers, timeout=5)
+        except Exception as e:
+            print("북마크 리스트 API 요청 실패", e)
+
+
+channel_api_data = ChannelApiData()
+chatting_api_data = ChattingApiData()
+bookmark_api_Data = BookMarkAPIData()
+
+
+async def intercept_channel_user_count(route, request):
+    """채널의 유저 수를 요청을 인터셉트 하는 함수"""
+    if channel_api_data.is_valid():
+        response = await channel_api_data.send_channel_user_count()
+        if response.status_code == 200:
+            print(response.json())
         else:
-            view_count = int(viewer_text.replace("'", "").replace(",", ""))
-        if view_count >= 2:
-            ret_list.append({"name": name_text.replace(" ", ""), "viewer": view_count})
-    return ret_list
+            print(response.status_code)
+        await route.fulfill(
+            status=response.status_code, headers=response.headers, body=response.text
+        )
+    else:
+        query = request.url.split("?")[1].split("&")
+        channel = query[0].split("=")[1]
+        token = query[1].split("=")[1]
+        channel_api_data.set_data(request.headers, channel=channel, token=token)
+        await route.continue_()
+
+async def intercept_bookmark_list(route, request):
+    if bookmark_api_Data.is_valid:
+        
+
+async def intercept_channel_user_list(route, request):
+    """채널의 유저 리스트를 요청을 인터셉트하는 함수"""
+    if channel_api_data.is_list_enabled():
+        response = await channel_api_data.send_channel_user_list()
+        if response.status_code == 200:
+            print(response.json())
+        else:
+            print(response.status_code)
+        await route.fulfill(
+            status=response.status_code, headers=response.headers, body=response.text
+        )
+    else:
+        query = request.url.split("?")[1].split("&")
+        channel = query[0].split("=")[1]
+        token = query[1].split("=")[1]
+        channel_api_data.set_data(request.headers, channel=channel, token=token)
+        await route.continue_()
 
 
-message = """** 하루에 1번만 자동 홍보합니당 :D **
-자동 접속하고 프로그램이 필요없는 매니저 봇 서비스입니당! 
-http://panda-manager.com 에서 사용가능합니다!
-"""
-message2 = """무료니까 한번 사용해보세욥 ~! 
-실례했습니당~! 다들 즐방하세욥! ㅡㅡㄱ
-"""
+async def intercept_chatting_message(route, request):
+    """채팅 메시지를 요청을 인터셉트하는 함수"""
+    # print(request.url)
+    # await route.continue_()
 
-
-async def check_and_send_message(page: Page, nickname: str):
-    """backend에서 200을 보내면 홍보하고 아니면 넘어가기"""
-    await element_fill_with_css(
-        page,
-        "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/textarea",
-        message,
-    )
-    await asyncio.sleep(0.3)
-    await element_click_with_css(
-        page,
-        "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/input",
-    )
-    await asyncio.sleep(0.3)
-    await element_fill_with_css(
-        page,
-        "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/textarea",
-        message2,
-    )
-    await asyncio.sleep(0.3)
-    await element_click_with_css(
-        page,
-        "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[2]/div/div[2]/div[2]/div[2]/div[3]/input",
-    )
-    await asyncio.sleep(0.3)
-    requests.post(
-        url="http://panda-manager.com:3000/master/tmp-user",
-        json={"nickname": nickname},
-        timeout=5,
-    )
-    return
+    if chatting_api_data.valid:
+        response = await chatting_api_data.send_chatting_message()
+        if response.status_code == 200:
+            print(response.json())
+        else:
+            print(response.status_code)
+            response.status_code = 404
+        await route.fulfill(
+            status=response.status_code, headers=response.headers, body=response.text
+        )
+    else:
+        query = request.post_data.split("&")
+        message = query[0].split("=")[1]
+        roomid = query[1].split("=")[1]
+        chatoken = query[2].split("=")[1]
+        t = query[3].split("=")[1]
+        channel = query[4].split("=")[1]
+        token = query[5].split("=")[1]
+        chatting_api_data.set_data(
+            message=message,
+            roomid=roomid,
+            chatoken=chatoken,
+            t=t,
+            channel=channel,
+            token=token,
+            headers=request.headers,
+        )
+        await route.continue_()
 
 
 async def main():
     async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        context = await browser.new_context()
+
+        # WebSocket 요청을 인터셉트하는 함수를 등록
+        # await context.route("**/channel_user_count*", intercept_channel_user_count)
+        # await context.route("**/channel_user_list*", intercept_channel_user_list)
+        await context.route(
+            "https://api.pandalive.co.kr/v1/live/bookmark", intercept_chatting_message
+        )
+
+        # 새 페이지 열기
+        page = await context.new_page()
+
+        # WebSocket을 사용하는 작업 수행
+        await page.goto("https://www.pandalive.co.kr/live/play/siveriness00")
+
         while True:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context()
-            # 새 페이지 열기
-            page = await context.new_page()
-            # WebSocket을 사용하는 작업 수행
-            await page.goto("https://www.pandalive.co.kr/live")
-            await login(page, "danagga", "Ehdrn0990!PD")
-            await asyncio.sleep(2)
-            await scroll_down(page)
-            user_lists = await get_proceed_data_list(page)
-            backend_list = requests.get(
-                url="http://panda-manager.com:3000/master/tmp-user",
-                timeout=5,
-            ).json()
-            print("findCurrentUserList Length =", len(user_lists))
-            print("backendList Length =", backend_list)
+            await page.wait_for_timeout(0)
+            title = await page.query_selector("xpath=/html/body/div[3]/div/div[1]/h2")
+            error_btn = await page.query_selector(
+                "xpath=/html/body/div[3]/div/div[3]/button[1]"
+            )
+            if title:
+                title_text = await title.inner_text()
+                print(title_text)
+                await error_btn.click()
+                break
+            await page.wait_for_timeout(5000)
+            await asyncio.sleep(5)
 
-            for user in user_lists:
-                if (
-                    any(
-                        user["name"] == backend_user["nickname"]
-                        for backend_user in backend_list
-                    )
-                    is True
-                ):
-                    continue
-                await page.goto(
-                    f"https://www.pandalive.co.kr/live/search?text={user['name']}#live"
-                )
-                page_img = await page.query_selector(
-                    "xpath=/html/body/div/div/div/div[2]/div[2]/div/div/div[3]/ul/li/a/div[1]/img"
-                )
-                if page_img:
-                    await page_img.click()
-                    await asyncio.sleep(3)
-                    # 등급 방이라면 continue
-                    hart_cancel = await page.query_selector(
-                        "xpath=/html/body/div[2]/div/div[3]/button[3]"
-                    )
-                    if hart_cancel:
-                        continue
-                    # 비번 방이라면 continue
-                    pass_cancel = await page.query_selector(
-                        "xpath=/html/body/div/div/div/div[2]/div[3]/div[1]/div/div[2]/div[2]/span[1]/input"
-                    )
-                    if pass_cancel:
-                        continue
-                    # 확인 버튼이 있다면 클릭
-                    await element_click_with_css(
-                        page,
-                        "xpath=/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div/div[3]/span/input",
-                    )
-                    try:
-                        await element_click_with_css(
-                            page,
-                            "/html/body/div[2]/div/div/div[2]/div[2]/div/div/div[3]/div/div/div[3]/span",
-                        )
-                    except:
-                        pass
-                    await check_and_send_message(page, user["name"])
-
-                else:
-                    continue
-                await asyncio.sleep(2)
-            await browser.close()
-            await asyncio.sleep(600)
+        # 페이지 작업 완료 후 브라우저 종료
+        await browser.close()
 
 
 asyncio.run(main())

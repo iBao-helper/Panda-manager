@@ -35,7 +35,7 @@ class SeleWatch:
         options.add_argument("disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--headless")
+        # options.add_argument("--headless")
 
         # 크롬 드라이버 최신 버전 설정
         service = ChromeService(executable_path="/usr/bin/chromedriver")
@@ -62,6 +62,39 @@ class SeleWatch:
         self.element_fill_with_css("div.input_set > input#login-user-pw", manager_pw)
         self.element_click_with_css("div.btnList > span.btnBc > input[type=button]")
         self.element_click_with_css("div.profile_img")
+
+    def is_scroll_at_bottom(self) -> bool:
+        """스크롤이 가장 밑에 있는지 확인하는 함수"""
+        scroll_height = self.driver.execute_script(
+            "return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );"
+        )
+        scroll_top = self.driver.execute_script(
+            "return (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;"
+        )
+        scroll_inner_height = self.driver.execute_script("return window.innerHeight;")
+
+        # If the scroll top plus window height is greater than or equal to scroll height,
+        # we consider it to be at the bottom
+        return scroll_top + scroll_inner_height >= (scroll_height - 200)
+
+    async def scroll_down(self):
+        """페이지를 스크롤 끝까지 내리는 함수"""
+        self.driver.set_page_load_timeout(0)
+        while True:
+            try:
+                is_bottom = await self.is_scroll_at_bottom()
+                if not is_bottom:
+                    element = self.driver.find_element(
+                        By.CSS_SELECTOR, "div.listBtnMore"
+                    )
+                    element.click()
+                    time.sleep(1)
+                    print(await self.is_scroll_at_bottom())
+                else:
+                    break
+            except Exception as e:  # pylint: disable=W0703 W0612
+                break
+        self.driver.set_page_load_timeout(30)
 
     def find_element_with_css(self, css_selector):
         """css_selector로 element 찾기"""
