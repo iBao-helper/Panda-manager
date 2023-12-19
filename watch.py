@@ -14,6 +14,7 @@ from playwright.async_api import Page
 from playwright.async_api import FrameLocator
 from dotenv import load_dotenv
 from classes import night_watch_selenium as nws
+from classes import playwright_watch as pws
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
 from util.my_util import logging_debug, logging_error, logging_info
@@ -25,29 +26,31 @@ BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
 sele_watch: nws.SeleWatch = nws.SeleWatch()
+play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch()
 
 # ThreadPoolExecutor를 생성하여 loop2 함수를 별도의 스레드에서 실행합니다.
 executor = concurrent.futures.ThreadPoolExecutor()
 
 
-def loop2():
+async def loop2():
     """aaa"""
     while True:
-        time.sleep(5)
-        sele_watch.refresh()
-        time.sleep(5)
-        sele_watch.start()
+        await asyncio.sleep(10)
+        await play_watch.start()
 
 
 @app.post("/NightWatch")
 async def night_watch_start():
     """감시자 시작"""
-    sele_watch.create_selenium()
-    sele_watch.element_click_with_css("button.btnClose")
-    sele_watch.login()
-    sele_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
+    await play_watch.create_selenium()
+    await play_watch.set_interceptor()
+    await play_watch.page.get_by_role("button", name="닫기").click()
+    # await play_watch.element_click_with_css("button.btnClose")
+    await play_watch.login()
+    await play_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
-    executor.submit(loop2)
+    asyncio.create_task(loop2())
+    # executor.submit(loop2)
     return {"message": "NightWatch"}
 
 
@@ -153,21 +156,21 @@ async def get_panda_nickname(bj_id: str, response: Response):
 @app.get("/add-bookmark", status_code=status.HTTP_200_OK)
 async def add_book_mark(bj_id: str):
     """북마크 추가"""
-    sele_watch.add_book_mark_list(bj_id)
+    play_watch.add_book_mark_list(bj_id)
     return {"message": "success"}
 
 
 @app.get("/delete-bookmark", status_code=status.HTTP_200_OK)
 async def delete_book_mark(bj_id: str):
     """북마크 추가"""
-    sele_watch.delete_book_mark_list(bj_id)
+    play_watch.delete_book_mark_list(bj_id)
     return {"message": "success"}
 
 
 @app.get("/check-bookmark", status_code=status.HTTP_200_OK)
 async def check_book_mark():
     """북마크 상태 체크"""
-    sele_watch.bookmark_list_changed = True
+    play_watch.bookmark_list_changed = True
     return {"message": "success"}
 
 
@@ -200,16 +203,16 @@ async def play_wright_handler(exc: ex.PlayWrightException):
     if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
         # nw 가동 실패
         print(exc)
-        await sele_watch.destroy()
+        await play_watch.destroy()
 
     elif exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
         print(exc)
-        await sele_watch.destroy()
+        await play_watch.destroy()
     elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
         # STT 실패
         print(exc)
-        await sele_watch.destroy()
+        await play_watch.destroy()
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
