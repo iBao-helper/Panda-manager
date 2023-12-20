@@ -57,7 +57,7 @@ async def night_watch_start():
 @app.delete("/NightWatch")
 async def night_watch_stop():
     """감시자 종료"""
-    await sele_watch.destroy()
+    await play_watch.destroy()
     return {"message": "NightWatch"}
 
 

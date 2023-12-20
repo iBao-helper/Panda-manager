@@ -8,10 +8,6 @@ from playwright.async_api import async_playwright
 import requests
 from classes.book_mark_list_api_data import BookMarkListApiData
 
-BACKEND_URL = os.getenv("BACKEND_URL")
-BACKEND_PORT = os.getenv("BACKEND_PORT")
-PUBLIC_IP = os.getenv("PUBLIC_IP")
-
 
 class PlayWrightNightWatch:
     """playwright를 이용한 NightWatch 모듈"""
@@ -26,6 +22,8 @@ class PlayWrightNightWatch:
         self.delete_bookmark_list = []
         self.backend_url = os.getenv("BACKEND_URL")
         self.backend_port = os.getenv("BACKEND_PORT")
+        self.public_ip = os.getenv("PUBLIC_IP")
+        print(self.backend_url)
         self.bookmark_list_changed = False
         self.bookmark_api_data = BookMarkListApiData()
         self.prev_list_length = 0
@@ -53,7 +51,7 @@ class PlayWrightNightWatch:
     async def create_selenium(self):
         """playwright 객체 생성"""
         apw = await async_playwright().start()
-        self.browser = await apw.chromium.launch(headless=False)
+        self.browser = await apw.chromium.launch(headless=True)
         self.context = await self.browser.new_context(
             viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
             locale="ko-KR",
@@ -160,19 +158,21 @@ class PlayWrightNightWatch:
     async def set_book_mark(self, panda_id: str, state: bool):
         """북마크 세팅. state상태로 세팅함"""
         try:
-            self.goto_url(f"https://www.pandalive.co.kr/channel/{panda_id}/notice")
-            asyncio.sleep(1)
+            await self.goto_url(
+                f"https://www.pandalive.co.kr/channel/{panda_id}/notice"
+            )
+            await asyncio.sleep(1)
             self.bookmark_list_changed = True
-            book_mark = self.page.locator("span.btn_bookmark")
-            book_mark_class = book_mark.get_attribute("class")
+            book_mark = await self.page.query_selector("span.btn_bookmark")
+            book_mark_class = await book_mark.get_attribute("class")
             # 이미 북마크가 되어있다면
             if "on" in book_mark_class:
                 if state is False:
-                    book_mark.click()
+                    await book_mark.click()
             # 북마크가 되어있지 않다면
             else:
                 if state is True:
-                    book_mark.click()
+                    await book_mark.click()
         except Exception as e:  # pylint: disable=W0703
             print(e)
 
@@ -203,7 +203,7 @@ class PlayWrightNightWatch:
             combined_keys = idle_users + live_users
             combined_keys.append(f"nightWatch length = {len(combined_keys)}")
             requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/info",
+                url=f"http://{self.backend_url}:{self.backend_port}/log/info",
                 json={
                     "panda_id": "Night-Watch",
                     "description": "Current Regist User",
@@ -212,8 +212,8 @@ class PlayWrightNightWatch:
                 timeout=5,
             )
             requests.patch(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/nightwatch",
-                json={"ip": PUBLIC_IP, "size": len(combined_keys)},
+                url=f"http://{self.backend_url}:{self.backend_port}/nightwatch",
+                json={"ip": self.public_ip, "size": len(combined_keys)},
                 timeout=5,
             )
         return idle_users, live_users

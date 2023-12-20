@@ -170,6 +170,34 @@ async def delete_room_user(panda_id: str, user_list: list):
     )
 
 
+async def get_song_list(panda_id: str):
+    """panda_id의 songList를 가져온다"""
+    song_list = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+        timeout=5,
+    )
+    return song_list
+
+
+async def add_song_list(panda_id: str, nickname: str, song: str):
+    """panda_id의 songList에 노래를 추가한다"""
+    response = requests.post(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+        json={"nickname": nickname, "song": song},
+        timeout=5,
+    )
+    return response
+
+
+async def delete_song_list(panda_id: str):
+    """panda_id의 songList를 삭제한다"""
+    response = requests.delete(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+        timeout=5,
+    )
+    return response
+
+
 async def logging_debug(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
     requests.post(

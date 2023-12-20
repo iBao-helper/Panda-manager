@@ -37,6 +37,9 @@ from util.my_util import (
     get_rc_toggle,
     logging_debug,
     logging_error,
+    get_song_list,
+    add_song_list,
+    delete_song_list,
 )
 
 load_dotenv()
@@ -352,9 +355,7 @@ class PandaManager:
                     "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!신청 [노래제목]\n!리스트\n!신청곡리셋\n!타이머 [시간] [알림간격]\n!꺼"
                 )
             elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
-                chat_user == data.nickname
-                or chat_user == "크기가전부는아니자나여"
-                or chat_user == "FS시혈_FUXK금붕어"
+                chat_user == data.nickname or chat_user == "크기가전부는아니자나연"
             ):
                 response = await self.chat_command_register_delete(splited_chat)
                 return response
@@ -379,9 +380,9 @@ class PandaManager:
                 # 비동기 호출
                 await self.stop_timer()
             elif splited_chat[0] == "!신청":
-                await self.regist_song(" ".join(splited_chat[1:]))
+                await self.regist_song(" ".join(splited_chat[1:]), chat_user)
             elif splited_chat[0] == "!리스트":
-                await self.send_song_list(chat_user)
+                await self.send_song_list()
             elif splited_chat[0] == "!신청곡리셋":
                 await self.reset_song_list()
             return True
@@ -683,27 +684,33 @@ class PandaManager:
         """사용된 user data 세팅"""
         self.user = user
 
-    async def regist_song(self, song):
+    async def regist_song(self, song, nickname):
         """신청곡 추가"""
-        if song in self.song_list:
-            await self.chatting_send("이미 신청한 곡입니다.")
-            return
-        self.song_list.append(song)
-        await self.chatting_send(f"'{song}' 신청되었습니다.")
-        self.song_message_boolean = True
+        response = await add_song_list(self.user.panda_id, nickname, song)
+        if response.status_code == 200 or response.status_code == 201:
+            await self.chatting_send(f"'{song}' 신청되었습니다.")
+            self.song_message_boolean = True
+        else:
+            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def send_song_list(self, chat_user):
+    async def send_song_list(self):
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
-        for song in self.song_list:
-            message += f"{song}\n"
-        if len(self.song_list) > 0 and chat_user == self.user.nickname:
-            self.song_list.remove(self.song_list[0])
-        await self.chatting_send(message)
+        song_list = await get_song_list(self.user.panda_id)
+        if song_list.status_code == 200 or song_list.status_code == 201:
+            for song in song_list:
+                message += f"{song}\n"
+            await self.chatting_send(message)
+        else:
+            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
     async def reset_song_list(self):
-        self.song_list = []
-        await self.chatting_send("신청곡 리스트가 초기화 되었습니다")
+        """신청곡 초기화"""
+        response = await delete_song_list(self.user.panda_id)
+        if response.status_code == 200 or response.status_code == 201:
+            await self.chatting_send("신청곡 리스트가 초기화 되었습니다")
+        else:
+            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
     async def pr_handler(self):
         """일정 주기마다 안내메시지 발송하는 핸들러"""
