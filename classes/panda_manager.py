@@ -653,7 +653,6 @@ class PandaManager:
         )
         count = 0
         while self.time >= 1:
-            count += 1
             self.time = self.time - 1
             if count == time_period:
                 self.timer_message_boolean = True
@@ -661,6 +660,7 @@ class PandaManager:
             if self.time <= 5:
                 self.timer_message_boolean = True
             print(self.time)
+            count += 1
             await asyncio.sleep(1)
         self.timer_complete = True
         self.timer_message_boolean = True
