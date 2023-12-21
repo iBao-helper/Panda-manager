@@ -213,7 +213,7 @@ class PlayWrightNightWatch:
             )
             requests.patch(
                 url=f"http://{self.backend_url}:{self.backend_port}/nightwatch",
-                json={"ip": self.public_ip, "size": len(combined_keys)},
+                json={"ip": self.public_ip, "size": len(combined_keys) - 1},
                 timeout=5,
             )
         return idle_users, live_users

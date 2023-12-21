@@ -697,6 +697,8 @@ class PandaManager:
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
         song_list = await get_song_list(self.user.panda_id)
+        print(song_list)
+        print(song_list.json())
         if song_list.status_code == 200 or song_list.status_code == 201:
             for song in song_list:
                 message += f"{song}\n"
