@@ -294,13 +294,16 @@ class PandaManager:
     async def remove_elements(self):
         """remove other elements"""
         try:
-            target = self.page.locator("#header")
-            await target.evaluate("(element) => element.remove()")
-            target = self.page.locator("#sideArea")
-            await target.evaluate("(element) => element.remove()")
-            target = self.page.locator(".live_left_area")
-            await target.evaluate("(element) => element.remove()")
-        except: # pylint: disable=W0702
+            target = self.page.query_selector("#header")
+            if target:
+                await target.evaluate("(element) => element.remove()")
+            target2 = self.page.query_selector("#sideArea")
+            if target2:
+                await target2.evaluate("(element) => element.remove()")
+            target3 = self.page.query_selector(".live_left_area")
+            if target3:
+                await target3.evaluate("(element) => element.remove()")
+        except:  # pylint: disable=W0702
             await self.send_screenshot()
             await logging_error(
                 self.data.panda_id,
