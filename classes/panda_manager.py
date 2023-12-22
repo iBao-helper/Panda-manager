@@ -293,12 +293,21 @@ class PandaManager:
 
     async def remove_elements(self):
         """remove other elements"""
-        target = self.page.locator("#header")
-        await target.evaluate("(element) => element.remove()")
-        target = self.page.locator("#sideArea")
-        await target.evaluate("(element) => element.remove()")
-        target = self.page.locator(".live_left_area")
-        await target.evaluate("(element) => element.remove()")
+        try:
+            target = self.page.locator("#header")
+            await target.evaluate("(element) => element.remove()")
+            target = self.page.locator("#sideArea")
+            await target.evaluate("(element) => element.remove()")
+            target = self.page.locator(".live_left_area")
+            await target.evaluate("(element) => element.remove()")
+        except: # pylint: disable=W0702
+            await self.send_screenshot()
+            await logging_error(
+                self.data.panda_id,
+                "불필요한 element 제거에 실패. 하얀화면일것임",
+                {"panda_id": self.data.panda_id},
+            )
+            await error_in_chatting_room(self.data.panda_id)
 
     async def chat_command_register_delete(self, splited_chat: list):
         """채팅 매크로 등록/삭제 처리"""
