@@ -17,10 +17,10 @@ import requests
 from dotenv import load_dotenv
 from classes.channel_api_data import ChannelApiData
 from classes.chatting_api_data import ChattingApiData
-
+from classes.search_live_api_data import SearchLiveBj
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
-from test_a import SearchLiveBj
+
 from util.my_util import (
     User,
     error_in_chatting_room,
