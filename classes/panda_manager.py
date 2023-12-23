@@ -731,7 +731,6 @@ class PandaManager:
             response = await self.search_live_api_data.search_live_bj(
                 self.user.nickname
             )
-            print(response.json())
             await self.chatting_send(self.user.pr_message)
             self.is_pr_message_sendable = False
 
