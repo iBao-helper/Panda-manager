@@ -19,14 +19,15 @@ class SearchLiveBj:
             print("헤더가 없는 요청입니다")
             return None
         try:
-            print(self.headers)
             response = requests.post(
                 url="https://api.pandalive.co.kr/v1/live",
                 headers=self.headers,
                 data=f"offset=0&limit=20&orderBy=user&searchVal={quote(searchVal)}",
                 timeout=5,
             )
-            print(response.json())
+            lists = response.json()["list"]
+            if len(lists) > 0:
+                print(lists[0])
             return response
         except Exception as e:
             self.headers = None
