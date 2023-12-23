@@ -89,6 +89,20 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         await page.goto("http://pandalive.co.kr")
         await page.get_by_role("button", name="닫기").click()
         manager_nickname = await login(page, manager_id, manager_pw)
+        auth_19 = await page.query_selector("span.toggle_img")
+        if auth_19:
+            await logging_info(
+                "check_manager_login",
+                "19인증 필요",
+                {
+                    "manager_id": manager_id,
+                    "manager_pw": manager_pw,
+                    "err_message": "매니저 계정에 휴대폰 인증 필요",
+                },
+            )
+            response.status_code = status.HTTP_404_NOT_FOUN
+            await browser.close()
+            return {"message": "19인증 필요"}
         await browser.close()
         return manager_nickname
     except ex.PlayWrightException as exc:  # pylint: disable=W0718 W0702
@@ -116,7 +130,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
                     },
                 )
             await browser.close()
-            response.status_code = status.HTTP_400_BAD_REQUEST
+            response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
             return {"message": "ID/PW 불일치"}
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
             await logging_info(
@@ -129,7 +143,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
                 },
             )
             await browser.close()
-            response.status_code = status.HTTP_409_CONFLICT
+            response.status_code = status.HTTP_406_NOT_ACCEPTABLE
             return {"message": "STT 실패"}
 
 
@@ -137,12 +151,12 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
 async def get_panda_nickname(bj_id: str, response: Response):
     """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
     apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=HEADLESS)
+    browser = await apw.chromium.launch(headless=True)
     page = await browser.new_page()
     await page.goto(f"https://www.pandalive.co.kr/channel/{bj_id}/notice")
     await asyncio.sleep(1)
     if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
-        response.status_code = status.HTTP_404_NOT_FOUND
+        response.status_code = status.HTTP_403_FORBIDDEN
         await browser.close()
         return {"message": "null"}
     nickname = await page.query_selector(".nickname")

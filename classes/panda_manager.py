@@ -20,6 +20,7 @@ from classes.chatting_api_data import ChattingApiData
 
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
+from test_a import SearchLiveBj
 from util.my_util import (
     User,
     error_in_chatting_room,
@@ -98,6 +99,7 @@ class PandaManager:
         self.time = 0
         self.channel_api = ChannelApiData()
         self.chatting_api = ChattingApiData()
+        self.search_live_bj_api = SearchLiveBj()
         self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
