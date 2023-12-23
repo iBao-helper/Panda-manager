@@ -80,6 +80,12 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         raise ex.PlayWrightException(
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
         ) from TimeoutError
+    await panda_manager.set_interceptor()
+    ## 실험용 코드
+    await panda_manager.goto_url(
+        "https://www.pandalive.co.kr/live/search?text=%ED%85%8C%EC%8A%A4%ED%8A%B8"
+    )
+    ##
     await logging_info(body.panda_id, "로그인 작업 성공", {"message": "로그인 작업 성공"})
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
@@ -112,12 +118,12 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
         timeout=5,
     )
+
     user = User(**data.json())
     panda_manager.set_user(user)
     await logging_info(body.panda_id, "[매니저 정보 획득]", {"message": "매니저 정보 획득"})
     await panda_manager.remove_elements()
     await logging_info(body.panda_id, "[delete elements]", {"message": "elements"})
-    await panda_manager.set_interceptor()
     asyncio.create_task(panda_manager.macro())
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
