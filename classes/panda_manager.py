@@ -728,9 +728,12 @@ class PandaManager:
     async def pr_handler(self):
         """일정 주기마다 안내메시지 발송하는 핸들러"""
         if self.is_pr_message_sendable:
-            response = await self.search_live_api_data.search_live_bj(
-                self.user.nickname
-            )
+            try:
+                response = await self.search_live_api_data.search_live_bj(
+                    self.user.nickname
+                )
+            except Exception as e:
+                print(e)
             await self.chatting_send(self.user.pr_message)
             self.is_pr_message_sendable = False
 
