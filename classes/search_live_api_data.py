@@ -28,7 +28,7 @@ class SearchLiveBj:
             lists = response.json()["list"]
             if len(lists) > 0:
                 print(lists[0])
-            return response
+            return lists[0]
         except Exception as e:
             self.headers = None
             print("실시간 방송중인 BJ 검색 실패", e)
