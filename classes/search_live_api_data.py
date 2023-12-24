@@ -32,3 +32,4 @@ class SearchLiveBj:
         except Exception as e:
             self.headers = None
             print("실시간 방송중인 BJ 검색 실패", e)
+            return None
