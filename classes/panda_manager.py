@@ -742,10 +742,10 @@ class PandaManager:
                 print(e)
             if response is not None:
                 message = (
-                    self.user.pr_message.replace("{추천수}", response["likeCnt"])
-                    .replace("{즐찾수}", response["bookmarkCnt"])
-                    .replace("{재생수}", response["playCnt"])
-                    .replace("{총점수}", response["totalScoreCnt"])
+                    self.user.pr_message.replace("{추천수}", str(response["likeCnt"]))
+                    .replace("{즐찾수}", str(response["bookmarkCnt"]))
+                    .replace("{재생수}", str(response["playCnt"]))
+                    .replace("{총점수}", str(response["totalScoreCnt"]))
                 )
             else:
                 message = self.user.pr_message
