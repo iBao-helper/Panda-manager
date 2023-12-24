@@ -313,6 +313,7 @@ class PandaManager:
                 "불필요한 element 제거에 실패. 하얀화면일것임",
                 {"panda_id": self.data.panda_id},
             )
+            await self.destroy()
             await error_in_chatting_room(self.data.panda_id)
 
     async def chat_command_register_delete(self, splited_chat: list):
@@ -871,6 +872,7 @@ class PandaManager:
                     "다른 기기에서 로그인",
                     {"panda_id": self.data.panda_id},
                 )
+                await self.destroy()
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "API" in title_text:
@@ -880,6 +882,7 @@ class PandaManager:
                     "API 요청을 실패했습니다.",
                     {"panda_id": self.data.panda_id},
                 )
+                await self.destroy()
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "종료" in title_text:
@@ -891,6 +894,7 @@ class PandaManager:
                 "채팅창 보내기 버튼이 없어짐",
                 {"panda_id": self.data.panda_id},
             )
+            await self.destroy()
             await error_in_chatting_room(self.data.panda_id)
         self.error_check_boolean = False
 
