@@ -103,7 +103,7 @@ class PandaManager:
         self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
-        
+
         self.rc_count = 0
         self.hart_count = 0
         self.play_count = 0

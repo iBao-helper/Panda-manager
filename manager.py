@@ -81,7 +81,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
         ) from TimeoutError
     await panda_manager.set_interceptor()
-    ## 실험용 코드
+    ## 실험용 코드 - search API를 사용하기 위한 헤더 설정을 위한 요청
     await panda_manager.goto_url(
         "https://www.pandalive.co.kr/live/search?text=%ED%85%8C%EC%8A%A4%ED%8A%B8"
     )
