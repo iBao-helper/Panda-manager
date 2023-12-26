@@ -986,17 +986,4 @@ class PandaManager:
         """실시간 방송중인 BJ 검색 요청을 인터셉트하는 함수"""
         if self.search_live_api_data.headers is None:
             self.search_live_api_data.headers = request.headers
-            await route.continue_()
-        else:
-            response = await self.search_live_api_data.search_live_bj(
-                self.user.nickname
-            )
-            if response.status_code == 200:
-                print(response.json())
-            else:
-                print(response.status_code)
-            await route.fulfill(
-                status=response.status_code,
-                headers=response.headers,
-                body=response.text,
-            )
+        await route.continue_()
