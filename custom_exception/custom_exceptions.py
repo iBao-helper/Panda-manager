@@ -25,6 +25,6 @@ class PlayWrightException(Exception):
         message: str = "",
     ) -> None:
         self.description = description
-        self.panada_id = panda_id
+        self.panda_id = panda_id
         self.resource_ip = resource_ip
         self.message = message

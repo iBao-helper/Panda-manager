@@ -17,9 +17,10 @@ import requests
 from dotenv import load_dotenv
 from classes.channel_api_data import ChannelApiData
 from classes.chatting_api_data import ChattingApiData
-
+from classes.search_live_api_data import SearchLiveBj
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
+
 from util.my_util import (
     User,
     error_in_chatting_room,
@@ -98,9 +99,14 @@ class PandaManager:
         self.time = 0
         self.channel_api = ChannelApiData()
         self.chatting_api = ChattingApiData()
+        self.search_live_api_data = SearchLiveBj()
         self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
+
+        self.rc_count = 0
+        self.hart_count = 0
+        self.play_count = 0
         print(f"data = {self.data}")
 
     async def create_playwright(self, proxy_ip: str):
@@ -307,6 +313,7 @@ class PandaManager:
                 "불필요한 element 제거에 실패. 하얀화면일것임",
                 {"panda_id": self.data.panda_id},
             )
+            await self.destroy()
             await error_in_chatting_room(self.data.panda_id)
 
     async def chat_command_register_delete(self, splited_chat: list):
@@ -726,7 +733,23 @@ class PandaManager:
     async def pr_handler(self):
         """일정 주기마다 안내메시지 발송하는 핸들러"""
         if self.is_pr_message_sendable:
-            await self.chatting_send(self.user.pr_message)
+            response = None
+            try:
+                response = await self.search_live_api_data.search_live_bj(
+                    self.user.nickname
+                )
+            except Exception as e:
+                print(e)
+            if response is not None:
+                message = (
+                    self.user.pr_message.replace("{추천}", str(response["likeCnt"]))
+                    .replace("{즐찾}", str(response["bookmarkCnt"]))
+                    .replace("{재생}", str(response["playCnt"]))
+                    .replace("{총점}", str(response["totalScoreCnt"]))
+                )
+            else:
+                message = self.user.pr_message
+            await self.chatting_send(emoji.emojize(message))
             self.is_pr_message_sendable = False
 
     async def update_commands(self):
@@ -859,6 +882,7 @@ class PandaManager:
                     "다른 기기에서 로그인",
                     {"panda_id": self.data.panda_id},
                 )
+                await self.destroy()
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "API" in title_text:
@@ -868,6 +892,7 @@ class PandaManager:
                     "API 요청을 실패했습니다.",
                     {"panda_id": self.data.panda_id},
                 )
+                await self.destroy()
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "종료" in title_text:
@@ -879,6 +904,7 @@ class PandaManager:
                 "채팅창 보내기 버튼이 없어짐",
                 {"panda_id": self.data.panda_id},
             )
+            await self.destroy()
             await error_in_chatting_room(self.data.panda_id)
         self.error_check_boolean = False
 
@@ -888,6 +914,9 @@ class PandaManager:
             "**/channel_user_count*", self.intercept_channel_user_count
         )
         await self.context.route("**/chat/message", self.intercept_chatting_message)
+        await self.context.route(
+            "https://api.pandalive.co.kr/v1/live", self.intercept_search_live_bj
+        )
 
     async def intercept_channel_user_count(self, route, request):
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
@@ -952,3 +981,22 @@ class PandaManager:
         )
         await route.continue_()
         await self.context.unroute("**/chat/message", self.intercept_chatting_message)
+
+    async def intercept_search_live_bj(self, route, request):
+        """실시간 방송중인 BJ 검색 요청을 인터셉트하는 함수"""
+        if self.search_live_api_data.headers is None:
+            self.search_live_api_data.headers = request.headers
+            await route.continue_()
+        else:
+            response = await self.search_live_api_data.search_live_bj(
+                self.user.nickname
+            )
+            if response.status_code == 200:
+                print(response.json())
+            else:
+                print(response.status_code)
+            await route.fulfill(
+                status=response.status_code,
+                headers=response.headers,
+                body=response.text,
+            )

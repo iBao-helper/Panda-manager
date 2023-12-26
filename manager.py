@@ -80,6 +80,12 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         raise ex.PlayWrightException(
             panda_id, ex.PWEEnum.PD_LOGIN_STT_FAILED, "로그인 시간 초과"
         ) from TimeoutError
+    await panda_manager.set_interceptor()
+    ## 실험용 코드 - search API를 사용하기 위한 헤더 설정을 위한 요청
+    await panda_manager.goto_url(
+        "https://www.pandalive.co.kr/live/search?text=%ED%85%8C%EC%8A%A4%ED%8A%B8"
+    )
+    ##
     await logging_info(body.panda_id, "로그인 작업 성공", {"message": "로그인 작업 성공"})
     await panda_manager.goto_url(f"https://www.pandalive.co.kr/live/play/{panda_id}")
     # 처음 들어갈때 팝업 제거
@@ -112,12 +118,12 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
         url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
         timeout=5,
     )
+
     user = User(**data.json())
     panda_manager.set_user(user)
     await logging_info(body.panda_id, "[매니저 정보 획득]", {"message": "매니저 정보 획득"})
     await panda_manager.remove_elements()
     await logging_info(body.panda_id, "[delete elements]", {"message": "elements"})
-    await panda_manager.set_interceptor()
     asyncio.create_task(panda_manager.macro())
     ## 이후 DB에 capacity 감소 하는 로직이 필요함
     return {"message": "PandaManager"}
@@ -292,22 +298,23 @@ async def test():
 @app.exception_handler(ex.PlayWrightException)
 async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
     """PlayWright Exception Handler"""
-    await panda_managers[exc.panada_id].send_screenshot()
+    await panda_managers[exc.panda_id].send_screenshot()
+    await panda_managers[exc.panda_id].destroy()
     if SERVER_KIND == "ec2":
         print("ec2 task 실패")
         if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
             # nw 가동 실패
-            print("PD 가동 실패", exc.panada_id, exc.description)
+            print("PD 가동 실패", exc.panda_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
-                json={"panda_id": exc.panada_id, message: exc.message},
+                json={"panda_id": exc.panda_id, message: exc.message},
                 timeout=10,
             )
         elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
@@ -316,13 +323,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             message = "ID/PW 로그인 실패"
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             requests.delete(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-login",
-                json={"panda_id": exc.panada_id},
+                json={"panda_id": exc.panda_id},
                 timeout=10,
             )
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
@@ -330,13 +337,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",
-                json={"panda_id": exc.panada_id, message: exc.message},
+                json={"panda_id": exc.panda_id, message: exc.message},
                 timeout=10,
             )
         message = "EC2 task 실패"
@@ -344,17 +351,17 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
         print("ec2 task 실패")
         if exc.description == ex.PWEEnum.PD_CREATE_ERROR:
             # nw 가동 실패
-            print("PD 가동 실패", exc.panada_id, exc.description)
+            print("PD 가동 실패", exc.panda_id, exc.description)
             status_code = status.HTTP_400_BAD_REQUEST
             message = "PandaManager 생성 실패"
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-                json={"panda_id": exc.panada_id, "message": message},
+                json={"panda_id": exc.panda_id, "message": message},
                 timeout=10,
             )
         elif exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
@@ -362,14 +369,14 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_200_OK
             message = "ID/PW 로그인 실패"
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             # ID/PW가 틀려서 실패했다면 재시도 하지 않는게 맞다. 다른 콜백 경로로 리소스만 해제해주는것이 옳음.
             requests.delete(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-login",
-                json={"panda_id": exc.panada_id, "message": message},
+                json={"panda_id": exc.panda_id, "message": message},
                 timeout=10,
             )
         elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
@@ -377,13 +384,13 @@ async def play_wright_handler(request: Request, exc: ex.PlayWrightException):
             status_code = status.HTTP_400_BAD_REQUEST
             message = "stt 실패"
             await logging_error(
-                exc.panada_id,
+                exc.panda_id,
                 "PlayWright Error",
                 {"server_kind": SERVER_KIND, "message": message},
             )
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-proxy-task",
-                json={"panda_id": exc.panada_id, "message": message},
+                json={"panda_id": exc.panda_id, "message": message},
                 timeout=10,
             )
     return JSONResponse(
@@ -397,6 +404,9 @@ async def default_exception_filter(request: Request, e: Exception):
     """예상치 못한 에러가 발생했을때 백엔드에 로깅하기 위한 필터"""
     if "panda_id" in request.path_params:
         panda_id = request.path_params["panda_id"]
+        await panda_managers[panda_id].send_screenshot()
+        await panda_managers[panda_id].destroy()
+        await logging_error(panda_id, "Unkown Error", str(e))
         if SERVER_KIND == "ec2":
             requests.post(
                 url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-ec2-task",

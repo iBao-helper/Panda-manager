@@ -194,6 +194,7 @@ class PlayWrightNightWatch:
                     user["userId"]
                     for user in users_datas_json
                     if user.get("media") is not None
+                    and user["media"]["liveType"] != "rec"
                 ]
         else:
             await self.goto_url("https://www.pandalive.co.kr/pick#bookmark")
