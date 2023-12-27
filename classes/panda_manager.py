@@ -338,10 +338,7 @@ class PandaManager:
             elif splited_chat[0] == "!삭제":
                 if len(splited_chat) >= 2:
                     response = requests.delete(
-                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}",
-                        json={
-                            "key": splited_chat[1],
-                        },
+                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}/{splited_chat[1]}",
                         timeout=5,
                     )
                     print(response.text)
@@ -894,6 +891,15 @@ class PandaManager:
                 )
                 await self.destroy()
                 await error_in_chatting_room(self.data.panda_id)
+                await error_btn.click()
+            elif "문제" in title_text:
+                await self.send_screenshot()
+                await logging_error(
+                    self.data.panda_id,
+                    "문제가 발생했습니다.",
+                    {"panda_id": self.data.panda_id},
+                )
+                # 일단 종료안하게 변경해봄 
                 await error_btn.click()
             elif "종료" in title_text:
                 pass
