@@ -888,7 +888,6 @@ class PandaManager:
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "API" in title_text:
-                await self.send_screenshot()
                 await logging_error(
                     self.data.panda_id,
                     "API 요청을 실패했습니다.",
@@ -898,7 +897,6 @@ class PandaManager:
                 await error_in_chatting_room(self.data.panda_id)
                 await error_btn.click()
             elif "문제" in title_text:
-                await self.send_screenshot()
                 await logging_error(
                     self.data.panda_id,
                     "문제가 발생했습니다.",
