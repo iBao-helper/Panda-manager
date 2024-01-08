@@ -270,6 +270,11 @@ class PandaManager:
                 )
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
+                check_password = await self.page.query_selector(
+                    "xpath=/html/body/div/div/div/div[2]/div/div/div/div[2]/span[2]/input"
+                )
+                if check_password:
+                    await check_password.click()
                 await self.page.wait_for_selector("div.profile_img")
             else:
                 print("stt 실패")
@@ -899,7 +904,7 @@ class PandaManager:
                     "문제가 발생했습니다.",
                     {"panda_id": self.data.panda_id},
                 )
-                # 일단 종료안하게 변경해봄 
+                # 일단 종료안하게 변경해봄
                 await error_btn.click()
             elif "종료" in title_text:
                 pass
