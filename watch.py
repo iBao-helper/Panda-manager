@@ -2,18 +2,15 @@
 import os
 import asyncio
 import re
-import time
 import urllib.request
 import concurrent.futures
 import uvicorn
-import requests
 from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
 from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import FrameLocator
 from dotenv import load_dotenv
-from classes import night_watch_selenium as nws
 from classes import playwright_watch as pws
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
@@ -25,7 +22,6 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
-sele_watch: nws.SeleWatch = nws.SeleWatch()
 play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch()
 
 # ThreadPoolExecutor를 생성하여 loop2 함수를 별도의 스레드에서 실행합니다.
