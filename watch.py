@@ -8,7 +8,8 @@ import requests
 import uvicorn
 from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
-from playwright.async_api import async_playwright
+
+# from playwright.async_api import async_playwright
 from playwright.async_api import Page
 from playwright.async_api import FrameLocator
 from dotenv import load_dotenv
@@ -41,13 +42,13 @@ async def loop2():
 @app.post("/NightWatch")
 async def night_watch_start():
     """감시자 시작"""
-    await play_watch.create_selenium()
-    await play_watch.set_interceptor()
-    await play_watch.page.get_by_role("button", name="닫기").click()
+    # await play_watch.create_selenium()
+    # await play_watch.set_interceptor()
+    # await play_watch.page.get_by_role("button", name="닫기").click()
     # await play_watch.element_click_with_css("button.btnClose")
     await play_watch.login()
-    await play_watch.goto_url("https://www.pandalive.co.kr/channel/siveriness01/notice")
-    await play_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
+    # await play_watch.goto_url("https://www.pandalive.co.kr/channel/siveriness01/notice")
+    # await play_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
     asyncio.create_task(loop2())
     # executor.submit(loop2)
@@ -57,7 +58,7 @@ async def night_watch_start():
 @app.delete("/NightWatch")
 async def night_watch_stop():
     """감시자 종료"""
-    await play_watch.destroy()
+    # await play_watch.destroy()
     return {"message": "NightWatch"}
 
 
@@ -105,7 +106,7 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             login_info = data["loginInfo"]
             if "userInfo" in login_info:
                 user_info = login_info["userInfo"]
-                if user_info["authYN"] is "N":
+                if user_info["authYN"] == "N":
                     response.status_code = 404
                 print(user_info["nick"])
                 return user_info["nick"]
@@ -202,16 +203,16 @@ async def play_wright_handler(exc: ex.PlayWrightException):
     if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
         # nw 가동 실패
         print(exc)
-        await play_watch.destroy()
+        # await play_watch.destroy()
 
     elif exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
         # nigthwatch 로그인 실패
         print(exc)
-        await play_watch.destroy()
+        # await play_watch.destroy()
     elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
         # STT 실패
         print(exc)
-        await play_watch.destroy()
+        # await play_watch.destroy()
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

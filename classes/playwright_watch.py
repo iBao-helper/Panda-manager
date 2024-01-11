@@ -1,13 +1,8 @@
 """playwright용 nightwatch"""
-import asyncio
 import os
-from playwright.async_api import Page
-from playwright.async_api import Browser
-from playwright.async_api import BrowserContext
-from playwright.async_api import async_playwright
+
 import requests
-from classes.book_mark_list_api_data import BookMarkListApiData
-from classes.search_member_bj import SearchMemberBj
+from classes.api_client import APIClient
 
 
 class PlayWrightNightWatch:
@@ -18,104 +13,21 @@ class PlayWrightNightWatch:
         self.watch_pw = watch_pw
         self.sess_key = None  # 세션키를 저장할 변수
         self.user_idx = None  # panda서버의 유저 인덱스
-        self.page: Page
-        self.browser = Browser
-        self.context = BrowserContext
-        self.bookmark_list = []
-        self.delete_bookmark_list = []
         self.backend_url = os.getenv("BACKEND_URL")
         self.backend_port = os.getenv("BACKEND_PORT")
         self.public_ip = os.getenv("PUBLIC_IP")
-        self.bookmark_list_changed = False
-        self.bookmark_api_data = BookMarkListApiData()
-        self.member_bj_api = SearchMemberBj()
-        self.prev_list_length = 0
-
-    async def set_interceptor(self):
-        """인터셉터 설정"""
-        await self.context.route(
-            "https://api.pandalive.co.kr/v1/live/bookmark", self.intercept_bookmark_list
-        )
-        await self.context.route(
-            "https://api.pandalive.co.kr/v1/member/bj",
-            self.intercept_member_bj,
-        )
-
-    async def intercept_member_bj(self, route, request):
-        """북마크 인터셉터"""
-        if self.member_bj_api.headers is None:
-            self.member_bj_api.set_headers(request.headers)
-        await route.continue_()
-
-    async def intercept_bookmark_list(self, route, request):
-        """북마크 인터셉터"""
-        if self.bookmark_api_data.is_need_list_headers():
-            self.bookmark_api_data.set_list_headers(request.headers)
-        await route.continue_()
-
-    async def goto_url(self, url):
-        """url 이동"""
-        await self.page.goto(url)
-
-    async def destroy(self):
-        """free memory"""
-        await self.browser.close()
-
-    async def create_selenium(self, headless=True):
-        """playwright 객체 생성"""
-        apw = await async_playwright().start()
-        self.browser = await apw.chromium.launch(headless=headless)
-        self.context = await self.browser.new_context(
-            viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
-            locale="ko-KR",
-        )
-        self.page = await self.context.new_page()
-        await self.page.goto("http://pandalive.co.kr")
-        print(await self.page.title())
-        return True
-
-    async def element_click_with_css(self, css_selector):
-        """css 엘리먼트가 있다면 클릭"""
-        element = await self.page.query_selector(css_selector)
-        if element:
-            await element.click()
-
-    async def element_fill_with_css(self, css_selector, value):
-        """css 엘리먼트가 있다면 value를 입력"""
-        element = await self.page.query_selector(css_selector)
-        if element:
-            await element.fill(value)
+        self.api_client = APIClient()
 
     async def login(self):
         """로그인"""
-        await self.element_click_with_css(".btn_login.btn_my_infor")
-        await self.element_click_with_css("div.profile_infor > a > span.name")
-        await self.element_click_with_css("ul.memTab > li > a")
-        await self.element_click_with_css("div.input_set > input#login-user-id")
-        await self.element_fill_with_css(
-            "div.input_set > input#login-user-id", self.watch_id
-        )
-        await self.element_click_with_css("div.input_set > input#login-user-pw")
-        await self.element_fill_with_css(
-            "div.input_set > input#login-user-pw", self.watch_pw
-        )
-        await self.element_click_with_css(
-            "div.btnList > span.btnBc > input[type=button]"
-        )
-        await self.page.wait_for_selector("div.profile_img")
-        await self.element_click_with_css("div.profile_img")
+        self.api_client.login(self.watch_id, self.watch_pw)
 
     async def start(self):
         """NightWatch Loop 함수"""
         try:
             # print("[start night watch] - BookMark Start")
-            for book_mark_id in self.delete_bookmark_list:
-                await self.set_book_mark(book_mark_id, False)
-            for book_mark_id in self.bookmark_list:
-                await self.set_book_mark(book_mark_id, True)
-            self.bookmark_list.clear()
-            self.delete_bookmark_list.clear()
-            idle_users, live_users = await self.get_user_status()
+            idle_users, live_users = self.get_user_status()
+            print(live_users)
             backend_live_users = requests.get(
                 url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
                 timeout=5,
@@ -168,69 +80,19 @@ class PlayWrightNightWatch:
             print("what the fuck ?")
             print(e)
 
-    async def set_book_mark(self, panda_id: str, state: bool):
-        """북마크 세팅. state상태로 세팅함"""
-        try:
-            await self.goto_url(
-                f"https://www.pandalive.co.kr/channel/{panda_id}/notice"
-            )
-            await asyncio.sleep(1)
-            self.bookmark_list_changed = True
-            book_mark = await self.page.query_selector("span.btn_bookmark")
-            book_mark_class = await book_mark.get_attribute("class")
-            # 이미 북마크가 되어있다면
-            if "on" in book_mark_class:
-                if state is False:
-                    await book_mark.click()
-            # 북마크가 되어있지 않다면
-            else:
-                if state is True:
-                    await book_mark.click()
-        except Exception as e:  # pylint: disable=W0703
-            print(e)
-
-    async def get_user_status(self):
+    def get_user_status(self):
         """유저 상태를 가져옴"""
-        if self.bookmark_api_data.book_mark_list_headers:
-            user_datas = await self.bookmark_api_data.get_bookmark_list()
-            if user_datas is not None:
-                users_datas_json = user_datas.json()["list"]
-                if self.prev_list_length != len(users_datas_json):
-                    self.prev_list_length = len(users_datas_json)
-                    self.bookmark_list_changed = True
-                idle_users = [
-                    user["userId"]
-                    for user in users_datas_json
-                    if user.get("media") is None
-                ]
-                live_users = [
-                    user["userId"]
-                    for user in users_datas_json
-                    if user.get("media") is not None
-                    and user["media"]["liveType"] != "rec"
-                    and user["media"]["isPw"] is False
-                ]
-        else:
-            await self.goto_url("https://www.pandalive.co.kr/pick#bookmark")
-
-        if self.bookmark_list_changed:
-            self.bookmark_list_changed = False
-            combined_keys = idle_users + live_users
-            combined_keys.append(f"nightWatch length = {len(combined_keys)}")
-            requests.post(
-                url=f"http://{self.backend_url}:{self.backend_port}/log/info",
-                json={
-                    "panda_id": "Night-Watch",
-                    "description": "Current Regist User",
-                    "data": combined_keys,
-                },
-                timeout=5,
-            )
-            requests.patch(
-                url=f"http://{self.backend_url}:{self.backend_port}/nightwatch",
-                json={"ip": self.public_ip, "size": len(combined_keys) - 1},
-                timeout=5,
-            )
+        user_datas = self.api_client.get_bookmark_list()
+        idle_users = [
+            user["userId"] for user in user_datas if user.get("media") is None
+        ]
+        live_users = [
+            user["userId"]
+            for user in user_datas
+            if user.get("media") is not None
+            and user["media"]["liveType"] != "rec"
+            and user["media"]["isPw"] is False
+        ]
         return idle_users, live_users
 
     def filter_wanted_play_list(self, current_live_list: list, backend_idle_list: list):
@@ -254,17 +116,19 @@ class PlayWrightNightWatch:
 
     def add_book_mark_list(self, panda_id: str):
         """북마크 해야될 리스트에 추가"""
-        self.bookmark_list.append(panda_id)
+        self.api_client.add_book_mark(panda_id)
 
     def delete_book_mark_list(self, panda_id: str):
         """북마크 삭제해야될 리스트에 추가"""
-        self.delete_bookmark_list.append(panda_id)
+        self.api_client.delete_book_mark(panda_id)
 
-    async def refresh(self):
+    def refresh(self):
         """새로고침"""
-        await self.page.reload()
+        self.api_client = APIClient()
+        self.api_client.login(self.watch_id, self.watch_pw)
+        # await self.page.reload()
 
-    async def get_nickname_by_panda_id(self, panda_id: str):
+    def get_nickname_by_panda_id(self, panda_id: str):
         """panda_id로 팬더 백엔드 서버에 요청한 닉네임을 가져오기"""
-        nickname = await self.member_bj_api.get_nickname(panda_id)
+        nickname = self.api_client.get_nickname_by_panda_id(panda_id)
         return nickname

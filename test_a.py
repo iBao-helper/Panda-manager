@@ -4,6 +4,7 @@ from playwright.async_api import async_playwright
 from playwright.async_api import Page
 import requests
 from classes import playwright_watch as pws
+from classes.api_client import APIClient
 from classes.search_member_bj import SearchMemberBj
 
 
@@ -24,7 +25,9 @@ async def element_fill_with_css(page: Page, css_selector, value):
         await element.fill(value)
 
 
-play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch()
+play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch(
+    "siveriness1", "Adkflfkd1"
+)
 member_bj = SearchMemberBj()
 
 login_headers = {
@@ -75,62 +78,72 @@ async def main():
     # await play_watch.login()
     # await play_watch.goto_url("https://www.pandalive.co.kr/channel/siveriness01/notice")
 
-    response = requests.post(
-        url="https://api.pandalive.co.kr/v1/member/login",
-        headers=login_headers,
-        data=DATA,
-        timeout=5,
-    )
-    data = response.json()
-    sess_key = data["loginInfo"]["sessKey"]
-    user_idx = data["loginInfo"]["userInfo"]["idx"]
-    list_data = []
-    for cookie_data in cookie_split:
-        if "sessKey" in cookie_data:
-            splited_cookie = cookie_data.split("=")
-            splited_cookie[1] = sess_key
-            cookie_data = "=".join(splited_cookie)
-            print(cookie_data)
-        if "userLoginIdx" in cookie_data:
-            splited_cookie = cookie_data.split("=")
-            splited_cookie[1] = str(user_idx)
-            cookie_data = "=".join(splited_cookie)
-            print(cookie_data)
-        list_data.append(cookie_data)
-    print(sess_key, user_idx)
-    print(list_data)
-    new_cookie = "; ".join(list_data)
-    print(new_cookie)
-    bookmark_add_headers = {
-        "authority": "api.pandalive.co.kr",
-        "method": "POST",
-        "path": "/v1/member/bj",
-        "scheme": "https",
-        "accept": "application/json, text/plain, */*",
-        "accept-encoding": "gzip, deflate, br",
-        "Accept-Language": "ko,ko-KR;q=0.9",
-        "content-length": "23",
-        "content-type": "application/x-www-form-urlencoded",
-        "cookie": new_cookie,
-        "origin": "https://www.pandalive.co.kr",
-        "referer": "https://www.pandalive.co.kr/",
-        "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
-    }
+    api_client = APIClient()
+    response = api_client.login("siveriness00", "Adkflfkd1")
+    print(response)
+    # response = api_client.search_bj("siveriness01")
+    # print(response)
+    # api_client.add_book_mark("2307111505@ka")
+    # api_client.delete_book_mark("2307111505@ka")
+    response = api_client.get_bookmark_list_to_nickname()
+    print(response)
 
-    response = requests.post(
-        url="https://api.pandalive.co.kr/v1/member/bj",
-        headers=bookmark_add_headers,
-        data="userId=2307111505%40ka&info=media%20fanGrade%20bookmark",
-        timeout=5,
-    )
-    print(response.json())
+    # response = requests.post(
+    #     url="https://api.pandalive.co.kr/v1/member/login",
+    #     headers=login_headers,
+    #     data=DATA,
+    #     timeout=5,
+    # )
+    # data = response.json()
+    # sess_key = data["loginInfo"]["sessKey"]
+    # user_idx = data["loginInfo"]["userInfo"]["idx"]
+    # list_data = []
+    # for cookie_data in cookie_split:
+    #     if "sessKey" in cookie_data:
+    #         splited_cookie = cookie_data.split("=")
+    #         splited_cookie[1] = sess_key
+    #         cookie_data = "=".join(splited_cookie)
+    #         print(cookie_data)
+    #     if "userLoginIdx" in cookie_data:
+    #         splited_cookie = cookie_data.split("=")
+    #         splited_cookie[1] = str(user_idx)
+    #         cookie_data = "=".join(splited_cookie)
+    #         print(cookie_data)
+    #     list_data.append(cookie_data)
+    # print(sess_key, user_idx)
+    # print(list_data)
+    # new_cookie = "; ".join(list_data)
+    # print(new_cookie)
+    # bookmark_add_headers = {
+    #     "authority": "api.pandalive.co.kr",
+    #     "method": "POST",
+    #     "scheme": "https",
+    #     "accept": "application/json, text/plain, */*",
+    #     "accept-encoding": "gzip, deflate, br",
+    #     "Accept-Language": "ko,ko-KR;q=0.9",
+    #     "content-type": "application/x-www-form-urlencoded",
+    #     "origin": "https://www.pandalive.co.kr",
+    #     "referer": "https://www.pandalive.co.kr/",
+    #     "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+    #     "sec-ch-ua-mobile": "?0",
+    #     "sec-ch-ua-platform": '"Windows"',
+    #     "Sec-Fetch-Dest": "empty",
+    #     "Sec-Fetch-Mode": "cors",
+    #     "Sec-Fetch-Site": "same-site",
+    #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    #     "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
+    #     "cookie": new_cookie,
+    #     "path": "/v1/member/bj",
+    #     "content-length": "23",
+    # }
+
+    # response = requests.post(
+    #     url="https://api.pandalive.co.kr/v1/member/bj",
+    #     headers=bookmark_add_headers,
+    #     data="userId=2307111505%40ka&info=media%20fanGrade%20bookmark",
+    #     timeout=5,
+    # )
+    # print(response.json())
 
     # while True:
     #     data = await member_bj.get_nickname("gwong1")
