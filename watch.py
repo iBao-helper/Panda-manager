@@ -4,6 +4,7 @@ import asyncio
 import re
 import urllib.request
 import concurrent.futures
+import requests
 import uvicorn
 from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
@@ -22,7 +23,9 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
-play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch()
+play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch(
+    watch_id="siveriness1", watch_pw="Adkflfkd1"
+)
 
 # ThreadPoolExecutor를 생성하여 loop2 함수를 별도의 스레드에서 실행합니다.
 executor = concurrent.futures.ThreadPoolExecutor()
@@ -43,6 +46,7 @@ async def night_watch_start():
     await play_watch.page.get_by_role("button", name="닫기").click()
     # await play_watch.element_click_with_css("button.btnClose")
     await play_watch.login()
+    await play_watch.goto_url("https://www.pandalive.co.kr/channel/siveriness01/notice")
     await play_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
     asyncio.create_task(loop2())
@@ -67,100 +71,85 @@ async def test(response: Response):
 @app.get("/check-manager", status_code=status.HTTP_200_OK)
 async def check_manager_login(manager_id: str, manager_pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
-    print(manager_id)
-    print(manager_pw)
-    apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=True)
-    context = await browser.new_context(
-        viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
-        locale="ko-KR",
-    )
-    page = await context.new_page()
-    await logging_info(
-        "check_manager_login",
-        "매니저 체크",
-        {"manager_id": manager_id, "manager_pw": manager_pw},
-    )
+    login_headers = {
+        "authority": "api.pandalive.co.kr",
+        "method": "POST",
+        "path": "/v1/member/login",
+        "scheme": "https",
+        "accept": "application/json, text/plain, */*",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "ko",
+        "content-length": "37",
+        "content-type": "application/x-www-form-urlencoded",
+        "origin": "https://www.pandalive.co.kr",
+        "referer": "https://www.pandalive.co.kr/",
+        "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Device-Info": '{"t":"webPc","v":"1.0","ui":0}',
+    }
+    data = f"id={manager_id}&pw={manager_pw}&idSave=N"
     try:
-        await page.goto("http://pandalive.co.kr")
-        await page.get_by_role("button", name="닫기").click()
-        manager_nickname = await login(page, manager_id, manager_pw)
-        auth_19 = await page.query_selector("span.toggle_img")
-        if auth_19:
-            await logging_info(
-                "check_manager_login",
-                "19인증 필요",
-                {
-                    "manager_id": manager_id,
-                    "manager_pw": manager_pw,
-                    "err_message": "매니저 계정에 휴대폰 인증 필요",
-                },
-            )
-            response.status_code = status.HTTP_404_NOT_FOUN
-            await browser.close()
-            return {"message": "19인증 필요"}
-        await browser.close()
-        return manager_nickname
-    except ex.PlayWrightException as exc:  # pylint: disable=W0718 W0702
-        await page.goto("http://pandalive.co.kr")
-        if exc.description == ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW:
-            await logging_info(
-                "check_manager_login",
-                "ID/PW 불일치",
-                {
-                    "manager_id": manager_id,
-                    "manager_pw": manager_pw,
-                    "err_message": "ID/PW 불일치",
-                },
-            )
-            try:
-                await login(page, "resetaccount2", "Adkflfkd1")
-            except Exception as e:  # pylint: disable=W0702 W0612 W0718
-                await logging_info(
-                    "check_manager_login",
-                    "매니저 초기화 로그인 실패",
-                    {
-                        "manager_id": "resetaccount2",
-                        "manager_pw": "Adkflfkd1",
-                        "err_message": str(e),
-                    },
-                )
-            await browser.close()
-            response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-            return {"message": "ID/PW 불일치"}
-        elif exc.description == ex.PWEEnum.PD_LOGIN_STT_FAILED:
-            await logging_info(
-                "check_manager_login",
-                "STT 실패",
-                {
-                    "manager_id": manager_id,
-                    "manager_pw": manager_pw,
-                    "err_message": "STT 실패",
-                },
-            )
-            await browser.close()
-            response.status_code = status.HTTP_406_NOT_ACCEPTABLE
-            return {"message": "STT 실패"}
+        response = requests.post(
+            url="https://api.pandalive.co.kr/v1/member/login",
+            headers=login_headers,
+            data=data,
+            timeout=5,
+        )
+        response_data = response.json()
+        if "loginInfo" in response_data:
+            login_info = data["loginInfo"]
+            if "userInfo" in login_info:
+                user_info = login_info["userInfo"]
+                if user_info["authYN"] is "N":
+                    response.status_code = 404
+                print(user_info["nick"])
+                return user_info["nick"]
+        if "errorData" in data:
+            logging_error("리소스서버", "매니저 로그인 에러", data)
+            if "비밀번호" in data["errorData"]["code"]:
+                response.status_code = 405
+            elif "wrongId" in data["errorData"]["code"]:
+                response.status_code = 406
+            if data["errorData"]["code"] == "recaptcha":
+                response.status_code = 410
+            return
+    except Exception as e:  # pylint: disable=W0702
+        print(str(e))
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"message": "PlayWright Exception"}
 
 
 @app.get("/panda-nickname", status_code=status.HTTP_200_OK)
 async def get_panda_nickname(bj_id: str, response: Response):
-    """panda-id로 방송국에 접속하여 닉네임을 가져와서 반환하는 함수"""
-    apw = await async_playwright().start()
-    browser = await apw.chromium.launch(headless=True)
-    page = await browser.new_page()
-    await page.goto(f"https://www.pandalive.co.kr/channel/{bj_id}/notice")
-    await asyncio.sleep(1)
-    if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
-        response.status_code = status.HTTP_403_FORBIDDEN
-        await browser.close()
+    """panda_id로 검색된 닉네임 리턴하는 함수"""
+    is_excute = await play_watch.get_nickname_by_panda_id(bj_id)
+    if is_excute is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "null"}
-    nickname = await page.query_selector(".nickname")
-    nickname = await nickname.inner_text()
-    result = re.sub(r"\([^)]*\)", "", nickname)
-    await browser.close()
-    print(result)
-    return result
+    return is_excute
+
+
+# 아래 코드는 웹드라이버를 이용한 코드
+# apw = await async_playwright().start()
+# browser = await apw.chromium.launch(headless=True)
+# page = await browser.new_page()
+# await page.goto(f"https://www.pandalive.co.kr/channel/{bj_id}/notice")
+# await asyncio.sleep(1)
+# if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
+#     response.status_code = status.HTTP_403_FORBIDDEN
+#     await browser.close()
+#     return {"message": "null"}
+# nickname = await page.query_selector(".nickname")
+# nickname = await nickname.inner_text()
+# result = re.sub(r"\([^)]*\)", "", nickname)
+# await browser.close()
+# print(result)
+# return result
 
 
 @app.get("/add-bookmark", status_code=status.HTTP_200_OK)

@@ -29,7 +29,7 @@ class SearchLiveBj:
             if len(lists) > 0:
                 return lists[0]
             return None
-        except Exception as e:
+        except Exception as e:  # pylint disable: W0718
             self.headers = None
             print("실시간 방송중인 BJ 검색 실패", e)
             return None

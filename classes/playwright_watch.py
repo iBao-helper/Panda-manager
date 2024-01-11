@@ -7,14 +7,17 @@ from playwright.async_api import BrowserContext
 from playwright.async_api import async_playwright
 import requests
 from classes.book_mark_list_api_data import BookMarkListApiData
+from classes.search_member_bj import SearchMemberBj
 
 
 class PlayWrightNightWatch:
     """playwright를 이용한 NightWatch 모듈"""
 
-    def __init__(self):
-        self.watch_id = "siveriness1"
-        self.watch_pw = "Adkflfkd1"
+    def __init__(self, watch_id: str, watch_pw: str):
+        self.watch_id = watch_id
+        self.watch_pw = watch_pw
+        self.sess_key = None  # 세션키를 저장할 변수
+        self.user_idx = None  # panda서버의 유저 인덱스
         self.page: Page
         self.browser = Browser
         self.context = BrowserContext
@@ -23,9 +26,9 @@ class PlayWrightNightWatch:
         self.backend_url = os.getenv("BACKEND_URL")
         self.backend_port = os.getenv("BACKEND_PORT")
         self.public_ip = os.getenv("PUBLIC_IP")
-        print(self.backend_url)
         self.bookmark_list_changed = False
         self.bookmark_api_data = BookMarkListApiData()
+        self.member_bj_api = SearchMemberBj()
         self.prev_list_length = 0
 
     async def set_interceptor(self):
@@ -33,6 +36,16 @@ class PlayWrightNightWatch:
         await self.context.route(
             "https://api.pandalive.co.kr/v1/live/bookmark", self.intercept_bookmark_list
         )
+        await self.context.route(
+            "https://api.pandalive.co.kr/v1/member/bj",
+            self.intercept_member_bj,
+        )
+
+    async def intercept_member_bj(self, route, request):
+        """북마크 인터셉터"""
+        if self.member_bj_api.headers is None:
+            self.member_bj_api.set_headers(request.headers)
+        await route.continue_()
 
     async def intercept_bookmark_list(self, route, request):
         """북마크 인터셉터"""
@@ -48,10 +61,10 @@ class PlayWrightNightWatch:
         """free memory"""
         await self.browser.close()
 
-    async def create_selenium(self):
+    async def create_selenium(self, headless=True):
         """playwright 객체 생성"""
         apw = await async_playwright().start()
-        self.browser = await apw.chromium.launch(headless=True)
+        self.browser = await apw.chromium.launch(headless=headless)
         self.context = await self.browser.new_context(
             viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
             locale="ko-KR",
@@ -250,3 +263,8 @@ class PlayWrightNightWatch:
     async def refresh(self):
         """새로고침"""
         await self.page.reload()
+
+    async def get_nickname_by_panda_id(self, panda_id: str):
+        """panda_id로 팬더 백엔드 서버에 요청한 닉네임을 가져오기"""
+        nickname = await self.member_bj_api.get_nickname(panda_id)
+        return nickname
