@@ -1,7 +1,6 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
 import os
 import asyncio
-import re
 import urllib.request
 import concurrent.futures
 import requests
@@ -42,16 +41,9 @@ async def loop2():
 @app.post("/NightWatch")
 async def night_watch_start():
     """감시자 시작"""
-    # await play_watch.create_selenium()
-    # await play_watch.set_interceptor()
-    # await play_watch.page.get_by_role("button", name="닫기").click()
-    # await play_watch.element_click_with_css("button.btnClose")
     await play_watch.login()
-    # await play_watch.goto_url("https://www.pandalive.co.kr/channel/siveriness01/notice")
-    # await play_watch.goto_url("https://www.pandalive.co.kr/pick#bookmark")
     await asyncio.sleep(1)
     asyncio.create_task(loop2())
-    # executor.submit(loop2)
     return {"message": "NightWatch"}
 
 
@@ -69,7 +61,7 @@ async def test(response: Response):
     return {"message": "Something went wrong"}, status.HTTP_400_BAD_REQUEST
 
 
-@app.get("/check-manager", status_code=status.HTTP_200_OK)
+@app.get("/check-manager")
 async def check_manager_login(manager_id: str, manager_pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
     login_headers = {
@@ -94,69 +86,65 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         "X-Device-Info": '{"t":"webPc","v":"1.0","ui":0}',
     }
     data = f"id={manager_id}&pw={manager_pw}&idSave=N"
+    await logging_info(
+        "리소스 서버", "매니저 등록 시도", {manager_id: manager_id, manager_pw: manager_pw}
+    )
     try:
-        response = requests.post(
+        api_response = requests.post(
             url="https://api.pandalive.co.kr/v1/member/login",
             headers=login_headers,
             data=data,
             timeout=5,
         )
-        response_data = response.json()
+        response_data = api_response.json()
+        print(response_data)
         if "loginInfo" in response_data:
-            login_info = data["loginInfo"]
+            login_info = response_data["loginInfo"]
             if "userInfo" in login_info:
                 user_info = login_info["userInfo"]
                 if user_info["authYN"] == "N":
-                    response.status_code = 404
+                    response.status_code = status.HTTP_404_NOT_FOUND
+                    return
                 print(user_info["nick"])
+                await logging_info(
+                    "리소스 서버", "매니저 등록 성공", {"매니저 닉네임": user_info["nick"]}
+                )
                 return user_info["nick"]
-        if "errorData" in data:
-            logging_error("리소스서버", "매니저 로그인 에러", data)
-            if "비밀번호" in data["errorData"]["code"]:
+        if "errorData" in response_data:
+            await logging_error("리소스서버", "매니저 로그인 에러", data)
+            print(response_data["errorData"]["code"])
+            if "비밀번호" in response_data["errorData"]["code"]:
                 response.status_code = 405
-            elif "wrongId" in data["errorData"]["code"]:
+            elif "wrongId" in response_data["errorData"]["code"]:
+                print("aaaaaaaaa")
                 response.status_code = 406
-            if data["errorData"]["code"] == "recaptcha":
+            elif "noid" in response_data["errorData"]["code"]:
+                print("aaaaaaaaa")
+                response.status_code = 406
+            if response_data["errorData"]["code"] == "recaptcha":
                 response.status_code = 410
             return
-    except Exception as e:  # pylint: disable=W0702
-        print(str(e))
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"message": "PlayWright Exception"}
+    except Exception as e:  # pylint: disable=W0718
+        print("error - ", str(e))
+        return
 
 
 @app.get("/panda-nickname", status_code=status.HTTP_200_OK)
 async def get_panda_nickname(bj_id: str, response: Response):
     """panda_id로 검색된 닉네임 리턴하는 함수"""
-    is_excute = await play_watch.get_nickname_by_panda_id(bj_id)
+    is_excute = play_watch.get_nickname_by_panda_id(bj_id)
     if is_excute is None:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "null"}
     return is_excute
 
 
-# 아래 코드는 웹드라이버를 이용한 코드
-# apw = await async_playwright().start()
-# browser = await apw.chromium.launch(headless=True)
-# page = await browser.new_page()
-# await page.goto(f"https://www.pandalive.co.kr/channel/{bj_id}/notice")
-# await asyncio.sleep(1)
-# if page.url != f"https://www.pandalive.co.kr/channel/{bj_id}/notice":
-#     response.status_code = status.HTTP_403_FORBIDDEN
-#     await browser.close()
-#     return {"message": "null"}
-# nickname = await page.query_selector(".nickname")
-# nickname = await nickname.inner_text()
-# result = re.sub(r"\([^)]*\)", "", nickname)
-# await browser.close()
-# print(result)
-# return result
-
-
 @app.get("/add-bookmark", status_code=status.HTTP_200_OK)
 async def add_book_mark(bj_id: str):
     """북마크 추가"""
     play_watch.add_book_mark_list(bj_id)
+    lists = play_watch.get_bookmark_list_to_nickname()
+    await logging_info("add-bookmark", "북마크 삭제", lists)
     return {"message": "success"}
 
 
@@ -164,13 +152,15 @@ async def add_book_mark(bj_id: str):
 async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     play_watch.delete_book_mark_list(bj_id)
+    lists = play_watch.get_bookmark_list_to_nickname()
+    await logging_info("delete-bookmark", "북마크 삭제", lists)
     return {"message": "success"}
 
 
 @app.get("/check-bookmark", status_code=status.HTTP_200_OK)
 async def check_book_mark():
     """북마크 상태 체크"""
-    play_watch.bookmark_list_changed = True
+
     return {"message": "success"}
 
 
@@ -192,32 +182,6 @@ async def check_book_mark():
 
 ## 현재 로컬환경에서 테스트라 localServer 리소스가 실행될때 backend 에 등록하지 않음
 ## 차후 localServer 리소스가 실행될때 backend 에 등록하는 기능을 추가해야함
-
-
-## Exception Handler 모음
-@app.exception_handler(ex.PlayWrightException)
-async def play_wright_handler(exc: ex.PlayWrightException):
-    """PlayWright Exception Handler"""
-    print(os.getcwd())
-    print(exc.description)
-    if exc.description == ex.PWEEnum.NW_CREATE_ERROR:
-        # nw 가동 실패
-        print(exc)
-        # await play_watch.destroy()
-
-    elif exc.description == ex.PWEEnum.NW_LOGIN_INVALID_ID_OR_PW:
-        # nigthwatch 로그인 실패
-        print(exc)
-        # await play_watch.destroy()
-    elif exc.description == ex.PWEEnum.NW_LOGIN_STT_FAILED:
-        # STT 실패
-        print(exc)
-        # await play_watch.destroy()
-
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"message": "PlayWright Exception"},
-    )
 
 
 #######  manager 관련 유틸 함수들 #######

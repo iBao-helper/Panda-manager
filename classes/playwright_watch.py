@@ -132,3 +132,7 @@ class PlayWrightNightWatch:
         """panda_id로 팬더 백엔드 서버에 요청한 닉네임을 가져오기"""
         nickname = self.api_client.get_nickname_by_panda_id(panda_id)
         return nickname
+
+    def get_bookmark_list_to_nickname(self):
+        """북마크 리스트를 닉네임으로 가져오기"""
+        return self.api_client.get_bookmark_list_to_nickname()

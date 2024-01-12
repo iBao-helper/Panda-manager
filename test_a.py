@@ -1,11 +1,8 @@
 """ 모듈 테스트 하는 용도의 파일"""
 import asyncio
-from playwright.async_api import async_playwright
 from playwright.async_api import Page
-import requests
 from classes import playwright_watch as pws
 from classes.api_client import APIClient
-from classes.search_member_bj import SearchMemberBj
 
 
 async def element_click_with_css(page: Page, css_selector: str):
@@ -28,7 +25,6 @@ async def element_fill_with_css(page: Page, css_selector, value):
 play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch(
     "siveriness1", "Adkflfkd1"
 )
-member_bj = SearchMemberBj()
 
 login_headers = {
     "authority": "api.pandalive.co.kr",
@@ -61,8 +57,6 @@ print(cookie_split)
 
 async def intercept_member_bj(route, request):
     """북마크 인터셉터"""
-    if member_bj.headers is None:
-        member_bj.set_headers(request.headers)
     await route.continue_()
 
 
