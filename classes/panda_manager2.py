@@ -7,8 +7,8 @@ from util.my_util import logging_error, logging_info
 class PandaManager2:
     """팬더 매니저를 담당하는 클래스"""
 
-    def __init__(self, panda_id: str, sess_key: str, user_idx: str):
-        self.api_client = APIClient()
+    def __init__(self, panda_id: str, sess_key: str, user_idx: str, proxy_ip: str):
+        self.api_client = APIClient(panda_id=panda_id, proxy_ip=proxy_ip)
         self.api_client.set_login_data(sess_key, user_idx)
         self.panda_id = panda_id
         self.is_running = False
