@@ -60,7 +60,14 @@ class CreateManagerDto(BaseModel):
     manager_pw: str
     resource_ip: str
 
-    def set(self, panda_id: str, proxy_ip: str, manager_id: str, manager_pw: str, resource_ip: str):
+    def set(
+        self,
+        panda_id: str,
+        proxy_ip: str,
+        manager_id: str,
+        manager_pw: str,
+        resource_ip: str,
+    ):
         """set"""
         self.panda_id = panda_id
         self.proxy_ip = proxy_ip
@@ -341,7 +348,7 @@ class PandaManager:
                             "value": splited_chat[2],
                         },
                         timeout=5,
-                    )	
+                    )
                     self.commands = await get_commands(self.user.panda_id)
                     await self.chatting_send("등록되었습니다")
                     return True
