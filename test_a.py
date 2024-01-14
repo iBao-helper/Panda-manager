@@ -58,7 +58,14 @@ async def main():
     # api_client.set_login_data(sess_key, user_idx)
     response = await api_client.login("siveriness01", "Adkflfkd1")
     print(response)
-    # response = await api_client.play("qaaq36")
+    response = await api_client.search_bj("siverinss123123")
+    print(response)
+    response = await api_client.add_book_mark("qaaq36")
+    print(response)
+    response = await api_client.delete_book_mark("qaaq36")
+    print(response)
+    response = await api_client.play("qaaq36")
+    print(response)
     # user_data = {
     #     "id": 1,
     #     "params": {
