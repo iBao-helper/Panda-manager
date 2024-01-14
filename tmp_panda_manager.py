@@ -60,7 +60,14 @@ class CreateManagerDto(BaseModel):
     manager_pw: str
     resource_ip: str
 
-    def set(self, panda_id: str, proxy_ip: str, manager_id: str, manager_pw: str, resource_ip: str):
+    def set(
+        self,
+        panda_id: str,
+        proxy_ip: str,
+        manager_id: str,
+        manager_pw: str,
+        resource_ip: str,
+    ):
         """set"""
         self.panda_id = panda_id
         self.proxy_ip = proxy_ip
@@ -111,7 +118,8 @@ class PandaManager:
         self.new_users = {}
         self.doosan_count = 0
         self.prev_hart_count = 0
-
+        self.sess_key = None
+        self.user_idx = None
         self.rc_count = 0
         self.hart_count = 0
         self.play_count = 0
@@ -152,30 +160,32 @@ class PandaManager:
         """
         await self.page.get_by_role("button", name="닫기").click()
         await logging_debug(
-            self.data.panda_id, "[login] - 닫기", {"debug_message": "닫기 성공"}
+            self.data["panda_id"], "[login] - 닫기", {"debug_message": "닫기 성공"}
         )
         await self.page.get_by_role("button", name="로그인 / 회원가입").click()
         await logging_debug(
-            self.data.panda_id, "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"}
+            self.data["panda_id"],
+            "[login] - 회원가입 버튼 클릭",
+            {"debug_message": "로그인 / 회원가입"},
         )
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인 / 회원가입").click()
         await logging_debug(
-            self.data.panda_id,
+            self.data["panda_id"],
             "[login] - 로그인 / 회원가입 링크 클릭",
             {"debug_message": "로그인 / 회원가입"},
         )
         await asyncio.sleep(0.3)
         await self.page.get_by_role("link", name="로그인").click()
         await logging_debug(
-            self.data.panda_id, "[login] - 로그인 링크 클릭", {"debug_message": "로그인"}
+            self.data["panda_id"], "[login] - 로그인 링크 클릭", {"debug_message": "로그인"}
         )
         await self.page.get_by_role("textbox").nth(1).fill(login_id)
         await self.page.get_by_role("textbox").nth(2).fill(login_pw)
         await asyncio.sleep(2)
         await self.page.get_by_role("button", name="로그인", exact=True).click()
         await logging_debug(
-            self.data.panda_id, "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"}
+            self.data["panda_id"], "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"}
         )
         await asyncio.sleep(2)
         invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
@@ -183,7 +193,7 @@ class PandaManager:
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
         await logging_debug(
-            self.data.panda_id,
+            self.data["panda_id"],
             "[invalid-visible check]",
             {"id": invalid_text_id, "pw": invalid_text_pw},
         )
@@ -191,8 +201,8 @@ class PandaManager:
             print("Invalid Id or PW")
             raise ex.PlayWrightException(
                 ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
+                panda_id=self.data["panda_id"],
+                resource_ip=self.data["resource_ip"],
                 message="아디 비번 틀렸음",
             )
         invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
@@ -200,7 +210,7 @@ class PandaManager:
             "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
         ).is_visible()
         await logging_debug(
-            self.data.panda_id,
+            self.data["panda_id"],
             "[invalid-visible check]",
             {"id": invalid_text_id, "pw": invalid_text_pw},
         )
@@ -209,8 +219,8 @@ class PandaManager:
             await self.page.get_by_role("button", name="확인").click()
             raise ex.PlayWrightException(
                 ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
+                panda_id=self.data["panda_id"],
+                resource_ip=self.data["resource_ip"],
                 message="아뒤 비번 틀렸음(팝업)",
             )
         invalid_login_detect = await self.page.get_by_label(
@@ -218,7 +228,7 @@ class PandaManager:
         ).is_visible()
         auto_detect = await self.page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
         await logging_debug(
-            self.data.panda_id,
+            self.data["panda_id"],
             "[invalid-login_detect check]",
             {"invalid_login_detect": invalid_login_detect, "auto_detect": auto_detect},
         )
@@ -239,14 +249,14 @@ class PandaManager:
                     )
             await click_frame.get_by_label("로봇이 아닙니다.").click()
             await logging_debug(
-                self.data.panda_id, "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."}
+                self.data["panda_id"], "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."}
             )
             await asyncio.sleep(1)
             # 리캡챠 떳는지 확인
             await self.check_popup_recaptcha_failed(show_frame)
             await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
             await logging_debug(
-                self.data.panda_id, "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
+                self.data["panda_id"], "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
             )
             await asyncio.sleep(1)
             # 보안문자 떳는지 확인
@@ -255,7 +265,7 @@ class PandaManager:
                 "link", name="또는 오디오를 MP3로 다운로드하세요."
             ).get_attribute("href")
             await logging_debug(
-                self.data.panda_id, "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": test}
+                self.data["panda_id"], "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": test}
             )
             await asyncio.sleep(1)
             urllib.request.urlretrieve(test, "stt/audio.mp3")
@@ -265,7 +275,7 @@ class PandaManager:
                 await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
                 await show_frame.get_by_role("button", name="확인").click()
                 await logging_debug(
-                    self.data.panda_id,
+                    self.data["panda_id"],
                     "[들리는대로 입력하세요 확인]",
                     {"debug_message": "들리는대로 입력하세요 확인"},
                 )
@@ -274,22 +284,16 @@ class PandaManager:
                 await self.check_popup_recaptcha_failed(show_frame)
                 await self.page.get_by_role("button", name="로그인", exact=True).click()
                 await logging_debug(
-                    self.data.panda_id, "마지막 로그인", {"debug_message": "마지막 로그인"}
+                    self.data["panda_id"], "마지막 로그인", {"debug_message": "마지막 로그인"}
                 )
                 await asyncio.sleep(1)
                 await self.check_popup_recaptcha_failed(show_frame)
-                check_password = await self.page.query_selector(
-                    "xpath=/html/body/div/div/div/div[2]/div/div/div/div[2]/span[2]/input"
-                )
-                if check_password:
-                    await check_password.click()
-                await self.page.wait_for_selector("div.profile_img")
             else:
                 print("stt 실패")
                 raise ex.PlayWrightException(
                     ex.PWEEnum.PD_LOGIN_STT_FAILED,
-                    panda_id=self.data.panda_id,
-                    resource_ip=self.data.resource_ip,
+                    panda_id=self.data["panda_id"],
+                    resource_ip=self.data["resource_ip"],
                     message="stt에 실패함",
                 )
         else:
@@ -341,7 +345,7 @@ class PandaManager:
                             "value": splited_chat[2],
                         },
                         timeout=5,
-                    )	
+                    )
                     self.commands = await get_commands(self.user.panda_id)
                     await self.chatting_send("등록되었습니다")
                     return True
@@ -934,6 +938,21 @@ class PandaManager:
         await self.context.route(
             "https://api.pandalive.co.kr/v1/live", self.intercept_search_live_bj
         )
+        await self.context.route(
+            "https://api.pandalive.co.kr/v1/member/login", self.intercept_login
+        )
+
+    async def intercept_login(self, route, request):
+        """로그인 요청을 인터셉트 하는 함수"""
+        response = await route.fetch()
+        json = await response.json()
+        print(response.status)
+        if response.status == 200:
+            self.sess_key = json["loginInfo"]["sessKey"]
+            self.user_idx = json["loginInfo"]["userInfo"]["idx"]
+            print(self.sess_key, self.user_idx)
+
+        print(json)
 
     async def intercept_channel_user_count(self, route, request):
         """채널의 유저 수를 요청을 인터셉트 하는 함수"""
@@ -977,6 +996,12 @@ class PandaManager:
             token = query[1].split("=")[1]
             self.channel_api.set_data(request.headers, channel=channel, token=token)
             await route.continue_()
+
+    async def get_login_data(self):
+        """로그인 데이터를 반환하는 함수"""
+        if self.sess_key is not None and self.user_idx is not None:
+            return self.sess_key, self.user_idx
+        raise Exception("로그인 데이터가 없습니다.")  # pylint: disable=W0719
 
     async def intercept_chatting_message(self, route, request):
         """채팅 메시지를 요청을 인터셉트하는 함수"""

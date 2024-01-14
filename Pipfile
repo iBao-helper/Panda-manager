@@ -16,6 +16,7 @@ python-dotenv = "*"
 playwright = "*"
 emoji = "*"
 aiohttp = "*"
+websockets = "*"
 
 [dev-packages]
 

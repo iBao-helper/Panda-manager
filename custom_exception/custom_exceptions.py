@@ -28,3 +28,18 @@ class PlayWrightException(Exception):
         self.panda_id = panda_id
         self.resource_ip = resource_ip
         self.message = message
+
+class APIException(Exception):
+    """Base exception for all API exceptions."""
+
+    def __init__(
+        self,
+        description: PWEEnum,
+        panda_id: str = "",
+        resource_ip: str = "",
+        message: str = "",
+    ) -> None:
+        self.description = description
+        self.panda_id = panda_id
+        self.resource_ip = resource_ip
+        self.message = message
