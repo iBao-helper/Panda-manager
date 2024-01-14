@@ -9,7 +9,7 @@ from util.my_util import logging_error
 class APIClient:
     """API를 호출하는 클래스"""
 
-    def __init__(self, panda_id="로그인 전용 객체"):
+    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=None):
         self.panda_id = panda_id
         self.default_header: dict = {
             "authority": "api.pandalive.co.kr",
@@ -36,6 +36,7 @@ class APIClient:
         self.jwt_token = None
         self.channel = None
         self.room_id = None
+        self.proxy_ip = proxy_ip
 
     async def login(self, login_id, login_pw):
         """팬더서버에 로그인 요청하는 함수"""

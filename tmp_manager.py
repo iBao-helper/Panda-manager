@@ -1,6 +1,7 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
 import os
 import asyncio
+import time
 from typing import Dict
 import uvicorn
 import requests
@@ -11,6 +12,7 @@ from classes import panda_manager as pm
 from classes.panda_manager2 import PandaManager2
 from util.my_util import User, logging_debug, logging_error, logging_info
 from classes import api_client as api
+from threading import Thread
 
 load_dotenv()
 
@@ -23,25 +25,32 @@ INSTANCE_ID = os.getenv("INSTANCE_ID")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 app = FastAPI()
-panda_managers: Dict[str, pm.PandaManager] = {}
+panda_managers: Dict[str, PandaManager2] = {}
 login_api_client = api.APIClient()
+
+
+def start_manager(arg):
+    "매니저 쓰레드 함수"
+    manager = PandaManager2("1", "1", "1")
+    panda_managers[arg] = manager
+    manager.start(arg)
 
 
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    s = PandaManager2("aa", "aa", "aa")
-    try:
-        await s.connect_webscoket()
-    except:
-        print("what the?")
-
-    return {"message": "PandaManager"}
+    my_thread = Thread(target=start_manager, args=(panda_id,))
+    my_thread.start()
+    return {"message": f"{panda_id} is started"}
 
 
 @app.delete("/panda_manager/{panda_id}")
-async def destory_panda_manager(panda_id: str):
+async def destroy_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
+    if panda_id in panda_managers:
+        panda_managers[panda_id].is_running = False
+        del panda_managers[panda_id]
+        # await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},

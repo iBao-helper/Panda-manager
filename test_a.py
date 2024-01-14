@@ -97,13 +97,13 @@ async def main():
 
         response = await websocket.recv()
         print(f"서버로부터 메시지 수신: {response}")
-
         while True:
             try:
                 response = await websocket.recv()
                 data = json.loads(response)
                 nickname = data["result"]["data"]["data"]["nk"]
                 message = data["result"]["data"]["data"]["message"]
+                
                 if nickname == "크기가전부는아니자나연":
                     api_client.send_chatting(data["result"]["data"]["data"]["message"])
                     await websocket.recv()
