@@ -38,6 +38,25 @@ class APIClient:
         self.room_id = None
         self.proxy_ip = proxy_ip
 
+    async def request_api_call(self, url, data, headers):
+        """API 호출하는 함수"""
+        if self.proxy_ip is None:
+            response = requests.post(url=url, headers=headers, data=data, timeout=5)
+        else:
+            response = requests.post(
+                url=url,
+                headers=headers,
+                data=data,
+                timeout=5,
+                proxies={
+                    "http": f"http://{self.proxy_ip}:8888",
+                    "https": f"http://{self.proxy_ip}:8888",
+                },
+            )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception("API 호출 실패")  # pylint: disable=W0719
+
     async def login(self, login_id, login_pw):
         """팬더서버에 로그인 요청하는 함수"""
         login_url = "https://api.pandalive.co.kr/v1/member/login"
@@ -45,23 +64,21 @@ class APIClient:
         data = f"id={login_id}&pw={login_pw}&idSave=N"
         dummy_header["path"] = "/v1/member/login"
         dummy_header["content-length"] = str(len(data))
-        response = requests.post(
-            url=login_url, headers=self.default_header, data=data, timeout=5
-        )
-        if response.status_code == 200:
-            result = response.json()
-            login_info = result["loginInfo"]
-            print(login_info)
-            self.sess_key = login_info["sessKey"]
-            self.user_idx = login_info["userInfo"]["idx"]
-            print(self.sess_key, self.user_idx)
-            return result
-        await logging_error(
-            self.panda_id,
-            "[로그인 실패]",
-            {"login_id": login_id, "login_pw": login_pw, "response": response.json()},
-        )
-        raise Exception("로그인 실패")  # pylint: disable=W0719
+        try:
+            result = await self.request_api_call(login_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[로그인 실패]",
+                {"login_id": login_id, "login_pw": login_pw, "data": str(e)},
+            )
+            raise Exception("로그인 실패")  # pylint: disable=W0719 W0707
+        login_info = result["loginInfo"]
+        print(login_info)
+        self.sess_key = login_info["sessKey"]
+        self.user_idx = login_info["userInfo"]["idx"]
+        print(self.sess_key, self.user_idx)
+        return result
 
     def get_login_data(self):
         """로그인 데이터를 얻는 함수"""
@@ -86,12 +103,21 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=search_bj_url,
-            headers=dummy_header,
-            data=data,
-            timeout=5,
-        )
+        if self.proxy_ip is not None:
+            response = requests.post(
+                url=search_bj_url, headers=self.default_header, data=data, timeout=5
+            )
+        else:
+            response = requests.post(
+                url=search_bj_url,
+                headers=dummy_header,
+                data=data,
+                timeout=5,
+                proxies={
+                    "http": f"http://{self.proxy_ip}:8888",
+                    "https": f"http://{self.proxy_ip}:8888",
+                },
+            )
         if response.status_code == 200:
             return response.json()
         raise Exception("API 호출 실패")  # pylint: disable=W0719
