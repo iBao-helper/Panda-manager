@@ -209,7 +209,7 @@ class APIClient:
         """방송 시청 API 호출, 아마 방송에 대한 정보를 받는 API일듯"""
         if self.sess_key is None or self.user_idx is None:
             await logging_error(
-                panda_id=panda_id,
+                panda_id=self.panda_id,
                 description="로그인 정보가 필요합니다",
                 data={"sess_key": self.sess_key, "user_idx": self.user_idx},
             )
@@ -266,7 +266,7 @@ class APIClient:
         """채팅을 보내는 함수"""
         if self.sess_key is None or self.user_idx is None:
             await logging_error(
-                panda_id="정보없음",
+                panda_id=self.panda_id,
                 description="로그인 정보가 필요합니다",
                 data={"sess_key": self.sess_key, "user_idx": self.user_idx},
             )
