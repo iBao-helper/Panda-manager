@@ -29,18 +29,26 @@ panda_managers: Dict[str, PandaManager2] = {}
 login_api_client = api.APIClient()
 
 
-def start_manager(arg):
+async def start_manager(panda_id, body: pm.CreateManagerDto, sess_key: str, user_idx):
     "매니저 쓰레드 함수"
-    manager = PandaManager2("1", "1", "1")
-    panda_managers[arg] = manager
-    manager.start(arg)
+    manager = PandaManager2(
+        panda_id=panda_id, sess_key=sess_key, user_idx=user_idx, proxy_ip=body.proxy_ip
+    )
+    result = await manager.connect_webscoket()
+    if result is None:
+        await logging_error(panda_id, "웹소켓 연결 실패", {})
+        return None
+    panda_managers[panda_id] = manager
+    await manager.start()
 
 
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    my_thread = Thread(target=start_manager, args=(panda_id,))
-    my_thread.start()
+    print(body.manager_id, body.manager_pw)
+    await login_api_client.login(body.manager_id, body.manager_pw)
+    sess_key, user_idx = await login_api_client.get_login_data()
+    asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx))
     return {"message": f"{panda_id} is started"}
 
 
