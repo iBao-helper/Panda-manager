@@ -9,7 +9,7 @@ from util.my_util import logging_error
 class APIClient:
     """API를 호출하는 클래스"""
 
-    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=None):
+    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=""):
         self.panda_id = panda_id
         self.default_header: dict = {
             "authority": "api.pandalive.co.kr",
@@ -40,7 +40,7 @@ class APIClient:
 
     async def request_api_call(self, url, data, headers):
         """API 호출하는 함수"""
-        if self.proxy_ip is None:
+        if self.proxy_ip is "":
             response = requests.post(url=url, headers=headers, data=data, timeout=5)
         else:
             response = requests.post(
@@ -74,16 +74,16 @@ class APIClient:
             )
             return None  # pylint: disable=W0719 W0707
         login_info = result["loginInfo"]
-        print(login_info)
         self.sess_key = login_info["sessKey"]
         self.user_idx = login_info["userInfo"]["idx"]
         print(self.sess_key, self.user_idx)
         return result
 
-    def get_login_data(self):
+    async def get_login_data(self):
         """로그인 데이터를 얻는 함수"""
-        if self.sess_key is None or self.user_idx is None:
+        if self.sess_key is not None and self.user_idx is not None:
             return self.sess_key, self.user_idx
+        await logging_error(self.panda_id, "[로그인 데이터 없음]", {})
         raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
 
     def set_login_data(self, sess_key, user_idx):
@@ -231,13 +231,9 @@ class APIClient:
                 {"data": str(e)},
             )
             return None  # pylint: disable=W0719 W0707
-        print(result["chatServer"]["token"])  # chatToken
         self.chat_token = result["chatServer"]["token"]
-        print(result["token"])  # jwt token
         self.jwt_token = result["token"]
-        print(result["media"]["userIdx"])  # channel
         self.channel = result["media"]["userIdx"]
-        print(result["media"]["code"])  # room_id
         self.room_id = result["media"]["code"]
         return result
 
