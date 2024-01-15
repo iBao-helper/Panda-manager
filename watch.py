@@ -97,7 +97,6 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
             timeout=5,
         )
         response_data = api_response.json()
-        print(response_data)
         if "loginInfo" in response_data:
             login_info = response_data["loginInfo"]
             if "userInfo" in login_info:
@@ -127,10 +126,10 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         return
 
 
-@app.get("/panda-nickname", status_code=status.HTTP_200_OK)
+@app.get("/panda-nickname/{bj_id}", status_code=status.HTTP_200_OK)
 async def get_panda_nickname(bj_id: str, response: Response):
     """panda_id로 검색된 닉네임 리턴하는 함수"""
-    is_excute = play_watch.get_nickname_by_panda_id(bj_id)
+    is_excute = await play_watch.get_nickname_by_panda_id(bj_id)
     if is_excute is None:
         response.status_code = status.HTTP_404_NOT_FOUND
         return {"message": "null"}
@@ -140,7 +139,7 @@ async def get_panda_nickname(bj_id: str, response: Response):
 @app.get("/add-bookmark", status_code=status.HTTP_200_OK)
 async def add_book_mark(bj_id: str):
     """북마크 추가"""
-    play_watch.add_book_mark_list(bj_id)
+    await play_watch.add_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
     await logging_info("add-bookmark", "북마크 삭제", lists)
     return {"message": "success"}
@@ -149,7 +148,7 @@ async def add_book_mark(bj_id: str):
 @app.get("/delete-bookmark", status_code=status.HTTP_200_OK)
 async def delete_book_mark(bj_id: str):
     """북마크 추가"""
-    play_watch.delete_book_mark_list(bj_id)
+    await play_watch.delete_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
     await logging_info("delete-bookmark", "북마크 삭제", lists)
     return {"message": "success"}

@@ -120,7 +120,7 @@ class APIClient:
     async def get_user_idx(self, panda_id):
         """search_bj를 호출하여 user_idx를 얻는 함수"""
         response = await self.search_bj(panda_id)
-        return response["bjInfo"]["idx"]
+        return response.idx
 
     async def add_book_mark(self, panda_id):
         """panda_id를 북마크에 추가하는 함수"""
@@ -172,10 +172,11 @@ class APIClient:
 
     async def get_nickname_by_panda_id(self, panda_id):
         """panda_id를 통해 닉네임을 얻는 함수"""
-        response = self.search_bj(panda_id)
+        response = await self.search_bj(panda_id)
         if response is None:
             return None
-        return response["bjInfo"]["nick"]
+        print(response)
+        return response.nick
 
     async def get_bookmark_list(self):
         """북마크 리스트를 얻는 함수"""
@@ -202,7 +203,7 @@ class APIClient:
 
     async def get_bookmark_list_to_nickname(self):
         """북마크 닉네임 리스트를 얻는 함수"""
-        book_mark_list = self.get_bookmark_list()
+        book_mark_list = await self.get_bookmark_list()
         if book_mark_list is None:
             return None
         filtered_list = [user["userNick"] for user in book_mark_list]
