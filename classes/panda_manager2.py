@@ -293,10 +293,12 @@ class PandaManager2:
         splited = chat.message.split(" ")
         print(chat.message, splited)
         print(chat.message in self.normal_commands)
-        if splited[0] in self.api_commands:
+        if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
-        elif chat.message in self.normal_commands:
+        elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
             await self.api_client.send_chatting(self.normal_commands[chat.message])
+        elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
+            await self.reserved_commands[chat.message](chat)
         return
 
     async def update_room_user_timer(self):
@@ -304,14 +306,6 @@ class PandaManager2:
         while self.is_running:
             await self.update_room_list()
             await asyncio.sleep(2)
-
-    async def timer(self, total_time: int, interval: int):
-        """타이머"""
-        spech_time = 
-        while total_time > 0:
-            if 
-            total_time -= 1
-            await asyncio.sleep(1)
 
     async def start(self):
         """팬더 매니저 시작"""
