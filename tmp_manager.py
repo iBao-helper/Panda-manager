@@ -29,26 +29,36 @@ panda_managers: Dict[str, PandaManager2] = {}
 login_api_client = api.APIClient()
 
 
-async def start_manager(panda_id, body: pm.CreateManagerDto, sess_key: str, user_idx):
+async def start_manager(
+    panda_id, body: pm.CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
+):
     "매니저 쓰레드 함수"
     manager = PandaManager2(
-        panda_id=panda_id, sess_key=sess_key, user_idx=user_idx, proxy_ip=body.proxy_ip
+        panda_id=panda_id,
+        sess_key=sess_key,
+        user_idx=user_idx,
+        proxy_ip=body.proxy_ip,
+        manager_nick=manager_nick,
     )
     result = await manager.connect_webscoket()
     if result is None:
         await logging_error(panda_id, "웹소켓 연결 실패", {})
         return None
+    print(panda_id, "웹소켓 연결 성공")
     panda_managers[panda_id] = manager
     await manager.start()
+    return
 
 
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    print(body.manager_id, body.manager_pw)
-    await login_api_client.login(body.manager_id, body.manager_pw)
+    await logging_info(
+        panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()
+    )
+    manager_nick = await login_api_client.login(body.manager_id, body.manager_pw)
     sess_key, user_idx = await login_api_client.get_login_data()
-    asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx))
+    asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
     return {"message": f"{panda_id} is started"}
 
 
@@ -56,7 +66,7 @@ async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
 async def destroy_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
     if panda_id in panda_managers:
-        panda_managers[panda_id].is_running = False
+        panda_managers[panda_id].stop()
         del panda_managers[panda_id]
         # await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
@@ -239,20 +249,15 @@ async def startup_event():
         print("nightwatch already registered")
 
 
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     """
-#     PandaManager 가동시 backend에 등록 요청을 시도함
-#     이미 있다면 등록되지 않음
-#     """
-#     try:
-#         requests.delete(
-#             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-#             json={"ip": "222.110.198.130"},
-#             timeout=5,
-#         )
-#     except:  # pylint: disable=W0702
-#         print("nightwatch already registered")
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    PandaManager 가동시 backend에 등록 요청을 시도함
+    이미 있다면 등록되지 않음
+    """
+    for panda_id, manager in panda_managers.items():
+        await logging_info(panda_id, "Manager 종료", {})
+        await manager.stop()
 
 
 if __name__ == "__main__":
