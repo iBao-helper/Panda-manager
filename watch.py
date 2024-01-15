@@ -113,15 +113,13 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
         if "errorData" in response_data:
             await logging_error("리소스서버", "매니저 로그인 에러", data)
             print(response_data["errorData"]["code"])
-            if "비밀번호" in response_data["errorData"]["code"]:
+            if "비밀번호" in response_data["message"]:
                 response.status_code = 405
             elif "wrongId" in response_data["errorData"]["code"]:
-                print("aaaaaaaaa")
                 response.status_code = 406
             elif "noid" in response_data["errorData"]["code"]:
-                print("aaaaaaaaa")
                 response.status_code = 406
-            if response_data["errorData"]["code"] == "recaptcha":
+            elif response_data["errorData"]["code"] == "recaptcha":
                 response.status_code = 410
             return
     except Exception as e:  # pylint: disable=W0718
@@ -143,7 +141,7 @@ async def get_panda_nickname(bj_id: str, response: Response):
 async def add_book_mark(bj_id: str):
     """북마크 추가"""
     play_watch.add_book_mark_list(bj_id)
-    lists = play_watch.get_bookmark_list_to_nickname()
+    lists = await play_watch.get_bookmark_list_to_nickname()
     await logging_info("add-bookmark", "북마크 삭제", lists)
     return {"message": "success"}
 
@@ -152,7 +150,7 @@ async def add_book_mark(bj_id: str):
 async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     play_watch.delete_book_mark_list(bj_id)
-    lists = play_watch.get_bookmark_list_to_nickname()
+    lists = await play_watch.get_bookmark_list_to_nickname()
     await logging_info("delete-bookmark", "북마크 삭제", lists)
     return {"message": "success"}
 

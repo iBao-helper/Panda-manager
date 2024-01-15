@@ -20,13 +20,13 @@ class PlayWrightNightWatch:
 
     async def login(self):
         """로그인"""
-        self.api_client.login(self.watch_id, self.watch_pw)
+        await self.api_client.login(self.watch_id, self.watch_pw)
 
     async def start(self):
         """NightWatch Loop 함수"""
         try:
             # print("[start night watch] - BookMark Start")
-            idle_users, live_users = self.get_user_status()
+            idle_users, live_users = await self.get_user_status()
             print(live_users)
             backend_live_users = requests.get(
                 url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
@@ -80,9 +80,9 @@ class PlayWrightNightWatch:
             print("what the fuck ?")
             print(e)
 
-    def get_user_status(self):
+    async def get_user_status(self):
         """유저 상태를 가져옴"""
-        user_datas = self.api_client.get_bookmark_list()
+        user_datas = await self.api_client.get_bookmark_list()
         idle_users = [
             user["userId"] for user in user_datas if user.get("media") is None
         ]
@@ -114,25 +114,25 @@ class PlayWrightNightWatch:
                     ret_list.append(backend_user["panda_id"])
         return ret_list
 
-    def add_book_mark_list(self, panda_id: str):
+    async def add_book_mark_list(self, panda_id: str):
         """북마크 해야될 리스트에 추가"""
-        self.api_client.add_book_mark(panda_id)
+        await self.api_client.add_book_mark(panda_id)
 
-    def delete_book_mark_list(self, panda_id: str):
+    async def delete_book_mark_list(self, panda_id: str):
         """북마크 삭제해야될 리스트에 추가"""
-        self.api_client.delete_book_mark(panda_id)
+        await self.api_client.delete_book_mark(panda_id)
 
-    def refresh(self):
+    async def refresh(self):
         """새로고침"""
         self.api_client = APIClient()
-        self.api_client.login(self.watch_id, self.watch_pw)
+        await self.api_client.login(self.watch_id, self.watch_pw)
         # await self.page.reload()
 
-    def get_nickname_by_panda_id(self, panda_id: str):
+    async def get_nickname_by_panda_id(self, panda_id: str):
         """panda_id로 팬더 백엔드 서버에 요청한 닉네임을 가져오기"""
-        nickname = self.api_client.get_nickname_by_panda_id(panda_id)
+        nickname = await self.api_client.get_nickname_by_panda_id(panda_id)
         return nickname
 
-    def get_bookmark_list_to_nickname(self):
+    async def get_bookmark_list_to_nickname(self):
         """북마크 리스트를 닉네임으로 가져오기"""
-        return self.api_client.get_bookmark_list_to_nickname()
+        return await self.api_client.get_bookmark_list_to_nickname()
