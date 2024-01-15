@@ -2,17 +2,17 @@
 import os
 import asyncio
 import time
-from typing import Dict
+from typing import Dict, Annotated, Type
 import uvicorn
 import requests
 from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from classes import panda_manager as pm
 from classes.panda_manager2 import PandaManager2
 from util.my_util import User, logging_debug, logging_error, logging_info
 from classes import api_client as api
 from threading import Thread
+from classes.dto.CreateManagerDto import CreateManagerDto
 
 load_dotenv()
 
@@ -30,7 +30,7 @@ login_api_client = api.APIClient()
 
 
 async def start_manager(
-    panda_id, body: pm.CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
+    panda_id, body: CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
 ):
     "매니저 쓰레드 함수"
     manager = PandaManager2(
@@ -51,7 +51,7 @@ async def start_manager(
 
 
 @app.post("/panda_manager/{panda_id}")
-async def panda_manager_start(body: pm.CreateManagerDto, panda_id: str):
+async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     await logging_info(
         panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()

@@ -20,6 +20,8 @@ from classes.chatting_api_data import ChattingApiData
 from classes.search_live_api_data import SearchLiveBj
 from custom_exception import custom_exceptions as ex
 from stt_v2 import sample_recognize
+import dto.CreateManagerDto as CreateManagerDto
+
 
 from util.my_util import (
     User,
@@ -49,32 +51,6 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 SERVER_KIND = os.getenv("SERVER_KIND")
-
-
-class CreateManagerDto(BaseModel):
-    """매니저 생성 DTO"""
-
-    panda_id: str
-    proxy_ip: str
-    manager_id: str
-    manager_pw: str
-    resource_ip: str
-
-    def set(
-        self,
-        panda_id: str,
-        proxy_ip: str,
-        manager_id: str,
-        manager_pw: str,
-        resource_ip: str,
-    ):
-        """set"""
-        self.panda_id = panda_id
-        self.proxy_ip = proxy_ip
-        self.manager_id = manager_id
-        self.manager_pw = manager_pw
-        self.resource_ip = resource_ip
-
 
 class PandaManager:
     """PandaWrapper 클래스"""
