@@ -9,7 +9,7 @@ from util.my_util import logging_error
 class APIClient:
     """API를 호출하는 클래스"""
 
-    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=None):
+    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=""):
         self.panda_id = panda_id
         self.default_header: dict = {
             "authority": "api.pandalive.co.kr",
@@ -38,6 +38,25 @@ class APIClient:
         self.room_id = None
         self.proxy_ip = proxy_ip
 
+    async def request_api_call(self, url, data, headers):
+        """API 호출하는 함수"""
+        if self.proxy_ip is "":
+            response = requests.post(url=url, headers=headers, data=data, timeout=5)
+        else:
+            response = requests.post(
+                url=url,
+                headers=headers,
+                data=data,
+                timeout=5,
+                proxies={
+                    "http": f"http://{self.proxy_ip}:8888",
+                    "https": f"http://{self.proxy_ip}:8888",
+                },
+            )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(response.json()["message"])  # pylint: disable=W0719
+
     async def login(self, login_id, login_pw):
         """팬더서버에 로그인 요청하는 함수"""
         login_url = "https://api.pandalive.co.kr/v1/member/login"
@@ -45,28 +64,26 @@ class APIClient:
         data = f"id={login_id}&pw={login_pw}&idSave=N"
         dummy_header["path"] = "/v1/member/login"
         dummy_header["content-length"] = str(len(data))
-        response = requests.post(
-            url=login_url, headers=self.default_header, data=data, timeout=5
-        )
-        if response.status_code == 200:
-            result = response.json()
-            login_info = result["loginInfo"]
-            print(login_info)
-            self.sess_key = login_info["sessKey"]
-            self.user_idx = login_info["userInfo"]["idx"]
-            print(self.sess_key, self.user_idx)
-            return result
-        await logging_error(
-            self.panda_id,
-            "[로그인 실패]",
-            {"login_id": login_id, "login_pw": login_pw, "response": response.json()},
-        )
-        raise Exception("로그인 실패")  # pylint: disable=W0719
+        try:
+            result = await self.request_api_call(login_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[로그인 실패]",
+                {"login_id": login_id, "login_pw": login_pw, "data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        login_info = result["loginInfo"]
+        self.sess_key = login_info["sessKey"]
+        self.user_idx = login_info["userInfo"]["idx"]
+        print(self.sess_key, self.user_idx)
+        return result
 
-    def get_login_data(self):
+    async def get_login_data(self):
         """로그인 데이터를 얻는 함수"""
-        if self.sess_key is None or self.user_idx is None:
+        if self.sess_key is not None and self.user_idx is not None:
             return self.sess_key, self.user_idx
+        await logging_error(self.panda_id, "[로그인 데이터 없음]", {})
         raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
 
     def set_login_data(self, sess_key, user_idx):
@@ -86,24 +103,25 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=search_bj_url,
-            headers=dummy_header,
-            data=data,
-            timeout=5,
-        )
-        if response.status_code == 200:
-            return response.json()
-        raise Exception("API 호출 실패")  # pylint: disable=W0719
+        try:
+            result = await self.request_api_call(search_bj_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[BJ 검색 실패]",
+                {"panda_id": panda_id, "data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result
 
     async def get_user_idx(self, panda_id):
         """search_bj를 호출하여 user_idx를 얻는 함수"""
-        response = self.search_bj(panda_id)
+        response = await self.search_bj(panda_id)
         return response["bjInfo"]["idx"]
 
     async def add_book_mark(self, panda_id):
         """panda_id를 북마크에 추가하는 함수"""
-        user_idx = self.get_user_idx(panda_id)
+        user_idx = await self.get_user_idx(panda_id)
         add_bookmark_url = "https://api.pandalive.co.kr/v1/bookmark/add"
         dummy_header = self.default_header.copy()
         data = f"userIdx={user_idx}"
@@ -112,12 +130,20 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        requests.post(url=add_bookmark_url, headers=dummy_header, data=data, timeout=5)
-        return
+        try:
+            result = await self.request_api_call(add_bookmark_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[북마크 추가 실패]",
+                {"panda_id": panda_id, "data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result
 
     async def delete_book_mark(self, panda_id):
         """panda_id를 북마크에서 삭제하는 함수"""
-        user_idx = self.get_user_idx(panda_id)
+        user_idx = await self.get_user_idx(panda_id)
         delete_bookmark_url = "https://api.pandalive.co.kr/v1/bookmark/delete"
         dummy_header = self.default_header.copy()
         data = f"userIdx%5B0%5D={user_idx}"
@@ -126,14 +152,26 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        requests.post(
-            url=delete_bookmark_url, headers=dummy_header, data=data, timeout=5
-        )
-        return
+        try:
+            result = await self.request_api_call(
+                delete_bookmark_url,
+                data,
+                dummy_header,
+            )
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[북마크 제거 실패]",
+                {"panda_id": panda_id, "data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result
 
     async def get_nickname_by_panda_id(self, panda_id):
         """panda_id를 통해 닉네임을 얻는 함수"""
         response = self.search_bj(panda_id)
+        if response is None:
+            return None
         return response["bjInfo"]["nick"]
 
     async def get_bookmark_list(self):
@@ -148,22 +186,34 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=book_mark_url, headers=dummy_header, data=data, timeout=5
-        )
-        if response.status_code == 200:
-            return response.json()["list"]
+        try:
+            result = await self.request_api_call(book_mark_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[북마크 리스트 호출 실패]",
+                {"data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result["list"]
 
     async def get_bookmark_list_to_nickname(self):
         """북마크 닉네임 리스트를 얻는 함수"""
         book_mark_list = self.get_bookmark_list()
+        if book_mark_list is None:
+            return None
         filtered_list = [user["userNick"] for user in book_mark_list]
         return filtered_list
 
     async def play(self, panda_id):
         """방송 시청 API 호출, 아마 방송에 대한 정보를 받는 API일듯"""
         if self.sess_key is None or self.user_idx is None:
-            raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
+            await logging_error(
+                panda_id=self.panda_id,
+                description="로그인 정보가 필요합니다",
+                data={"sess_key": self.sess_key, "user_idx": self.user_idx},
+            )
+            return None
         play_url = "https://api.pandalive.co.kr/v1/live/play"
         data = f"action=watch&userId={panda_id}&password=&shareLinkType="
         dummy_header = self.default_header.copy()
@@ -172,26 +222,20 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=play_url,
-            headers=dummy_header,
-            data=data,
-            timeout=5,
-        )
-        response = response.json()
-        if "errorData" in response:
-            error_message = response["message"]
-            print(error_message)
-            raise Exception(error_message)  # pylint: disable=W0719
-        print(response["chatServer"]["token"])  # chatToken
-        self.chat_token = response["chatServer"]["token"]
-        print(response["token"])  # jwt token
-        self.jwt_token = response["token"]
-        print(response["media"]["userIdx"])  # channel
-        self.channel = response["media"]["userIdx"]
-        print(response["media"]["code"])  # room_id
-        self.room_id = response["media"]["code"]
-        return response
+        try:
+            result = await self.request_api_call(play_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[play API 호출 실패]",
+                {"data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        self.chat_token = result["chatServer"]["token"]
+        self.jwt_token = result["token"]
+        self.channel = result["media"]["userIdx"]
+        self.room_id = result["media"]["code"]
+        return result
 
     async def refresh_token(self):
         """토큰 갱신하는 요청"""
@@ -203,28 +247,43 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=refresh_token_url,
-            headers=dummy_header,
-            data=data,
-            timeout=5,
-        )
-        if response.status_code == 200:
-            response = response.json()
-            return response
-        raise Exception("토큰 갱신 실패")  # pylint: disable=W0719
+        try:
+            result = await self.request_api_call(refresh_token_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[refresh_token API 호출 실패]",
+                {"data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result
 
     async def send_chatting(self, message):
         """채팅을 보내는 함수"""
         if self.sess_key is None or self.user_idx is None:
-            raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
+            await logging_error(
+                panda_id=self.panda_id,
+                description="로그인 정보가 필요합니다",
+                data={"sess_key": self.sess_key, "user_idx": self.user_idx},
+            )
+            return None
         if (
             self.chat_token is None
             or self.jwt_token is None
             or self.channel is None
             or self.room_id is None
         ):
-            raise Exception("방송 시청이 필요합니다")  # pylint: disable=W0719
+            await logging_error(
+                panda_id="정보없음",
+                description="Play API를 호출했을때의 정보가 필요합니다",
+                data={
+                    "chat_token": self.chat_token,
+                    "jwt_token": self.jwt_token,
+                    "channel": self.channel,
+                    "room_id": self.room_id,
+                },
+            )
+            return None  # pylint: disable=W0719
         chat_url = "https://api.pandalive.co.kr/v1/chat/message"
         data = f"message={quote(message)}&roomid={self.room_id}&chatToken={self.chat_token}&t={int(time.time())}&channel={self.channel}&token={self.jwt_token}"
         dummy_header = self.default_header.copy()
@@ -233,10 +292,13 @@ class APIClient:
         dummy_header[
             "cookie"
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
-        response = requests.post(
-            url=chat_url,
-            headers=self.default_header,
-            data=data,
-            timeout=5,
-        )
-        print(response.json())
+        try:
+            result = await self.request_api_call(chat_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[chatting API 호출 실패]",
+                {"data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result

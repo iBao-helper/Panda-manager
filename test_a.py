@@ -57,60 +57,68 @@ async def main():
     api_client = APIClient()
     # api_client.set_login_data(sess_key, user_idx)
     response = await api_client.login("siveriness01", "Adkflfkd1")
+    print(response)
+    response = await api_client.search_bj("siverinss123123")
+    print(response)
+    response = await api_client.add_book_mark("qaaq36")
+    print(response)
+    response = await api_client.delete_book_mark("qaaq36")
+    print(response)
     response = await api_client.play("qaaq36")
-    user_data = {
-        "id": 1,
-        "params": {
-            "name": "js",
-            "token": api_client.jwt_token,  # 실제 토큰 값
-        },
-    }
+    print(response)
+    # user_data = {
+    #     "id": 1,
+    #     "params": {
+    #         "name": "js",
+    #         "token": api_client.jwt_token,  # 실제 토큰 값
+    #     },
+    # }
 
-    websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
-    async with websockets.connect(
-        websocket_url, extra_headers=login_headers
-    ) as websocket:
-        print("웹소켓 연결 성공!")
+    # websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
+    # async with websockets.connect(
+    #     websocket_url, extra_headers=login_headers
+    # ) as websocket:
+    #     print("웹소켓 연결 성공!")
 
-        # 연결이 열리면 메시지를 보낼 수 있습니다.
-        message = {"id": user_data["id"], "params": user_data["params"]}
+    #     # 연결이 열리면 메시지를 보낼 수 있습니다.
+    #     message = {"id": user_data["id"], "params": user_data["params"]}
 
-        # JSON 형태의 메시지를 서버로 보냅니다.
-        await websocket.send(json.dumps(message))
+    #     # JSON 형태의 메시지를 서버로 보냅니다.
+    #     await websocket.send(json.dumps(message))
 
-        # 서버로부터 메시지를 기다립니다.
-        response = await websocket.recv()
-        print(f"서버로부터 메시지 수신: {response}")
+    #     # 서버로부터 메시지를 기다립니다.
+    #     response = await websocket.recv()
+    #     print(f"서버로부터 메시지 수신: {response}")
 
-        message = {"id": 2, "method": 1, "params": {"channel": str(api_client.channel)}}
-        await websocket.send(json.dumps(message))
+    #     message = {"id": 2, "method": 1, "params": {"channel": str(api_client.channel)}}
+    #     await websocket.send(json.dumps(message))
 
-        response = await websocket.recv()
-        print(f"서버로부터 메시지 수신: {response}")
+    #     response = await websocket.recv()
+    #     print(f"서버로부터 메시지 수신: {response}")
 
-        message = {
-            "id": 199,
-            "method": 2,
-            "params": {"channel": str(api_client.channel)},
-        }
-        await websocket.send(json.dumps(message))
+    #     message = {
+    #         "id": 199,
+    #         "method": 2,
+    #         "params": {"channel": str(api_client.channel)},
+    #     }
+    #     await websocket.send(json.dumps(message))
 
-        response = await websocket.recv()
-        print(f"서버로부터 메시지 수신: {response}")
-        while True:
-            try:
-                response = await websocket.recv()
-                data = json.loads(response)
-                nickname = data["result"]["data"]["data"]["nk"]
-                message = data["result"]["data"]["data"]["message"]
-                
-                if nickname == "크기가전부는아니자나연":
-                    api_client.send_chatting(data["result"]["data"]["data"]["message"])
-                    await websocket.recv()
+    #     response = await websocket.recv()
+    #     print(f"서버로부터 메시지 수신: {response}")
+    #     while True:
+    #         try:
+    #             response = await websocket.recv()
+    #             data = json.loads(response)
+    #             nickname = data["result"]["data"]["data"]["nk"]
+    #             message = data["result"]["data"]["data"]["message"]
 
-                print(f"서버로부터 메시지 수신: {response}")
-            except Exception as e:  # pylint: disable=W0718 W0612
-                print(e)
+    #             if nickname == "크기가전부는아니자나연":
+    #                 api_client.send_chatting(data["result"]["data"]["data"]["message"])
+    #                 await websocket.recv()
+
+    #             print(f"서버로부터 메시지 수신: {response}")
+    #         except Exception as e:  # pylint: disable=W0718 W0612
+    #             print(e)
 
 
 asyncio.run(main())
