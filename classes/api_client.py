@@ -37,11 +37,12 @@ class APIClient:
         self.jwt_token = None
         self.channel = None
         self.room_id = None
+        self.is_manager = None
         self.proxy_ip = proxy_ip
 
     async def request_api_call(self, url, data, headers):
         """API 호출하는 함수"""
-        if self.proxy_ip is "":
+        if self.proxy_ip == "":
             response = requests.post(url=url, headers=headers, data=data, timeout=5)
         else:
             response = requests.post(
@@ -237,7 +238,32 @@ class APIClient:
         self.jwt_token = result["token"]
         self.channel = result["media"]["userIdx"]
         self.room_id = result["media"]["code"]
+        self.is_manager = result["fan"]["isManager"]
         return result
+
+    async def get_current_room_user(self):
+        """새로 들어온 유저를 반환하는 함수"""
+        if self.is_manager is False:
+            return None
+        room_list_url = (
+            "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
+            f"channel={self.channel}&token={self.jwt_token}"
+        )
+        dummy_header = self.default_header.copy()
+        dummy_header[
+            "path"
+        ] = f"/v1/chat/channel_user_list?channel={self.channel}&token={self.jwt_token}"
+        dummy_header[
+            "cookie"
+        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        try:
+            response = requests.get(
+                url=room_list_url, headers=self.default_header, timeout=5
+            )
+            tmp = response.json()["list"]
+            return tmp
+        except:  # pylint: disable= W0702
+            return None
 
     async def refresh_token(self):
         """토큰 갱신하는 요청"""
