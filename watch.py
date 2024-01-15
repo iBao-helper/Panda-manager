@@ -54,13 +54,6 @@ async def night_watch_stop():
     return {"message": "NightWatch"}
 
 
-@app.get("/test")
-async def test(response: Response):
-    """테스트"""
-    response.status_code = status.HTTP_202_ACCEPTED
-    return {"message": "Something went wrong"}, status.HTTP_400_BAD_REQUEST
-
-
 @app.get("/check-manager")
 async def check_manager_login(manager_id: str, manager_pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
@@ -141,7 +134,7 @@ async def add_book_mark(bj_id: str):
     """북마크 추가"""
     await play_watch.add_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
-    await logging_info("add-bookmark", "북마크 삭제", lists)
+    await logging_info("add-bookmark", "북마크 등록", lists)
     return {"message": "success"}
 
 
