@@ -1,4 +1,5 @@
 """ 잡다한 함수로 뺼 것들 모아놓은곳"""
+import emoji
 from pydantic import BaseModel
 import requests
 import os
@@ -31,6 +32,129 @@ class User(BaseModel):
     toggle_rc: bool
     toggle_pr: bool
     toggle_doosan: bool
+
+
+async def delete_normal_command(panda_id: str, key: str):
+    """일반 커맨드 삭제"""
+    try:
+        response = requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/command/{panda_id}/{key}",
+            timeout=5,
+        )
+        if response.status_code == 404:
+            return "존재하지 않는 커맨드입니다"
+        return "삭제되었습니다"
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def regist_normal_command(panda_id: str, key: str, value: str):
+    """일반 커맨드 등록"""
+    try:
+        response = requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/command/{panda_id}",
+            json={"key": key, "value": value},
+            timeout=5,
+        )
+        if response.status_code == 409:
+            return "이미 등록된 커맨드입니다"
+        return "등록되었습니다"
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def get_hart_history_with_three(user):
+    """하드 내역 조회"""
+    try:
+        response = requests.get(
+            f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=search",
+            timeout=5,
+        )
+        json_data = response.json()
+        print("써칭 리스폰스", json_data)
+        message = ""
+        if len(json_data) > 0:
+            for data in json_data:
+                message = (
+                    message
+                    + f"[{data['user_name']}] -> [{data['bj_name']}] ♥{data['count']}개\n"
+                )
+            return message
+        else:
+            return f"{user}님의 하트 내역이 없습니다. 하트 내역은 매니저봇이 있는 방에서만 집계됩니다."
+    except:  # pylint: disable=W0702
+        return None  # pylint: disable=W0702
+
+
+async def get_hart_history_with_total(user):
+    """하트 총 내역 조회"""
+    try:
+        response = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=sum",
+            timeout=5,
+        )
+        print(response)
+        message = f"{user} : {response.text}개"
+        return message
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def regist_hart_message(panda_id, hart_message):
+    """하트 메세지 등록"""
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{panda_id}",
+            json={"message": hart_message},
+            timeout=5,
+        )
+        return "하트 메세지가 등록되었습니다"
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def regist_recommend_message(panda_id: str, rc_message: str):
+    """추천 메세지 등록"""
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/rc-message/{panda_id}",
+            json={"message": rc_message},
+            timeout=5,
+        )
+        return "추천 메세지가 등록되었습니다"
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def get_bj_data(panda_id: str) -> User:
+    """panda_id의 bj_data를 가져온다"""
+    data = requests.get(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
+        timeout=5,
+    )
+    print(data.json())
+    user = User(**data.json())
+    return user
+
+
+async def update_bj_nickname(panda_id: str, nickname: str):
+    """panda_id의 bj_data의 nickname을 변경한다"""
+    data = requests.patch(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/nickname",
+        json={"nickname": nickname},
+        timeout=5,
+    )
+    return data
+
+
+async def update_manager_nickanme(panda_id: str, nickname: str):
+    """panda_id의 bj_data의 manager_nick을 변경한다"""
+    data = requests.patch(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/manager-nickname",
+        json={"manager_nick": nickname},
+        timeout=5,
+    )
+    return data
 
 
 async def get_commands(panda_id: str):
