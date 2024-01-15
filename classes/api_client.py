@@ -2,6 +2,7 @@
 import time
 from urllib.parse import quote
 import requests
+from classes.bj_info import BjInfo
 
 from util.my_util import logging_error
 
@@ -58,7 +59,7 @@ class APIClient:
         raise Exception(response.json()["message"])  # pylint: disable=W0719
 
     async def login(self, login_id, login_pw):
-        """팬더서버에 로그인 요청하는 함수"""
+        """팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함"""
         login_url = "https://api.pandalive.co.kr/v1/member/login"
         dummy_header = self.default_header.copy()
         data = f"id={login_id}&pw={login_pw}&idSave=N"
@@ -77,7 +78,7 @@ class APIClient:
         self.sess_key = login_info["sessKey"]
         self.user_idx = login_info["userInfo"]["idx"]
         print(self.sess_key, self.user_idx)
-        return result
+        return login_info["userInfo"]["nick"]
 
     async def get_login_data(self):
         """로그인 데이터를 얻는 함수"""
@@ -91,7 +92,7 @@ class APIClient:
         self.sess_key = sess_key
         self.user_idx = user_idx
 
-    async def search_bj(self, panda_id: str):
+    async def search_bj(self, panda_id: str) -> BjInfo:
         """BJ검색 API 호출"""
         if self.sess_key is None or self.user_idx is None:
             raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
@@ -112,7 +113,8 @@ class APIClient:
                 {"panda_id": panda_id, "data": str(e)},
             )
             return None  # pylint: disable=W0719 W0707
-        return result
+        bj_info = BjInfo(result["bjInfo"])
+        return bj_info
 
     async def get_user_idx(self, panda_id):
         """search_bj를 호출하여 user_idx를 얻는 함수"""
