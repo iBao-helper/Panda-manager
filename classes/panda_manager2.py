@@ -1,15 +1,18 @@
 """팬더 매니저 V2"""
 import asyncio
 import json
+import threading
 import time
 import websockets
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
 from util.my_util import (
     User,
+    add_room_user,
     add_song_list,
     delete_normal_command,
     delete_song_list,
+    error_in_chatting_room,
     get_bj_data,
     get_commands,
     get_hart_history_with_three,
@@ -20,6 +23,7 @@ from util.my_util import (
     regist_hart_message,
     regist_normal_command,
     regist_recommend_message,
+    remove_room_user,
     update_bj_nickname,
     update_manager_nickanme,
 )
@@ -44,6 +48,12 @@ class PandaManager2:
         self.websocket = None
         self.websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
         self.user_data = None
+
+        # 현재 방 유저 갱신하기 위한 변수들
+        self.user_list = []
+        self.prev_user_list = []
+        ###
+
         self.normal_commands = []
         self.api_commands = {
             "!등록": self.regist_normal_command,
@@ -61,7 +71,13 @@ class PandaManager2:
             "!꺼",
         ]
 
-    async def reset_song_list(self):
+    async def create_timer(self, chat: ChattingData):
+        """타이머 생성"""
+        splited = chat.message.split(" ")
+        # if len(splited):
+        # threading.Thread(target=self.timer, args=(splited[1:0]))
+
+    async def reset_song_list(self, chat: ChattingData):  # pylint: disable=W0613
         """신청곡 초기화"""
         response = await delete_song_list(self.panda_id)
         if response.status_code == 200 or response.status_code == 201:
@@ -69,7 +85,7 @@ class PandaManager2:
         else:
             await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def send_song_list(self):
+    async def send_song_list(self, chat: ChattingData):  # pylint: disable=W0613
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
         song_list = await get_song_list(self.panda_id)
@@ -82,57 +98,86 @@ class PandaManager2:
         else:
             await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def add_song_list(self, user_nickname: str, song_name: str):
+    async def add_song_list(self, chat: ChattingData):
         """신청곡 추가"""
-        response = await add_song_list(self.panda_id, user_nickname, song_name)
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!신청 [곡명]")
+            return
+        response = await add_song_list(
+            self.panda_id, chat.nickname, " ".join(splited[1:])
+        )
         if response.status_code == 200 or response.status_code == 201:
-            await self.api_client.send_chatting(f"'{song_name}' 신청되었습니다.")
+            await self.api_client.send_chatting(f"{' '.join(splited[1:])}' 신청되었습니다.")
         else:
             await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def hart_search_by_total(self, user_nickname: str):
+    async def hart_search_by_total(self, chat: ChattingData):
         """하트내역 모두 조회"""
-        response = await get_hart_history_with_total(user_nickname)
+        response = await get_hart_history_with_total(chat.nickname)
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("하트내역 조회에 실패했습니다")
 
-    async def hart_search_by_three(self, user_nickname: str):
+    async def hart_search_by_three(self, chat: ChattingData):
         """최근 하트내역 3개 조회"""
-        response = await get_hart_history_with_three(user_nickname)
+        response = await get_hart_history_with_three(chat.nickname)
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("하트내역 조회에 실패했습니다")
 
-    async def delete_normal_command(self, splited: []):
+    async def delete_normal_command(self, chat: ChattingData):
         """일반 커맨드 삭제"""
-        response = await delete_normal_command(self.panda_id, splited[0])
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
+            return
+        response = await delete_normal_command(self.panda_id, splited[1])
         if response is not None:
+            if splited[1] in self.normal_commands:
+                del self.normal_commands[splited[1]]
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("삭제에 실패했습니다")
 
-    async def regist_normal_command(self, splited: []):
+    async def regist_normal_command(self, chat: ChattingData):
         """일반 커맨드 등록"""
-        response = await regist_normal_command(self.panda_id, splited[0], splited[1])
+        splited = chat.message.split(" ")
+        print(splited)
+        if len(splited) < 3:
+            await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
+            return
+        response = await regist_normal_command(
+            self.panda_id, splited[1], " ".join(splited[2:])
+        )
+        if response is not None:
+            if response != "이미 등록된 커맨드입니다":
+                self.normal_commands[splited[1]] = " ".join(splited[2:])
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def regist_hart_message(self, chat: ChattingData):
+        """!하트 맵핑 핸들러"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
+            return
+        response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
 
-    async def regist_hart_message(self, splited: []):
-        """!하트 맵핑 핸들러"""
-        response = await regist_hart_message(self.panda_id, splited.join(" "))
-        if response is not None:
-            await self.api_client.send_chatting(response)
-        else:
-            await self.api_client.send_chatting("등록에 실패했습니다")
-
-    async def regist_recommend_message(self, splited: []):
-        """!하트 맵핑 핸들러"""
-        response = await regist_recommend_message(self.panda_id, splited.join(" "))
+    async def regist_recommend_message(self, chat: ChattingData):
+        """!추천 맵핑 핸들러"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
+            return
+        response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
@@ -200,12 +245,33 @@ class PandaManager2:
         if self.manager_nick != self.user_data.manager_nick:
             await update_manager_nickanme(self.panda_id, self.manager_nick)
 
+    async def update_room_list(self):
+        """방에 있는 유저를 갱신시키는 함수"""
+        room_user_list = await self.api_client.get_current_room_user()
+        if room_user_list is None:
+            return
+        self.prev_user_list = self.user_list
+        self.user_list = {
+            user["nick"] for user in room_user_list if user["nick"] != "게스트"
+        }
+        # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
+        new_users = {user for user in self.user_list if user not in self.prev_user_list}
+        idle_users = {
+            user for user in self.prev_user_list if user not in self.user_list
+        }
+        if len(new_users) > 0:
+            print(new_users)
+            await add_room_user(self.panda_id, new_users)
+        if len(idle_users) > 0:
+            print(idle_users)
+            await remove_room_user(self.panda_id, idle_users)
+
     ## 조건 리턴 함수
     def is_self_chatting(self, chat: ChattingData):
         """매니저봇의 채팅인지 확인"""
         return chat.nickname == self.manager_nick
 
-    def is_chatting(self, chat: ChattingData):
+    def is_user_chatting(self, chat: ChattingData):
         """채팅인지 확인"""
         if chat.type == "bj" or chat.type == "chatter" or chat.type == "manager":
             return True
@@ -223,34 +289,53 @@ class PandaManager2:
 
     ## 핸들러 관련 함수
     async def chatting_handler(self, chat: ChattingData):
-        """채팅일때의 처리"""
-        # 여기다 다 때려박기에는........ 너무 드럽잖아.....
-        # 근데 각 함수마다 원하는 인자 데이터가 달라...
-        # dict로 만들어서 호출하기에도 무리고..
-
+        """사용자 채팅일때의 처리"""
+        splited = chat.message.split(" ")
+        print(chat.message, splited)
+        print(chat.message in self.normal_commands)
+        if splited[0] in self.api_commands:
+            await self.api_commands[splited[0]](chat)
+        elif chat.message in self.normal_commands:
+            await self.api_client.send_chatting(self.normal_commands[chat.message])
         return
+
+    async def update_room_user_timer(self):
+        """방 유저 갱신 타이머"""
+        while self.is_running:
+            await self.update_room_list()
+            await asyncio.sleep(2)
+
+    async def timer(self, total_time: int, interval: int):
+        """타이머"""
+        spech_time = 
+        while total_time > 0:
+            if 
+            total_time -= 1
+            await asyncio.sleep(1)
 
     async def start(self):
         """팬더 매니저 시작"""
+        self.is_running = True
         # 닉네임이 변경된 게 있다면 업데이트
         await self.check_nickname_changed()
         # 명령어 관련 정보 가져옴
         self.normal_commands = await get_commands(self.panda_id)
-
-        self.is_running = True
+        print(self.normal_commands)
+        asyncio.create_task(self.update_room_user_timer())
         while self.is_running:
             try:
                 data = await self.websocket.recv()
                 chat = ChattingData(data)
                 if self.is_self_chatting(chat):
                     continue
-                elif self.is_chatting(chat):
+                elif self.is_user_chatting(chat):
                     await self.chatting_handler(chat)
-                    k = 9
                 elif self.is_system_message(chat):
                     # system_handler
                     k = 9
-
+                elif chat.type == "personal":
+                    await logging_error(self.panda_id, "다른기기에 접속하였습니다", {})
+                    await error_in_chatting_room(self.panda_id)
                 print(chat)
             except websockets.exceptions.ConnectionClosedOK:
                 break

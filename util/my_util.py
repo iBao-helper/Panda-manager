@@ -157,6 +157,24 @@ async def update_manager_nickanme(panda_id: str, nickname: str):
     return data
 
 
+async def add_room_user(panda_id: str, new_users: dict):
+    """방에 새로운 유저를 추가함"""
+    requests.post(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+        json={"panda_id": panda_id, "user_list": list(new_users)},
+        timeout=5,
+    )
+
+
+async def remove_room_user(panda_id: str, remove_users: list):
+    """방에 새로운 유저를 추가함"""
+    requests.patch(
+        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+        json={"panda_id": panda_id, "user_list": list(remove_users)},
+        timeout=5,
+    )
+
+
 async def get_commands(panda_id: str):
     """panda_id의 command리스트를 가져온다"""
     commands = requests.get(
@@ -164,6 +182,7 @@ async def get_commands(panda_id: str):
         timeout=5,
     )
     command_dict = commands.json()
+    command_dict = {item["keyword"]: item["response"] for item in command_dict}
     return command_dict
 
 
