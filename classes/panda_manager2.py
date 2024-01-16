@@ -1,8 +1,6 @@
 """팬더 매니저 V2"""
 import asyncio
 import json
-import threading
-import time
 import websockets
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
@@ -147,7 +145,6 @@ class PandaManager2:
     async def regist_normal_command(self, chat: ChattingData):
         """일반 커맨드 등록"""
         splited = chat.message.split(" ")
-        print(splited)
         if len(splited) < 3:
             await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
             return
@@ -296,10 +293,8 @@ class PandaManager2:
             user for user in self.prev_user_list if user not in self.user_list
         }
         if len(new_users) > 0:
-            print(new_users)
             await add_room_user(self.panda_id, new_users)
         if len(idle_users) > 0:
-            print(idle_users)
             await remove_room_user(self.panda_id, idle_users)
 
     ###############
@@ -325,7 +320,6 @@ class PandaManager2:
     async def chatting_handler(self, chat: ChattingData):
         """사용자 채팅일때의 처리"""
         splited = chat.message.split(" ")
-        print(chat.message, splited)
         if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
@@ -397,13 +391,13 @@ class PandaManager2:
     async def stop(self):
         """팬더 매니저 종료"""
         try:
+            self.is_running = False
             message = {
                 "id": 2,
                 "method": 2,
                 "params": {"channel": str(self.api_client.channel)},
             }
             await self.websocket.send(json.dumps(message))
-            self.is_running = False
         except:  # pylint: disable=W0702
             pass
         await self.websocket.close()

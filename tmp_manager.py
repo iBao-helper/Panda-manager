@@ -1,8 +1,7 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
 import os
 import asyncio
-import time
-from typing import Dict, Annotated, Type
+from typing import Dict
 import uvicorn
 import requests
 from fastapi import FastAPI, status, Request
@@ -10,14 +9,12 @@ from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from classes.panda_manager2 import PandaManager2
 from util.my_util import (
-    User,
     logging_debug,
     logging_error,
     logging_info,
     success_connect_websocket,
 )
 from classes import api_client as api
-from threading import Thread
 from classes.dto.CreateManagerDto import CreateManagerDto
 
 load_dotenv()
