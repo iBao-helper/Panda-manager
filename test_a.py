@@ -4,8 +4,10 @@ import json
 import requests
 import websockets
 from classes import playwright_watch as pws
+from classes.bj_info import BjInfo
 import tmp_panda_manager as tmp
 from classes.api_client import APIClient
+from util.my_util import get_bj_data
 
 play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch(
     "siveriness1", "Adkflfkd1"
@@ -55,17 +57,18 @@ async def main():
     # sess_key, user_idx = await manager.get_login_data()
     # print(sess_key, user_idx)
     api_client = APIClient()
+    # response = await get_bj_data("resetaccount3")
+    # print(response.json())
     # api_client.set_login_data(sess_key, user_idx)
-    response = await api_client.login("siveriness01", "Adkflfkd1")
+    response = await api_client.login("resetaccount3", "Adkflfkd1")
+    await api_client.play("resetaccount2")
+    response = await api_client.get_current_room_user()
     print(response)
-    response = await api_client.search_bj("siverinss123123")
-    print(response)
-    response = await api_client.add_book_mark("qaaq36")
-    print(response)
-    response = await api_client.delete_book_mark("qaaq36")
-    print(response)
-    response = await api_client.play("qaaq36")
-    print(response)
+    # print(response)
+    # response = await api_client.search_bj("siveriness01")
+    # print(response)
+    # response = await api_client.play("qaaq36")
+    # print(response)
     # user_data = {
     #     "id": 1,
     #     "params": {

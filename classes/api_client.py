@@ -278,6 +278,9 @@ class APIClient:
         ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
         try:
             result = await self.request_api_call(refresh_token_url, data, dummy_header)
+            if "token" in result:
+                print(result["token"])
+                self.jwt_token = result["token"]
         except Exception as e:  # pylint: disable=W0703
             await logging_error(
                 self.panda_id,

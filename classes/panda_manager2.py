@@ -24,6 +24,7 @@ from util.my_util import (
     regist_normal_command,
     regist_recommend_message,
     remove_room_user,
+    send_hart_history,
     update_bj_nickname,
     update_manager_nickanme,
 )
@@ -47,7 +48,7 @@ class PandaManager2:
         self.is_running = False
         self.websocket = None
         self.websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
-        self.user_data = None
+        self.user: User = None
 
         # 현재 방 유저 갱신하기 위한 변수들
         self.user_list = []
@@ -66,17 +67,18 @@ class PandaManager2:
             "!리스트": self.send_song_list,
             "!신청곡리셋": self.reset_song_list,
         }
+        self.system_commands = {
+            "SponCoin": self.spon_coin_handler,
+            "Recommend": self.recommend_handler,
+        }
         self.reserved_commands = [
             "!타이머",
             "!꺼",
         ]
 
-    async def create_timer(self, chat: ChattingData):
-        """타이머 생성"""
-        splited = chat.message.split(" ")
-        # if len(splited):
-        # threading.Thread(target=self.timer, args=(splited[1:0]))
-
+    #####################
+    # API 커맨드 함수들
+    #####################
     async def reset_song_list(self, chat: ChattingData):  # pylint: disable=W0613
         """신청곡 초기화"""
         response = await delete_song_list(self.panda_id)
@@ -183,6 +185,37 @@ class PandaManager2:
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
 
+    #######################
+    # system handler 함수들
+    #######################
+    async def spon_coin_handler(self, message_class):
+        """하트 후원 핸들러"""
+        chat_message = self.user.hart_message
+        # if "rk" in message_class:
+        #     if message_class["rk"] != 0:
+        #         chat_message = f"팬 랭킹{message_class['rk']}위!\n" + chat_message
+        if "nick" in message_class:
+            chat_message = chat_message.replace("{후원인}", message_class["nick"])
+        if "coin" in message_class:
+            chat_message = chat_message.replace("{후원개수}", str(message_class["coin"]))
+        await send_hart_history(
+            bj_name=self.user.nickname,
+            user_id=message_class["id"],
+            nickname=message_class["nick"],
+            hart_count=message_class["coin"],
+        )
+        await self.api_client.send_chatting(chat_message)
+        print(chat_message)
+
+    async def recommend_handler(self, message_class):
+        """추천 핸들러"""
+        rc_message = self.user.rc_message
+        if "nick" in message_class:
+            rc_message = rc_message.replace("{추천인}", message_class["nick"])
+        print(rc_message)
+        await self.api_client.send_chatting(rc_message)
+
+    # 웹 소켓 연결 함수
     async def connect_webscoket(self):
         """웹소켓에 연결을 시도함"""
         await logging_info(self.panda_id, "웹소켓 연결 작업 시작", {})
@@ -236,13 +269,14 @@ class PandaManager2:
             print(f"서버로부터 메시지 수신: {response}")
         return self.websocket
 
+    # user정보 업데이트 및 닉네임 체크해서 갱신해주는 함수
     async def check_nickname_changed(self):
         """닉네임 변경시 반영하기 위한 로직"""
         bj_info = await self.api_client.search_bj(self.panda_id)
-        self.user_data: User = await get_bj_data(panda_id=self.panda_id)
-        if bj_info.nick != self.user_data.nickname:
+        self.user: User = await get_bj_data(panda_id=self.panda_id)
+        if bj_info.nick != self.user.nickname:
             await update_bj_nickname(self.panda_id, bj_info.nick)
-        if self.manager_nick != self.user_data.manager_nick:
+        if self.manager_nick != self.user.manager_nick:
             await update_manager_nickanme(self.panda_id, self.manager_nick)
 
     async def update_room_list(self):
@@ -266,7 +300,9 @@ class PandaManager2:
             print(idle_users)
             await remove_room_user(self.panda_id, idle_users)
 
-    ## 조건 리턴 함수
+    ###############
+    # 조건 리턴 함수
+    ###############
     def is_self_chatting(self, chat: ChattingData):
         """매니저봇의 채팅인지 확인"""
         return chat.nickname == self.manager_nick
@@ -279,11 +315,7 @@ class PandaManager2:
 
     def is_system_message(self, chat: ChattingData):
         """하트,추천,정보갱신 인지 확인"""
-        if (
-            chat.type == "SponCoin"
-            or chat.type == "Recommend"
-            or chat.type == "MediaUpdate"
-        ):
+        if chat.type == "SponCoin" or chat.type == "Recommend":
             return True
         return False
 
@@ -292,7 +324,6 @@ class PandaManager2:
         """사용자 채팅일때의 처리"""
         splited = chat.message.split(" ")
         print(chat.message, splited)
-        print(chat.message in self.normal_commands)
         if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
@@ -301,11 +332,37 @@ class PandaManager2:
             await self.reserved_commands[chat.message](chat)
         return
 
+    async def system_handler(self, chat: ChattingData):
+        """추천,하트,정보갱신 등의 처리"""
+        chat_message_class = json.loads(chat.message)
+        await self.system_commands[chat.type](chat_message_class)
+
     async def update_room_user_timer(self):
         """방 유저 갱신 타이머"""
         while self.is_running:
             await self.update_room_list()
             await asyncio.sleep(2)
+
+    async def update_jwt_refresh(self):
+        """JWT 토큰 갱신"""
+        await asyncio.sleep(60 * 25)
+        while self.is_running:
+            await self.api_client.refresh_token()
+            message = {
+                "id": 68,
+                "method": 10,
+                "params": {"token": self.api_client.jwt_token},
+            }
+            await self.websocket.send(json.dumps(message))
+            await asyncio.sleep(60 * 25)
+
+    async def update_commands(self):
+        """커맨드 업데이트"""
+        self.normal_commands = await get_commands(self.panda_id)
+
+    async def update_user(self):
+        """유저 관련 데이터 업데이트"""
+        self.user = await get_bj_data(self.panda_id)
 
     async def start(self):
         """팬더 매니저 시작"""
@@ -313,24 +370,25 @@ class PandaManager2:
         # 닉네임이 변경된 게 있다면 업데이트
         await self.check_nickname_changed()
         # 명령어 관련 정보 가져옴
-        self.normal_commands = await get_commands(self.panda_id)
+        await self.update_commands()
         print(self.normal_commands)
         asyncio.create_task(self.update_room_user_timer())
+        asyncio.create_task(self.update_jwt_refresh())
         while self.is_running:
             try:
                 data = await self.websocket.recv()
                 chat = ChattingData(data)
-                if self.is_self_chatting(chat):
+                if chat.type is None:
+                    continue
+                elif self.is_self_chatting(chat):
                     continue
                 elif self.is_user_chatting(chat):
                     await self.chatting_handler(chat)
                 elif self.is_system_message(chat):
-                    # system_handler
-                    k = 9
+                    await self.system_handler(chat)
                 elif chat.type == "personal":
                     await logging_error(self.panda_id, "다른기기에 접속하였습니다", {})
                     await error_in_chatting_room(self.panda_id)
-                print(chat)
             except websockets.exceptions.ConnectionClosedOK:
                 break
 
