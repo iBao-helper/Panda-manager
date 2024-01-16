@@ -284,7 +284,7 @@ class PandaManager2:
         """방에 있는 유저를 갱신시키는 함수"""
         room_user_list = await self.api_client.get_current_room_user()
         if room_user_list is None:
-            return
+            return [], []
         self.prev_user_list = self.user_list
         self.user_list = {
             user["nick"] for user in room_user_list if user["nick"] != "게스트"
