@@ -189,6 +189,8 @@ class PandaManager2:
     #######################
     async def spon_coin_handler(self, message_class):
         """하트 후원 핸들러"""
+        if self.user.toggle_hart is False:
+            return
         chat_message = self.user.hart_message
         # if "rk" in message_class:
         #     if message_class["rk"] != 0:
@@ -203,18 +205,18 @@ class PandaManager2:
             nickname=message_class["nick"],
             hart_count=message_class["coin"],
         )
-        if self.user.toggle_hart:
-            await self.api_client.send_chatting(chat_message)
+        await self.api_client.send_chatting(chat_message)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
         """추천 핸들러"""
+        if self.user.toggle_rc is False:
+            return
         rc_message = self.user.rc_message
         if "nick" in message_class:
             rc_message = rc_message.replace("{추천인}", message_class["nick"])
         print(rc_message)
-        if self.user.toggle_rc:
-            await self.api_client.send_chatting(rc_message)
+        await self.api_client.send_chatting(rc_message)
 
     # 웹 소켓 연결 함수
     async def connect_webscoket(self):
