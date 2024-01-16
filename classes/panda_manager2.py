@@ -203,7 +203,8 @@ class PandaManager2:
             nickname=message_class["nick"],
             hart_count=message_class["coin"],
         )
-        await self.api_client.send_chatting(chat_message)
+        if self.user.toggle_hart:
+            await self.api_client.send_chatting(chat_message)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
@@ -212,7 +213,8 @@ class PandaManager2:
         if "nick" in message_class:
             rc_message = rc_message.replace("{추천인}", message_class["nick"])
         print(rc_message)
-        await self.api_client.send_chatting(rc_message)
+        if self.user.toggle_rc:
+            await self.api_client.send_chatting(rc_message)
 
     # 웹 소켓 연결 함수
     async def connect_webscoket(self):
@@ -292,10 +294,7 @@ class PandaManager2:
         idle_users = {
             user for user in self.prev_user_list if user not in self.user_list
         }
-        if len(new_users) > 0:
-            await add_room_user(self.panda_id, new_users)
-        if len(idle_users) > 0:
-            await remove_room_user(self.panda_id, idle_users)
+        return new_users, idle_users
 
     ###############
     # 조건 리턴 함수
@@ -336,7 +335,15 @@ class PandaManager2:
     async def update_room_user_timer(self):
         """방 유저 갱신 타이머"""
         while self.is_running:
-            await self.update_room_list()
+            new_users, idle_users = await self.update_room_list()
+            if len(new_users) > 0:
+                await add_room_user(self.panda_id, new_users)
+                if self.user.toggle_greet:
+                    combined_str = ", ".join(new_users)
+                    message = self.user.greet_message.replace(r"{list}", combined_str)
+                    self.api_client.send_chatting(message)
+            if len(idle_users) > 0:
+                await remove_room_user(self.panda_id, idle_users)
             await asyncio.sleep(2)
 
     async def update_jwt_refresh(self):
@@ -354,11 +361,15 @@ class PandaManager2:
 
     async def update_commands(self):
         """커맨드 업데이트"""
-        self.normal_commands = await get_commands(self.panda_id)
+        result = await get_commands(self.panda_id)
+        if result is not None:
+            self.normal_commands = result
 
     async def update_user(self):
         """유저 관련 데이터 업데이트"""
-        self.user = await get_bj_data(self.panda_id)
+        result = await get_bj_data(self.panda_id)
+        if result is not None:
+            self.user = result
 
     async def start(self):
         """팬더 매니저 시작"""

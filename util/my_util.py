@@ -159,62 +159,80 @@ async def regist_recommend_message(panda_id: str, rc_message: str):
 
 async def get_bj_data(panda_id: str) -> User:
     """panda_id의 bj_data를 가져온다"""
-    data = requests.get(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
-        timeout=5,
-    )
-    print(data.json())
-    user = User(**data.json())
-    return user
+    try:
+        data = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
+            timeout=5,
+        )
+        print(data.json())
+        user = User(**data.json())
+        return user
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def update_bj_nickname(panda_id: str, nickname: str):
     """panda_id의 bj_data의 nickname을 변경한다"""
-    data = requests.patch(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/nickname",
-        json={"nickname": nickname},
-        timeout=5,
-    )
-    return data
+    try:
+        data = requests.patch(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/nickname",
+            json={"nickname": nickname},
+            timeout=5,
+        )
+        return data
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def update_manager_nickanme(panda_id: str, nickname: str):
     """panda_id의 bj_data의 manager_nick을 변경한다"""
-    data = requests.patch(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/manager-nickname",
-        json={"manager_nick": nickname},
-        timeout=5,
-    )
-    return data
+    try:
+        data = requests.patch(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}/manager-nickname",
+            json={"manager_nick": nickname},
+            timeout=5,
+        )
+        return data
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def add_room_user(panda_id: str, new_users: dict):
     """방에 새로운 유저를 추가함"""
-    requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-        json={"panda_id": panda_id, "user_list": list(new_users)},
-        timeout=5,
-    )
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+            json={"panda_id": panda_id, "user_list": list(new_users)},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def remove_room_user(panda_id: str, remove_users: list):
     """방에 새로운 유저를 추가함"""
-    requests.patch(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-        json={"panda_id": panda_id, "user_list": list(remove_users)},
-        timeout=5,
-    )
+    try:
+        requests.patch(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+            json={"panda_id": panda_id, "user_list": list(remove_users)},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def get_commands(panda_id: str):
     """panda_id의 command리스트를 가져온다"""
-    commands = requests.get(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/command/{panda_id}",
-        timeout=5,
-    )
-    command_dict = commands.json()
-    command_dict = {item["keyword"]: item["response"] for item in command_dict}
-    return command_dict
+    try:
+        commands = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/command/{panda_id}",
+            timeout=5,
+        )
+        command_dict = commands.json()
+        command_dict = {item["keyword"]: item["response"] for item in command_dict}
+        return command_dict
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def get_rc_message(panda_id: str):
@@ -328,72 +346,96 @@ async def error_in_chatting_room(panda_id: str):
 
 async def create_room_user(panda_id: str, user_list: list):
     """새로 접속한 유저를 입력한다"""
-    requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-        json={"panda_id": panda_id, "user_list": user_list},
-        timeout=5,
-    )
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+            json={"panda_id": panda_id, "user_list": user_list},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def delete_room_user(panda_id: str, user_list: list):
     """나간 유저를 삭제함"""
-    requests.delete(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-        json={"panda_id": panda_id, "user_list": user_list},
-        timeout=5,
-    )
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
+            json={"panda_id": panda_id, "user_list": user_list},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def get_song_list(panda_id: str):
     """panda_id의 songList를 가져온다"""
-    song_list = requests.get(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
-        timeout=5,
-    )
-    return song_list
+    try:
+        song_list = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+            timeout=5,
+        )
+        return song_list
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def add_song_list(panda_id: str, nickname: str, song: str):
     """panda_id의 songList에 노래를 추가한다"""
-    response = requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
-        json={"nickname": nickname, "song": song},
-        timeout=5,
-    )
-    return response
+    try:
+        response = requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+            json={"nickname": nickname, "song": song},
+            timeout=5,
+        )
+        return response
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def delete_song_list(panda_id: str):
     """panda_id의 songList를 삭제한다"""
-    response = requests.delete(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
-        timeout=5,
-    )
-    return response
+    try:
+        response = requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/song-list/{panda_id}",
+            timeout=5,
+        )
+        return response
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def logging_debug(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
-    requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
-        json={"panda_id": panda_id, "description": description, "data": data},
-        timeout=5,
-    )
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/debug",
+            json={"panda_id": panda_id, "description": description, "data": data},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def logging_info(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
-    requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/info",
-        json={"panda_id": panda_id, "description": description, "data": data},
-        timeout=5,
-    )
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/info",
+            json={"panda_id": panda_id, "description": description, "data": data},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
 
 
 async def logging_error(panda_id: str, description: str, data):
     """백엔드 서버에 로그를 남긴다"""
-    requests.post(
-        url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/error",
-        json={"panda_id": panda_id, "description": description, "data": data},
-        timeout=5,
-    )
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/error",
+            json={"panda_id": panda_id, "description": description, "data": data},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
