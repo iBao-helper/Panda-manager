@@ -190,9 +190,6 @@ class PandaManager2:
     #######################
     async def spon_coin_handler(self, message_class):
         """하트 후원 핸들러"""
-        print(message_class)
-        self.user = await get_bj_data("resetaccount2")
-        self.user.hart_message = "{후원인}님 {후원개수}개 감사합니다~"
         chat_message = self.user.hart_message
         # if "rk" in message_class:
         #     if message_class["rk"] != 0:
@@ -207,17 +204,16 @@ class PandaManager2:
             nickname=message_class["nick"],
             hart_count=message_class["coin"],
         )
+        await self.api_client.send_chatting(chat_message)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
         """추천 핸들러"""
-        print(message_class)
-        self.user = await get_bj_data("resetaccount2")
-        self.user.rc_message = "{추천인}님 추천 감사합니다~"
         rc_message = self.user.rc_message
         if "nick" in message_class:
             rc_message = rc_message.replace("{추천인}", message_class["nick"])
         print(rc_message)
+        await self.api_client.send_chatting(rc_message)
 
     # 웹 소켓 연결 함수
     async def connect_webscoket(self):
@@ -326,15 +322,15 @@ class PandaManager2:
     ## 핸들러 관련 함수
     async def chatting_handler(self, chat: ChattingData):
         """사용자 채팅일때의 처리"""
-        # splited = chat.message.split(" ")
-        # print(chat.message, splited)
-        # print(chat.message in self.normal_commands)
-        # if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
-        #     await self.api_commands[splited[0]](chat)
-        # elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
-        #     await self.api_client.send_chatting(self.normal_commands[chat.message])
-        # elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
-        #     await self.reserved_commands[chat.message](chat)
+        splited = chat.message.split(" ")
+        print(chat.message, splited)
+        print(chat.message in self.normal_commands)
+        if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
+            await self.api_commands[splited[0]](chat)
+        elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
+            await self.api_client.send_chatting(self.normal_commands[chat.message])
+        elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
+            await self.reserved_commands[chat.message](chat)
         return
 
     async def system_handler(self, chat: ChattingData):
@@ -361,16 +357,22 @@ class PandaManager2:
             await self.websocket.send(json.dumps(message))
             await asyncio.sleep(60 * 25)
 
+    async def update_commands(self):
+        """커맨드 업데이트"""
+        self.normal_commands = await get_commands(self.panda_id)
+
+    async def update_user(self):
+        """유저 관련 데이터 업데이트"""
+        self.user = await get_bj_data(self.panda_id)
+
     async def start(self):
         """팬더 매니저 시작"""
         self.is_running = True
         # 닉네임이 변경된 게 있다면 업데이트
-        # await self.check_nickname_changed()
+        await self.check_nickname_changed()
         # 명령어 관련 정보 가져옴
-        # self.normal_commands = await get_commands(self.panda_id)
-        # print(self.normal_commands)
-        result = await self.api_client.refresh_token()
-        print(result)
+        await self.update_commands()
+        print(self.normal_commands)
         asyncio.create_task(self.update_room_user_timer())
         asyncio.create_task(self.update_jwt_refresh())
         while self.is_running:
