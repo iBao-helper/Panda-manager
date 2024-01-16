@@ -169,6 +169,7 @@ class PandaManager2:
             return
         response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
         if response is not None:
+            self.user.hart_message = " ".join(splited[1:])
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
@@ -181,6 +182,7 @@ class PandaManager2:
             return
         response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
         if response is not None:
+            self.user.rc_message = " ".join(splited[1:])
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
