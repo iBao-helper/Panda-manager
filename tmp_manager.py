@@ -9,7 +9,13 @@ from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from classes.panda_manager2 import PandaManager2
-from util.my_util import User, logging_debug, logging_error, logging_info
+from util.my_util import (
+    User,
+    logging_debug,
+    logging_error,
+    logging_info,
+    success_connect_websocket,
+)
 from classes import api_client as api
 from threading import Thread
 from classes.dto.CreateManagerDto import CreateManagerDto
@@ -46,6 +52,9 @@ async def start_manager(
         return None
     print(panda_id, "웹소켓 연결 성공")
     panda_managers[panda_id] = manager
+    await success_connect_websocket(
+        panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
+    )
     await manager.start()
     return
 

@@ -34,6 +34,22 @@ class User(BaseModel):
     toggle_doosan: bool
 
 
+async def success_connect_websocket(panda_id: str, proxy_ip: str, resource_ip: str):
+    """웹소켓 연결 성공"""
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/success-proxy-task",
+            json={
+                "ip": proxy_ip,
+                "panda_id": panda_id,
+                "resource_ip": resource_ip,
+            },
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
     try:
         requests.post(
