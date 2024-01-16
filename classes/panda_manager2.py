@@ -341,7 +341,7 @@ class PandaManager2:
                 if self.user.toggle_greet:
                     combined_str = ", ".join(new_users)
                     message = self.user.greet_message.replace(r"{list}", combined_str)
-                    self.api_client.send_chatting(message)
+                    await self.api_client.send_chatting(message)
             if len(idle_users) > 0:
                 await remove_room_user(self.panda_id, idle_users)
             await asyncio.sleep(2)
