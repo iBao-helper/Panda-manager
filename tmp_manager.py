@@ -218,7 +218,10 @@ async def test():
     """테스트"""
     # asyncio.create_task(night_watch.test2())
     len(panda_managers)
-    return {"manager_size": len(panda_managers)}
+    return {
+        "manager_size": len(panda_managers),
+        "data": [value.panda_id for i, value in panda_managers.items()],
+    }
 
 
 @app.exception_handler(Exception)
