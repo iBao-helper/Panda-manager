@@ -34,6 +34,21 @@ class User(BaseModel):
     toggle_doosan: bool
 
 
+async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{bj_name}",
+            json={
+                "nickname": emoji.emojize(nickname),
+                "user_id": emoji.emojize(user_id),
+                "count": hart_count,
+            },
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def delete_normal_command(panda_id: str, key: str):
     """일반 커맨드 삭제"""
     try:
