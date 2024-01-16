@@ -207,6 +207,14 @@ async def update_doosan_toggle(panda_id: str):
     )
 
 
+@app.get("/test")
+async def test():
+    """테스트"""
+    # asyncio.create_task(night_watch.test2())
+    len(panda_managers)
+    return {"manager_size": len(panda_managers)}
+
+
 @app.exception_handler(Exception)
 async def default_exception_filter(request: Request, e: Exception):
     """예상치 못한 에러가 발생했을때 백엔드에 로깅하기 위한 필터"""
