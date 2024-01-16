@@ -4,7 +4,7 @@ from urllib.parse import quote
 import requests
 from classes.bj_info import BjInfo
 
-from util.my_util import logging_debug, logging_error
+from util.my_util import logging_debug, logging_error, logging_info
 
 
 class APIClient:
@@ -235,7 +235,7 @@ class APIClient:
                 {"data": str(e)},
             )
             return None  # pylint: disable=W0719 W0707
-        await logging_debug(self.panda_id, "[play API 결과]", result)
+        await logging_info(self.panda_id, "[play API 결과]", result)
         self.chat_token = result["chatServer"]["token"]
         self.jwt_token = result["token"]
         self.channel = result["media"]["userIdx"]
