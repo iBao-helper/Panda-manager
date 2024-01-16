@@ -9,7 +9,10 @@ class ChattingData:
     """웹소켓 채팅 데이터 클래스"""
 
     def __init__(self, chatting_data):
-        chatting_data = json.loads(chatting_data)
+        try:
+            chatting_data = json.loads(chatting_data)
+        except:  # pylint: disable=W0702
+            print(chatting_data)
         if "client" in chatting_data["result"]:
             self.type = None
         else:
