@@ -5,10 +5,12 @@ import requests
 from classes.bj_info import BjInfo
 
 from util.my_util import (
+    callback_login_failure,
     delete_bj_manager_by_panda_id,
     logging_debug,
     logging_error,
     logging_info,
+    remove_proxy_instance,
 )
 
 
@@ -66,7 +68,10 @@ class APIClient:
         raise Exception(response.json()["message"])  # pylint: disable=W0719
 
     async def login(self, login_id, login_pw, panda_id):
-        """팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함"""
+        """
+        팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함
+        비밀번호가 변경되었을 경우 매니저 해제 요청 + 프록시 제거 요청을 보냄
+        """
         login_url = "https://api.pandalive.co.kr/v1/member/login"
         dummy_header = self.default_header.copy()
         data = f"id={login_id}&pw={login_pw}&idSave=N"
@@ -83,6 +88,7 @@ class APIClient:
             # 매니저의 비밀번호가 변경되었다면 여기서 등록됐던 manager 제거, 이후 None을 보고 Proxy 제거
             if "비밀번호" in str(e):
                 await delete_bj_manager_by_panda_id(panda_id)
+            await callback_login_failure(panda_id)
             return None  # pylint: disable=W0719 W0707
         login_info = result["loginInfo"]
         self.sess_key = login_info["sessKey"]

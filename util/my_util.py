@@ -34,11 +34,14 @@ class User(BaseModel):
     toggle_doosan: bool
 
 
-async def remove_proxy_instance(proxy_ip: str):
-    """생성된 AWS의 proxy_ip를 지닌 인스턴스 제거"""
+async def callback_login_failure(panda_id: str):
+    """
+    로그인 실패 콜백
+    - 생성된 프록시 자원을 해제하고 pending_list에서 제거한다
+    """
     try:
         requests.delete(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/{proxy_ip}",
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/callbacks/failure-login/{panda_id}",
             timeout=5,
         )
     except:  # pylint: disable=W0702

@@ -10,9 +10,9 @@ from classes.panda_manager import PandaManager
 from classes.dto.CreateManagerDto import CreateManagerDto
 from classes.api_client import APIClient
 from util.my_util import (
+    callback_login_failure,
     logging_error,
     logging_info,
-    remove_proxy_instance,
     success_connect_websocket,
 )
 
@@ -45,6 +45,7 @@ async def start_manager(
     )
     result = await manager.connect_webscoket()
     if result is None:
+        await callback_login_failure(panda_id)
         return None
     print(panda_id, "웹소켓 연결 성공")
     panda_managers[panda_id] = manager
@@ -65,7 +66,6 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
         body.manager_id, body.manager_pw, panda_id
     )
     if manager_nick is None:
-        await remove_proxy_instance(body.proxy_ip)
         return
     sess_key, user_idx = await login_api_client.get_login_data()
     asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
