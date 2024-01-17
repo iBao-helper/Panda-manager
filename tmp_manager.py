@@ -67,11 +67,6 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
         body.manager_id, body.manager_pw, panda_id
     )
     if manager_nick is None:
-        await logging_error(
-            panda_id,
-            "매니저 로그인 실패 - 프록시 제거 프로세스 필요",
-            {"body": body, "manager_nick": manager_nick},
-        )
         await remove_proxy_instance(body.proxy_ip)
         return
     sess_key, user_idx = await login_api_client.get_login_data()

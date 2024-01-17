@@ -62,6 +62,7 @@ class APIClient:
             )
         if response.status_code == 200:
             return response.json()
+        await logging_error("API호출 실패", "API 호출 실패", {"response": response.json()})
         raise Exception(response.json()["message"])  # pylint: disable=W0719
 
     async def login(self, login_id, login_pw, panda_id):
