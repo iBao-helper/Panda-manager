@@ -5,7 +5,7 @@ import requests
 import websockets
 from classes import playwright_watch as pws
 from classes.bj_info import BjInfo
-import tmp_panda_manager as tmp
+from classes.panda_manager import PandaManager
 from classes.api_client import APIClient
 from util.my_util import get_bj_data
 
@@ -20,7 +20,7 @@ body = {
     "manager_pw": "Adkflfkd1",
     "resource_ip": "",
 }
-manager: tmp.PandaManager = tmp.PandaManager(body=body)
+# manager: PandaManager = PandaManager(body=body)
 
 login_headers = {
     "authority": "api.pandalive.co.kr",
@@ -60,8 +60,8 @@ async def main():
     # response = await get_bj_data("resetaccount3")
     # print(response.json())
     # api_client.set_login_data(sess_key, user_idx)
-    response = await api_client.login("resetaccount3", "Adkflfkd1")
-    await api_client.play("resetaccount2")
+    response = await api_client.login("resetaccount3", "Adkflfkd1", "resetaccount3")
+    await api_client.play("flzhflzhsl2")
     response = await api_client.get_current_room_user()
     print(response)
     # print(response)

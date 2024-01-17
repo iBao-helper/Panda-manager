@@ -249,12 +249,20 @@ class APIClient:
             )
             return None  # pylint: disable=W0719 W0707
         await logging_info(self.panda_id, "[play API 결과]", result)
-        self.chat_token = result["chatServer"]["token"]
-        self.jwt_token = result["token"]
-        self.channel = result["media"]["userIdx"]
-        self.room_id = result["media"]["code"]
-        self.is_manager = result["fan"]["isManager"]
-        return result
+        try:
+            self.chat_token = result["chatServer"]["token"]
+            self.jwt_token = result["token"]
+            self.channel = result["media"]["userIdx"]
+            self.room_id = result["media"]["code"]
+            self.is_manager = result["fan"]["isManager"]
+            return result
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[play API 결과 파싱 실패]",
+                {"error": str(e), "result": result},
+            )
+            return None
 
     async def get_current_room_user(self):
         """새로 들어온 유저를 반환하는 함수"""
