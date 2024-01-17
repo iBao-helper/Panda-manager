@@ -12,6 +12,7 @@ from util.my_util import (
     logging_debug,
     logging_error,
     logging_info,
+    remove_proxy_instance,
     success_connect_websocket,
 )
 from classes import api_client as api
@@ -60,9 +61,14 @@ async def start_manager(
 async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     await logging_info(
-        panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()
+        panda_id=panda_id, description="[리소스] - 매니저 요청 받음", data=body.model_dump_json()
     )
-    manager_nick = await login_api_client.login(body.manager_id, body.manager_pw)
+    manager_nick = await login_api_client.login(
+        body.manager_id, body.manager_pw, panda_id
+    )
+    if manager_nick is None:
+        await remove_proxy_instance(body.proxy_ip)
+        return
     sess_key, user_idx = await login_api_client.get_login_data()
     asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
     return {"message": f"{panda_id} is started"}
@@ -74,7 +80,7 @@ async def destroy_panda_manager(panda_id: str):
     if panda_id in panda_managers:
         await panda_managers[panda_id].stop()
         del panda_managers[panda_id]
-        # await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
+        await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},

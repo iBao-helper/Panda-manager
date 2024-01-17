@@ -69,10 +69,13 @@ class PandaManager2:
             "SponCoin": self.spon_coin_handler,
             "Recommend": self.recommend_handler,
         }
-        self.reserved_commands = [
-            "!타이머",
-            "!꺼",
-        ]
+        self.reserved_commands = {
+            "!랭킹": self.get_ranking,
+            "!월방송": self.get_month_play_time,
+            "!총방송": self.get_total_play_time,
+            # "!타이머",
+            # "!꺼",
+        }
 
     #####################
     # API 커맨드 함수들
@@ -131,7 +134,9 @@ class PandaManager2:
     async def delete_normal_command(self, chat: ChattingData):
         """일반 커맨드 삭제"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
             return
         response = await delete_normal_command(self.panda_id, splited[1])
@@ -145,7 +150,9 @@ class PandaManager2:
     async def regist_normal_command(self, chat: ChattingData):
         """일반 커맨드 등록"""
         splited = chat.message.split(" ")
-        if len(splited) < 3:
+        if len(splited) < 3 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
             return
         response = await regist_normal_command(
@@ -161,7 +168,9 @@ class PandaManager2:
     async def regist_hart_message(self, chat: ChattingData):
         """!하트 맵핑 핸들러"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
             return
         response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
@@ -174,7 +183,9 @@ class PandaManager2:
     async def regist_recommend_message(self, chat: ChattingData):
         """!추천 맵핑 핸들러"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
             return
         response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
@@ -183,6 +194,21 @@ class PandaManager2:
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
+        """랭킹 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"현재 BJ랭킹: {bj_info.rank}위")
+
+    async def get_month_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """월방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"이번달 방송시간: {bj_info.play_time.month}")
+
+    async def get_total_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """총방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"총 방송시간: {bj_info.play_time.total}")
 
     #######################
     # system handler 함수들
@@ -361,6 +387,25 @@ class PandaManager2:
             await self.websocket.send(json.dumps(message))
             await asyncio.sleep(60 * 25)
 
+    async def pr_handler(self):
+        """PR 핸들러"""
+        await asyncio.sleep(self.user.pr_period)
+        while self.is_running and self.user.toggle_pr:
+            bj_info = await self.api_client.search_bj(self.panda_id)
+            chat_message = (
+                self.user.pr_message.replace("{추천}", str(bj_info.score_like))
+                .replace("{즐찾}", str(bj_info.score_bookmark))
+                .replace("{시청}", str(bj_info.score_watch))
+                .replace("{총점}", str(bj_info.score_total))
+                .replace("{팬}", str(bj_info.fan_cnt))
+                .replace("{랭킹}", str(bj_info.rank))
+                .replace("{월방송}", str(bj_info.play_time.month))
+                .replace("{총방송}", str(bj_info.play_time.total))
+            )
+            print("PR메세지", chat_message)
+            await self.api_client.send_chatting(chat_message)
+            await asyncio.sleep(self.user.pr_period)
+
     async def update_commands(self):
         """커맨드 업데이트"""
         result = await get_commands(self.panda_id)
@@ -381,12 +426,22 @@ class PandaManager2:
         # 명령어 관련 정보 가져옴
         await self.update_commands()
         print(self.normal_commands)
+        if self.user.toggle_pr:
+            asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
         asyncio.create_task(self.update_jwt_refresh())
         while self.is_running:
             try:
                 data = await self.websocket.recv()
-                chat = ChattingData(data)
+                try:
+                    chat = ChattingData(data)
+                except Exception as e:  # pylint: disable=W0718
+                    await logging_error(
+                        panda_id=self.panda_id,
+                        description="웹소켓 read Error",
+                        data=str(e),
+                    )
+                    continue
                 if chat.type is None:
                     continue
                 elif self.is_self_chatting(chat):

@@ -4,7 +4,12 @@ from urllib.parse import quote
 import requests
 from classes.bj_info import BjInfo
 
-from util.my_util import logging_debug, logging_error, logging_info
+from util.my_util import (
+    delete_bj_manager_by_panda_id,
+    logging_debug,
+    logging_error,
+    logging_info,
+)
 
 
 class APIClient:
@@ -57,9 +62,10 @@ class APIClient:
             )
         if response.status_code == 200:
             return response.json()
+        await logging_error("API호출 실패", "API 호출 실패", {"response": response.json()})
         raise Exception(response.json()["message"])  # pylint: disable=W0719
 
-    async def login(self, login_id, login_pw):
+    async def login(self, login_id, login_pw, panda_id):
         """팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함"""
         login_url = "https://api.pandalive.co.kr/v1/member/login"
         dummy_header = self.default_header.copy()
@@ -74,6 +80,9 @@ class APIClient:
                 "[로그인 실패]",
                 {"login_id": login_id, "login_pw": login_pw, "data": str(e)},
             )
+            # 매니저의 비밀번호가 변경되었다면 여기서 등록됐던 manager 제거, 이후 None을 보고 Proxy 제거
+            if "비밀번호" in str(e):
+                await delete_bj_manager_by_panda_id(panda_id)
             return None  # pylint: disable=W0719 W0707
         login_info = result["loginInfo"]
         self.sess_key = login_info["sessKey"]

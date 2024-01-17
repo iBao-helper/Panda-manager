@@ -34,6 +34,28 @@ class User(BaseModel):
     toggle_doosan: bool
 
 
+async def remove_proxy_instance(proxy_ip: str):
+    """생성된 AWS의 proxy_ip를 지닌 인스턴스 제거"""
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/proxy/{proxy_ip}",
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def delete_bj_manager_by_panda_id(panda_id: str):
+    """panda_id의 팬더 매니저 해제"""
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}",
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def success_connect_websocket(panda_id: str, proxy_ip: str, resource_ip: str):
     """웹소켓 연결 성공"""
     try:
@@ -51,6 +73,7 @@ async def success_connect_websocket(panda_id: str, proxy_ip: str, resource_ip: s
 
 
 async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
+    """하트 내역 전송"""
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{bj_name}",
