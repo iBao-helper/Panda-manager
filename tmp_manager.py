@@ -61,7 +61,7 @@ async def start_manager(
 async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     await logging_info(
-        panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()
+        panda_id=panda_id, description="[리소스] - 매니저 요청 받음", data=body.model_dump_json()
     )
     manager_nick = await login_api_client.login(
         body.manager_id, body.manager_pw, panda_id

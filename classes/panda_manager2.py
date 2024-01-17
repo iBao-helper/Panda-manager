@@ -374,6 +374,7 @@ class PandaManager2:
                 .replace("{팬}", bj_info.fan_cnt)
                 .replace("{랭킹}", bj_info.rank)
             )
+            print("PR메세지", chat_message)
             await self.api_client.send_chatting(chat_message)
             await asyncio.sleep(self.user.pr_period)
 
