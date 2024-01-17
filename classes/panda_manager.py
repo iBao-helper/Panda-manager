@@ -466,6 +466,10 @@ class PandaManager:
                     await error_in_chatting_room(self.panda_id)
             except websockets.exceptions.ConnectionClosedOK:
                 break
+            except websockets.exceptions.ConnectionClosedError as e:
+                await logging_error(self.panda_id, "웹소켓 연결이 끊어진 에러", str(e))
+                await error_in_chatting_room(self.panda_id)
+                break
 
     async def stop(self):
         """팬더 매니저 종료"""
