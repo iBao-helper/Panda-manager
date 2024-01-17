@@ -240,36 +240,36 @@ async def default_exception_filter(request: Request, e: Exception):
     )
 
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    PandaManager 가동시 backend에 등록 요청을 시도함
-    이미 있다면 등록되지 않음
-    """
-    try:
-        await logging_debug(
-            "Manager",
-            "PandaManager StartUp Function",
-            {
-                "PUBLIC_IP": PUBLIC_IP,
-                "CAPACITY": CAPACITY,
-                "INSTANCE_ID": INSTANCE_ID,
-                "SERVER_KIND": SERVER_KIND,
-            },
-        )
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
-            json={
-                "ip": PUBLIC_IP,
-                "capacity": int(CAPACITY),
-                "kind": SERVER_KIND,
-                "instance_id": INSTANCE_ID,
-            },
-            timeout=5,
-        )
+# @app.on_event("startup")
+# async def startup_event():
+#     """
+#     PandaManager 가동시 backend에 등록 요청을 시도함
+#     이미 있다면 등록되지 않음
+#     """
+#     try:
+#         await logging_debug(
+#             "Manager",
+#             "PandaManager StartUp Function",
+#             {
+#                 "PUBLIC_IP": PUBLIC_IP,
+#                 "CAPACITY": CAPACITY,
+#                 "INSTANCE_ID": INSTANCE_ID,
+#                 "SERVER_KIND": SERVER_KIND,
+#             },
+#         )
+#         requests.post(
+#             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource",
+#             json={
+#                 "ip": PUBLIC_IP,
+#                 "capacity": int(CAPACITY),
+#                 "kind": SERVER_KIND,
+#                 "instance_id": INSTANCE_ID,
+#             },
+#             timeout=5,
+#         )
 
-    except:  # pylint: disable=W0702
-        print("nightwatch already registered")
+#     except:  # pylint: disable=W0702
+#         print("nightwatch already registered")
 
 
 @app.on_event("shutdown")

@@ -135,7 +135,7 @@ class PandaManager2:
         """일반 커맨드 삭제"""
         splited = chat.message.split(" ")
         if len(splited) < 2 and (
-            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
         ):
             await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
             return
@@ -151,7 +151,7 @@ class PandaManager2:
         """일반 커맨드 등록"""
         splited = chat.message.split(" ")
         if len(splited) < 3 and (
-            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
         ):
             await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
             return
@@ -169,7 +169,7 @@ class PandaManager2:
         """!하트 맵핑 핸들러"""
         splited = chat.message.split(" ")
         if len(splited) < 2 and (
-            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
         ):
             await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
             return
@@ -184,7 +184,7 @@ class PandaManager2:
         """!추천 맵핑 핸들러"""
         splited = chat.message.split(" ")
         if len(splited) < 2 and (
-            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
         ):
             await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
             return
@@ -447,9 +447,9 @@ class PandaManager2:
                     continue
                 if chat.type is None:
                     continue
-                elif self.is_self_chatting(chat):
+                if self.is_self_chatting(chat):
                     continue
-                elif self.is_user_chatting(chat):
+                if self.is_user_chatting(chat):
                     await self.chatting_handler(chat)
                 elif self.is_system_message(chat):
                     await self.system_handler(chat)
