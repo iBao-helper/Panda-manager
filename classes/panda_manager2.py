@@ -367,12 +367,12 @@ class PandaManager2:
         while self.is_running and self.user.toggle_pr:
             bj_info = await self.api_client.search_bj(self.panda_id)
             chat_message = (
-                self.user.pr_message.replace("{추천}", bj_info.score_like)
-                .replace("{즐찾}", bj_info.score_bookmark)
-                .replace("{시청}", bj_info.score_watch)
-                .replace("{총점}", bj_info.score_total)
-                .replace("{팬}", bj_info.fan_cnt)
-                .replace("{랭킹}", bj_info.rank)
+                self.user.pr_message.replace("{추천}", str(bj_info.score_like))
+                .replace("{즐찾}", str(bj_info.score_bookmark))
+                .replace("{시청}", str(bj_info.score_watch))
+                .replace("{총점}", str(bj_info.score_total))
+                .replace("{팬}", str(bj_info.fan_cnt))
+                .replace("{랭킹}", str(bj_info.rank))
             )
             print("PR메세지", chat_message)
             await self.api_client.send_chatting(chat_message)
