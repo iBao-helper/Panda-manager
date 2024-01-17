@@ -434,7 +434,6 @@ class PandaManager:
         await self.check_nickname_changed()
         # 명령어 관련 정보 가져옴
         await self.update_commands()
-        print(self.normal_commands)
         if self.user.toggle_pr:
             asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
