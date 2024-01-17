@@ -1,989 +1,476 @@
-""" this is night wiath.py"""
-import os
+"""팬더 매니저 V2"""
 import asyncio
-from datetime import datetime
-import urllib.request
-import emoji
-import aiohttp
-from playwright.async_api import async_playwright
-from playwright.async_api import Page
-from playwright.async_api import Browser
-from playwright.async_api import ElementHandle
-from playwright.async_api import BrowserContext
-from playwright.async_api import FrameLocator
-from pydantic import BaseModel  # pylint: disable=C0411
-
-import requests
-from dotenv import load_dotenv
-from classes.channel_api_data import ChannelApiData
-from classes.chatting_api_data import ChattingApiData
-from classes.search_live_api_data import SearchLiveBj
-from custom_exception import custom_exceptions as ex
-from stt_v2 import sample_recognize
-import dto.CreateManagerDto as CreateManagerDto
-
-
+import json
+import websockets
+from classes.api_client import APIClient
+from classes.chatting_data import ChattingData
 from util.my_util import (
     User,
-    error_in_chatting_room,
-    get_commands,
-    get_doosan_message,
-    get_doosan_toggle,
-    get_greet_message,
-    get_greet_toggle,
-    get_hart_message,
-    get_hart_toggle,
-    get_pr_message,
-    get_pr_period,
-    get_pr_toggle,
-    get_rc_message,
-    get_rc_toggle,
-    logging_debug,
-    logging_error,
-    get_song_list,
+    add_room_user,
     add_song_list,
+    delete_normal_command,
     delete_song_list,
+    error_in_chatting_room,
+    get_bj_data,
+    get_commands,
+    get_hart_history_with_three,
+    get_hart_history_with_total,
+    get_song_list,
+    logging_error,
+    logging_info,
+    regist_hart_message,
+    regist_normal_command,
+    regist_recommend_message,
+    remove_room_user,
+    send_hart_history,
+    update_bj_nickname,
+    update_manager_nickanme,
 )
 
-load_dotenv()
-
-BACKEND_URL = os.getenv("BACKEND_URL")
-BACKEND_PORT = os.getenv("BACKEND_PORT")
-HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
-SERVER_KIND = os.getenv("SERVER_KIND")
 
 class PandaManager:
-    """PandaWrapper 클래스"""
+    """팬더 매니저를 담당하는 클래스"""
 
-    def __init__(self, body: CreateManagerDto) -> None:
-        self.page: Page
-        self.browser = Browser
-        self.context = BrowserContext
-        self.loop = False
-        self.backend_url = BACKEND_URL
-        self.backend_port = BACKEND_PORT
-        self.user: User
-        self.data = body
-        self.commands = []
-        self.song_list = []
-        self.is_pr_message_sendable = False
-        self.song_message_boolean = False
-        self.error_check_boolean = False
-        self.error_timer_boolean = False
-        self.command_executed = False
-        self.command_list = [
-            "!등록",
-            "!삭제",
-            "!사용법",
-            "!추천",
-            "!하트",
-            "!써칭",
-            "!합계",
-            "!타이머",
-            "!꺼",
-            "!신청",
-            "!리스트",
-            "!신청곡리셋",
-        ]
-        self.timer_message_boolean = False
-        self.timer_complete = False
-        self.time = 0
-        self.channel_api = ChannelApiData()
-        self.chatting_api = ChattingApiData()
-        self.search_live_api_data = SearchLiveBj()
-        self.new_users = {}
-        self.doosan_count = 0
-        self.prev_hart_count = 0
-
-        self.rc_count = 0
-        self.hart_count = 0
-        self.play_count = 0
-        print(f"data = {self.data}")
-
-    async def create_playwright(self, proxy_ip: str):
-        """playwright 객체 생성"""
-        try:
-            apw = await async_playwright().start()
-            if SERVER_KIND == "local":
-                self.browser = await apw.chromium.launch(
-                    headless=HEADLESS,
-                    proxy={"server": f"{proxy_ip}:8888"}
-                    # headless=HEADLESS,
-                )
-            else:
-                self.browser = await apw.chromium.launch(headless=HEADLESS)
-            self.context = await self.browser.new_context(
-                viewport={"width": 1500, "height": 900},  # 원하는 해상도 크기를 지정하세요.
-                locale="ko-KR",
-            )
-            self.page = await self.context.new_page()
-            await self.page.goto("http://pandalive.co.kr")
-            print(await self.page.title())
-        except Exception as e:  # pylint: disable=W0703
-            self.data.proxy_ip = proxy_ip
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_CREATE_ERROR, message=f"[create_playwright] - {str(e)}"
-            ) from e
-        return True
-
-    async def login(self, login_id: str = "xptmxmdyd123", login_pw: str = "Adkflfkd1"):
-        """
-        1. 팝업탭이 있는지 확인하고 팝업탭이 있다면 닫음
-        2. 로그인 과정을 수행
-        3. 로그인 과정을 수행한 뒤 로그인 프로필 이미지가 나타날때까지 대기
-        4. bookmark 페이지로 이동
-        """
-        await self.page.get_by_role("button", name="닫기").click()
-        await logging_debug(
-            self.data.panda_id, "[login] - 닫기", {"debug_message": "닫기 성공"}
-        )
-        await self.page.get_by_role("button", name="로그인 / 회원가입").click()
-        await logging_debug(
-            self.data.panda_id, "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"}
-        )
-        await asyncio.sleep(0.3)
-        await self.page.get_by_role("link", name="로그인 / 회원가입").click()
-        await logging_debug(
-            self.data.panda_id,
-            "[login] - 로그인 / 회원가입 링크 클릭",
-            {"debug_message": "로그인 / 회원가입"},
-        )
-        await asyncio.sleep(0.3)
-        await self.page.get_by_role("link", name="로그인").click()
-        await logging_debug(
-            self.data.panda_id, "[login] - 로그인 링크 클릭", {"debug_message": "로그인"}
-        )
-        await self.page.get_by_role("textbox").nth(1).fill(login_id)
-        await self.page.get_by_role("textbox").nth(2).fill(login_pw)
-        await asyncio.sleep(2)
-        await self.page.get_by_role("button", name="로그인", exact=True).click()
-        await logging_debug(
-            self.data.panda_id, "[login] - 로그인 버튼 클릭", {"debug_message": "로그인"}
-        )
-        await asyncio.sleep(2)
-        invalid_text_id = await self.page.get_by_text("존재하지 않는 사용자입니다.").is_visible()
-        invalid_text_pw = await self.page.get_by_text(
-            "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
-        ).is_visible()
-        await logging_debug(
-            self.data.panda_id,
-            "[invalid-visible check]",
-            {"id": invalid_text_id, "pw": invalid_text_pw},
-        )
-        if invalid_text_id or invalid_text_pw:
-            print("Invalid Id or PW")
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
-                message="아디 비번 틀렸음",
-            )
-        invalid_label_id = await self.page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
-        invalid_label_pw = await self.page.get_by_label(
-            "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
-        ).is_visible()
-        await logging_debug(
-            self.data.panda_id,
-            "[invalid-visible check]",
-            {"id": invalid_text_id, "pw": invalid_text_pw},
-        )
-        if invalid_label_id or invalid_label_pw:
-            print("popup Invalid Id or PW")
-            await self.page.get_by_role("button", name="확인").click()
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_INVALID_ID_OR_PW,
-                panda_id=self.data.panda_id,
-                resource_ip=self.data.resource_ip,
-                message="아뒤 비번 틀렸음(팝업)",
-            )
-        invalid_login_detect = await self.page.get_by_label(
-            "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
-        ).is_visible()
-        auto_detect = await self.page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
-        await logging_debug(
-            self.data.panda_id,
-            "[invalid-login_detect check]",
-            {"invalid_login_detect": invalid_login_detect, "auto_detect": auto_detect},
-        )
-        if invalid_login_detect or auto_detect:
-            print("Invliad login popup")
-            await self.page.get_by_role("button", name="확인").click()
-            await asyncio.sleep(2)
-            click_frame = None
-            show_frame = None
-            frames = self.page.frames
-            for frame in frames:
-                print(frame.name)
-                if "/api2/bframe" in frame.url:
-                    show_frame = self.page.frame_locator(f'iframe[name="{frame.name}"]')
-                if "/api2/anchor" in frame.url:
-                    click_frame = self.page.frame_locator(
-                        f'iframe[name="{frame.name}"]'
-                    )
-            await click_frame.get_by_label("로봇이 아닙니다.").click()
-            await logging_debug(
-                self.data.panda_id, "[로봇이 아닙니다]", {"debug_message": "로봇이 아닙니다."}
-            )
-            await asyncio.sleep(1)
-            # 리캡챠 떳는지 확인
-            await self.check_popup_recaptcha_failed(show_frame)
-            await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
-            await logging_debug(
-                self.data.panda_id, "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
-            )
-            await asyncio.sleep(1)
-            # 보안문자 떳는지 확인
-            await self.check_popup_recaptcha_failed(show_frame)
-            test = await show_frame.get_by_role(
-                "link", name="또는 오디오를 MP3로 다운로드하세요."
-            ).get_attribute("href")
-            await logging_debug(
-                self.data.panda_id, "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": test}
-            )
-            await asyncio.sleep(1)
-            urllib.request.urlretrieve(test, "stt/audio.mp3")
-            response = sample_recognize("stt/audio.mp3")
-            if response:
-                print(response)
-                await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
-                await show_frame.get_by_role("button", name="확인").click()
-                await logging_debug(
-                    self.data.panda_id,
-                    "[들리는대로 입력하세요 확인]",
-                    {"debug_message": "들리는대로 입력하세요 확인"},
-                )
-                # 보안 문자 떳는지 확인
-                await asyncio.sleep(1)
-                await self.check_popup_recaptcha_failed(show_frame)
-                await self.page.get_by_role("button", name="로그인", exact=True).click()
-                await logging_debug(
-                    self.data.panda_id, "마지막 로그인", {"debug_message": "마지막 로그인"}
-                )
-                await asyncio.sleep(1)
-                await self.check_popup_recaptcha_failed(show_frame)
-                check_password = await self.page.query_selector(
-                    "xpath=/html/body/div/div/div/div[2]/div/div/div/div[2]/span[2]/input"
-                )
-                if check_password:
-                    await check_password.click()
-                await self.page.wait_for_selector("div.profile_img")
-            else:
-                print("stt 실패")
-                raise ex.PlayWrightException(
-                    ex.PWEEnum.PD_LOGIN_STT_FAILED,
-                    panda_id=self.data.panda_id,
-                    resource_ip=self.data.resource_ip,
-                    message="stt에 실패함",
-                )
-        else:
-            print("로그인 성공")
-            return True
-
-    async def goto_url(self, url: str):
-        """url 이동"""
-        await self.page.goto(url)
-        err_404 = await self.page.query_selector("div.err404")
-        if err_404 is not None:
-            await logging_error(self.data.panda_id, "404에러", {"debug_message": "404에러"})
-            await self.refresh()
-            await asyncio.sleep(3)
-            await self.goto_url(url)
-
-    async def refresh(self):
-        """refresh"""
-        await self.page.reload()
-
-    async def remove_elements(self):
-        """remove other elements"""
-        try:
-            target = self.page.locator("#header")
-            await target.evaluate("(element) => element.remove()")
-            target = self.page.locator("#sideArea")
-            await target.evaluate("(element) => element.remove()")
-            target = self.page.locator(".live_left_area")
-            await target.evaluate("(element) => element.remove()")
-        except:  # pylint: disable=W0702
-            await self.send_screenshot()
-            await logging_error(
-                self.data.panda_id,
-                "불필요한 element 제거에 실패. 하얀화면일것임",
-                {"panda_id": self.data.panda_id},
-            )
-            await self.destroy()
-            await error_in_chatting_room(self.data.panda_id)
-
-    async def chat_command_register_delete(self, splited_chat: list):
-        """채팅 매크로 등록/삭제 처리"""
-        try:
-            if splited_chat[0] == "!등록":
-                if len(splited_chat) >= 3:
-                    response = requests.post(
-                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}",
-                        json={
-                            "key": splited_chat[1],
-                            "value": splited_chat[2],
-                        },
-                        timeout=5,
-                    )
-                    self.commands = await get_commands(self.user.panda_id)
-                    await self.chatting_send("등록되었습니다")
-                    return True
-                else:
-                    await self.chatting_send("유효한 형태가 아닙니다/\n[!등록] [키워드] [응답]")
-                    return True
-            elif splited_chat[0] == "!삭제":
-                if len(splited_chat) >= 2:
-                    response = requests.delete(
-                        url=f"http://{self.backend_url}:{self.backend_port}/bj/command/{self.user.panda_id}/{splited_chat[1]}",
-                        timeout=5,
-                    )
-                    print(response.text)
-                    response = response.text
-                    self.commands = await get_commands(self.user.panda_id)
-                    await self.chatting_send(response)
-                    return True
-                else:
-                    await self.chatting_send("유효한 포멧이 아닙니다/\n[!삭제] [키워드]")
-                    return True
-        except Exception as e:  # pylint: disable=W0718
-            print(e)
-            return False
-
-    async def handle_command(
+    def __init__(
         self,
-        chat_user: str,
-        chat: str,
-        splited_chat: list,
-        data: CreateManagerDto,
-        chat_l: ElementHandle,
+        panda_id: str,
+        sess_key: str,
+        user_idx: str,
+        proxy_ip: str,
+        manager_nick: str,
     ):
-        """명령어를 처리하기 위한 로직"""
-        try:
-            if splited_chat[0] == "!사용법":
-                await self.chatting_send(
-                    "사용법은 아래와 같습니다.\n!등록 [키워드] [응답]\n!삭제 [키워드]\n!추천 [메세지]\n!하트 [메세지]\n!써칭 [닉네임]\n!합계 [닉네임]\n!신청 [노래제목]\n!리스트\n!신청곡리셋\n!타이머 [시간] [알림간격]\n!꺼"
-                )
-            elif (splited_chat[0] == "!등록" or splited_chat[0] == "!삭제") and (
-                chat_user == data.nickname or chat_user == "크기가전부는아니자나연"
-            ):
-                response = await self.chat_command_register_delete(splited_chat)
-                return response
-            elif splited_chat[0] == "!추천" or splited_chat[0] == "!하트":
-                if splited_chat[0] == "!추천":
-                    recommand_message = " ".join(splited_chat[1:])
-                    response = await self.regist_recommand_message(recommand_message)
-                elif splited_chat[0] == "!하트":
-                    recommand_message = " ".join(splited_chat[1:])
-                    response = await self.regist_hart_message(recommand_message)
-            elif splited_chat[0] == "!써칭" or splited_chat[0] == "!합계":
-                response = await self.get_hart_history(splited_chat[0], splited_chat[1])
-            elif splited_chat[0] == "!타이머":
-                if len(splited_chat) == 3:
-                    asyncio.create_task(
-                        self.set_timer(int(splited_chat[1]), int(splited_chat[2]))
-                    )
-                elif len(splited_chat) == 2:
-                    asyncio.create_task(self.set_timer(int(splited_chat[1])))
+        self.api_client = APIClient(panda_id=panda_id, proxy_ip=proxy_ip)
+        self.api_client.set_login_data(sess_key, user_idx)
+        self.panda_id = panda_id
+        self.manager_nick = manager_nick
+        self.is_running = False
+        self.websocket = None
+        self.websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
+        self.user: User = None
 
-            elif splited_chat[0] == "!꺼":
-                # 비동기 호출
-                await self.stop_timer()
-            elif splited_chat[0] == "!신청":
-                await self.regist_song(" ".join(splited_chat[1:]), chat_user)
-            elif splited_chat[0] == "!리스트":
-                await self.send_song_list()
-            elif splited_chat[0] == "!신청곡리셋":
-                await self.reset_song_list()
-            return True
+        # 현재 방 유저 갱신하기 위한 변수들
+        self.user_list = []
+        self.prev_user_list = []
+        ###
 
-        except:  # pylint: disable=W0702
-            return False
+        self.normal_commands = []
+        self.api_commands = {
+            "!등록": self.regist_normal_command,
+            "!삭제": self.delete_normal_command,
+            "!추천": self.regist_recommend_message,
+            "!하트": self.regist_hart_message,
+            "!써칭": self.hart_search_by_three,
+            "!합계": self.hart_search_by_total,
+            "!신청": self.add_song_list,
+            "!리스트": self.send_song_list,
+            "!신청곡리셋": self.reset_song_list,
+        }
+        self.system_commands = {
+            "SponCoin": self.spon_coin_handler,
+            "Recommend": self.recommend_handler,
+        }
+        self.reserved_commands = {
+            "!랭킹": self.get_ranking,
+            "!월방송": self.get_month_play_time,
+            "!총방송": self.get_total_play_time,
+            # "!타이머",
+            # "!꺼",
+        }
 
-    def check_command(self, chat, user: bool):
-        """
-        채팅이 채팅메크로에 일치하는지 검사
-        이전 명령어를 실행하여 flag가 True라면 채팅매크로를 실행하지 않음
-        """
-        # 위에서 커맨드를 실행했거나 매니저가 친 채팅이라면
-        if user == self.user.manager_nick:
-            return None
-        for command in self.commands:
-            if command["keyword"] == chat:
-                return command["response"]
-        return None
-
-    async def chatting_handler(self):
-        """채팅 핸들러"""
-        try:
-            chat_l_elements = await self.page.query_selector_all(".cht_l")
-            for chat_l in chat_l_elements:
-                userinner = await chat_l.query_selector(".nickname")
-                chatinner = await chat_l.query_selector(".message")
-                # 임시땜빵용 특정 큰손들같은 경우 셀렉터가 다름
-                if userinner is None:
-                    continue
-                user = await userinner.inner_text()
-                user = user.replace(":", "").strip()
-                chat = await chatinner.inner_text()
-                chat = chat.strip()
-                chat = emoji.demojize(chat)
-                chat_split = chat.split(" ", 2)
-                # 명령어 리스트중에 있는지 검사하고
-                if chat_split:
-                    if chat_split[0] in self.command_list:
-                        # 명령어가 있다면 명령어를 처리
-                        self.command_executed = await self.handle_command(
-                            user, chat, chat_split, self.user, chat_l
-                        )
-                        # 이후 진행을 할지 안할지 command_executed로 세팅
-                        if self.command_executed is True:
-                            await chat_l.evaluate("(element) => element.remove()")
-                            continue
-                    command_response = self.check_command(chat, user)
-                    if command_response is not None:
-                        self.command_executed = True
-                        await self.chatting_send(command_response)
-                    await chat_l.evaluate("(element) => element.remove()")
-        except Exception as e:  # pylint: disable=W0718
-            print("chatting handler")
-            print(e)
-
-    async def hart_handler(self):
-        """하트 핸들러"""
-        try:
-            hart_elements = await self.page.query_selector_all(".cht_hart_new")
-            for hart_box in hart_elements:
-                hart_info = await hart_box.query_selector(".hart_info")
-                hart_user_tag = await hart_info.query_selector("p")
-                hart_user = (await hart_user_tag.inner_text()).strip().replace("님이", "")
-                hart_count_tag = await hart_info.query_selector("b")
-                hart_count = (
-                    (await hart_count_tag.inner_text()).strip().replace("개", "")
-                )
-                message = self.user.hart_message
-                if hart_count == str(self.prev_hart_count + 1):
-                    self.doosan_count += 1
-                    if self.doosan_count > 2 and self.user.toggle_doosan:
-                        message = self.user.doosan_message
-                else:
-                    self.doosan_count = 0
-                self.prev_hart_count = int(hart_count)
-                await hart_box.evaluate("(element) => element.remove()")
-                print(
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"), hart_user, hart_count
-                )
-                if self.user.hart_message != "":
-                    response_recommand_message = message.replace(
-                        r"{hart_user}", hart_user
-                    ).replace(r"{hart_count}", hart_count)
-                    await self.chatting_send(response_recommand_message)
-                requests.post(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{self.user.nickname}",
-                    json={
-                        "user_name": emoji.emojize(hart_user),
-                        "count": hart_count,
-                    },
-                    timeout=5,
-                )
-        except Exception as e:  # pylint: disable=W0718
-            print("hart handler")
-            print(e)
-
-    async def recommand_handler(self):
-        """추천 핸들러"""
-        try:
-            recommand_elements = await self.page.query_selector_all(".cht_al.cht_al_1")
-            for recommand_element in recommand_elements:
-                recommand_message = await recommand_element.inner_text()
-                if "매니저" in recommand_message:
-                    continue
-                if "채팅금지" in recommand_message:
-                    continue
-                user_name = recommand_message.split(" ")[0].replace("님께서", "")
-                await recommand_element.evaluate("(element) => element.remove()")
-                if self.user.rc_message != "":
-                    response_recommand_message = self.user.rc_message.replace(
-                        r"{user_name}", user_name
-                    )
-                    await self.chatting_send(response_recommand_message)
-        except Exception as e:  # pylint: disable=W0718
-            print("recommand handler")
-            print(e)
-
-    async def new_user_handler(self):
-        """새로운 유저 핸들러"""
-        if len(self.new_users) > 0:
-            combined_str = ", ".join(self.new_users)
-            self.new_users = {}
-            message = self.user.greet_message.replace(r"{list}", combined_str)
-            await self.chatting_send(message)
-
-    async def macro(self):
-        """테스트용"""
-        self.loop = True
-        self.commands = await get_commands(self.user.panda_id)
-        asyncio.create_task(self.set_error_check_timer())
-        asyncio.create_task(self.pr_timer())
-        print("[Receive default commands]", self.commands)
-        while self.loop:
-            self.command_executed = False
-            try:
-                if self.error_check_boolean:
-                    await self.error_detect_handler()
-                await self.chatting_handler()
-                if self.user.toggle_hart:
-                    await self.hart_handler()
-                if self.user.toggle_rc:
-                    await self.recommand_handler()
-                if self.user.toggle_pr:
-                    await self.pr_handler()
-                if self.user.toggle_greet:
-                    await self.new_user_handler()
-                await self.timer_handler()
-
-                await asyncio.sleep(0.1)
-            except Exception as e:  # pylint: disable=W0718
-                print(e)
-        return "haha"
-
-    #######  manager 관련 유틸 함수들 #######
-    async def check_popup_recaptcha_failed(self, show_frame: FrameLocator):
-        """popup recaptcha failed"""
-        retry_detect = await show_frame.get_by_text("나중에 다시 시도해 주세요").is_visible()
-        print("retry_detect", retry_detect)
-        if retry_detect:
-            print("잦은 재시도 탐지에 걸림")
-            await logging_error(
-                self.data.panda_id, "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"}
-            )
-            raise ex.PlayWrightException(
-                ex.PWEEnum.PD_LOGIN_STT_FAILED,
-                panda_id=self.data.panda_id,
-                message="잦은 재시도 탐지에 걸림",
-            )
-
-    async def find_element(self, selector: str, is_pass: bool):
-        """
-        특정 요소를 셀렉터로 찾습니다. is_pass가 true라면 존재하지 않아도 통과합니다.
-        없다면 에러를 발생시킵니다.
-        """
-
-    async def regist_recommand_message(self, rc_message):
-        """Request update recommand message"""
-        try:
-            response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/recommand-message/{self.user.panda_id}",
-                json={"message": rc_message},
-                timeout=5,
-            )
-            self.user.rc_message = response.text
-            await self.chatting_send("추천 메세지가 등록되었습니다")
-            return True
-        except:  # pylint: disable=W0702
-            return False
-
-    async def regist_hart_message(self, rc_message):
-        """Request update hart message"""
-        try:
-            response = requests.post(
-                url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-message/{self.user.panda_id}",
-                json={"message": rc_message},
-                timeout=5,
-            )
-            self.user.hart_message = response.text
-            await self.chatting_send("하트 메세지가 등록되었습니다")
-            return True
-        except:  # pylint: disable=W0702
-            return False
-
-    async def get_hart_history(self, command, user):
-        """하드 내역 조회"""
-        try:
-            if command == "!써칭":
-                response = requests.get(
-                    f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=search",
-                    timeout=5,
-                )
-                json_data = response.json()
-                print("써칭 리스폰스", json_data)
-                message = ""
-                if len(json_data) > 0:
-                    for data in json_data:
-                        message = (
-                            message
-                            + f"[{data['user_name']}] -> [{data['bj_name']}] ♥{data['count']}개\n"
-                        )
-                    await self.chatting_send(message)
-                else:
-                    await self.chatting_send(
-                        f"{user}님의 하트 내역이 없습니다. 하트 내역은 매니저봇이 있는 방에서만 집계됩니다."
-                    )
-                return True
-            elif command == "!합계":
-                response = requests.get(
-                    url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/{emoji.emojize(user)}?mode=sum",
-                    timeout=5,
-                )
-                print(response)
-                message = f"{user} : {response.text}개"
-                await self.chatting_send(message)
-                return True
-        except:  # pylint: disable=W0702
-            return False  # pylint: disable=W0702
-
-    async def timer_handler(self):
-        """타이머 핸들러. 타이머메세지를 출력해야한다면 출력"""
-        if self.timer_message_boolean and self.time > 0:
-            time_min = self.time // 60
-            time_sec = self.time % 60
-            await self.chatting_send(f"{time_min}분 {time_sec}초 남았습니다")
-            self.timer_message_boolean = False
-        if self.timer_complete:
-            self.timer_complete = False
-            self.time = 0
-            await self.chatting_send("타이머가 완료되었습니다")
-
-    async def set_error_check_timer(self):
-        """에러가 발생했는지 체크하는 타이머"""
-        self.error_timer_boolean = True
-        while self.error_timer_boolean:
-            self.error_check_boolean = True
-            await asyncio.sleep(5)
-
-    async def set_timer(self, time: int, time_period: int = 60):
-        """타이머 설정"""
-        if self.time > 0:
-            return
-        self.time = time
-        time_min = self.time // 60
-        time_sec = self.time % 60
-        await self.chatting_send(
-            f"{time_min}분 {time_sec}초 / {time_period}초 간격으로 알람이 설정되었습니다"
-        )
-        count = 0
-        while self.time >= 1:
-            count += 1
-            self.time = self.time - 1
-            if count == time_period:
-                self.timer_message_boolean = True
-                count = 0
-            if self.time <= 5:
-                self.timer_message_boolean = True
-            print(self.time)
-            await asyncio.sleep(1)
-        self.timer_complete = True
-        self.timer_message_boolean = True
-
-    async def stop_timer(self):
-        """타이머 정지"""
-        self.time = 0
-
-    async def stop(self):
-        """awef"""
-        self.loop = False
-
-    async def destroy(self):
-        """free memory"""
-        self.loop = False
-        self.time = 0
-        self.error_timer_boolean = False
-        await self.browser.close()
-
-    def set_user(self, user):
-        """사용된 user data 세팅"""
-        self.user = user
-
-    async def regist_song(self, song, nickname):
-        """신청곡 추가"""
-        response = await add_song_list(self.user.panda_id, nickname, song)
+    #####################
+    # API 커맨드 함수들
+    #####################
+    async def reset_song_list(self, chat: ChattingData):  # pylint: disable=W0613
+        """신청곡 초기화"""
+        response = await delete_song_list(self.panda_id)
         if response.status_code == 200 or response.status_code == 201:
-            await self.chatting_send(f"'{song}' 신청되었습니다.")
-            self.song_message_boolean = True
+            await self.api_client.send_chatting("신청곡 리스트가 초기화 되었습니다")
         else:
-            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def send_song_list(self):
+    async def send_song_list(self, chat: ChattingData):  # pylint: disable=W0613
         """신청곡 리스트 보내기"""
         message = "신청곡 리스트\n"
-        song_list = await get_song_list(self.user.panda_id)
+        song_list = await get_song_list(self.panda_id)
         if song_list.status_code == 200 or song_list.status_code == 201:
             song_list = song_list.json()
             print(song_list)
             for song in song_list:
                 message += f"{song}\n"
-            await self.chatting_send(message)
+            await self.api_client.send_chatting(message)
         else:
-            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
-    async def reset_song_list(self):
-        """신청곡 초기화"""
-        response = await delete_song_list(self.user.panda_id)
+    async def add_song_list(self, chat: ChattingData):
+        """신청곡 추가"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!신청 [곡명]")
+            return
+        response = await add_song_list(
+            self.panda_id, chat.nickname, " ".join(splited[1:])
+        )
         if response.status_code == 200 or response.status_code == 201:
-            await self.chatting_send("신청곡 리스트가 초기화 되었습니다")
+            await self.api_client.send_chatting(f"{' '.join(splited[1:])}' 신청되었습니다.")
         else:
-            await self.chatting_send("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+
+    async def hart_search_by_total(self, chat: ChattingData):
+        """하트내역 모두 조회"""
+        response = await get_hart_history_with_total(chat.nickname)
+        if response is not None:
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("하트내역 조회에 실패했습니다")
+
+    async def hart_search_by_three(self, chat: ChattingData):
+        """최근 하트내역 3개 조회"""
+        response = await get_hart_history_with_three(chat.nickname)
+        if response is not None:
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("하트내역 조회에 실패했습니다")
+
+    async def delete_normal_command(self, chat: ChattingData):
+        """일반 커맨드 삭제"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
+            return
+        response = await delete_normal_command(self.panda_id, splited[1])
+        if response is not None:
+            if splited[1] in self.normal_commands:
+                del self.normal_commands[splited[1]]
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("삭제에 실패했습니다")
+
+    async def regist_normal_command(self, chat: ChattingData):
+        """일반 커맨드 등록"""
+        splited = chat.message.split(" ")
+        if len(splited) < 3 and (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
+            return
+        response = await regist_normal_command(
+            self.panda_id, splited[1], " ".join(splited[2:])
+        )
+        if response is not None:
+            if response != "이미 등록된 커맨드입니다":
+                self.normal_commands[splited[1]] = " ".join(splited[2:])
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def regist_hart_message(self, chat: ChattingData):
+        """!하트 맵핑 핸들러"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
+            return
+        response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
+        if response is not None:
+            self.user.hart_message = " ".join(splited[1:])
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def regist_recommend_message(self, chat: ChattingData):
+        """!추천 맵핑 핸들러"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
+            return
+        response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
+        if response is not None:
+            self.user.rc_message = " ".join(splited[1:])
+            await self.api_client.send_chatting(response)
+        else:
+            await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
+        """랭킹 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"현재 BJ랭킹: {bj_info.rank}위")
+
+    async def get_month_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """월방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"이번달 방송시간: {bj_info.play_time.month}")
+
+    async def get_total_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """총방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"총 방송시간: {bj_info.play_time.total}")
+
+    #######################
+    # system handler 함수들
+    #######################
+    async def spon_coin_handler(self, message_class):
+        """하트 후원 핸들러"""
+        if self.user.toggle_hart is False:
+            return
+        chat_message = self.user.hart_message
+        # if "rk" in message_class:
+        #     if message_class["rk"] != 0:
+        #         chat_message = f"팬 랭킹{message_class['rk']}위!\n" + chat_message
+        if "nick" in message_class:
+            chat_message = chat_message.replace("{후원인}", message_class["nick"])
+        if "coin" in message_class:
+            chat_message = chat_message.replace("{후원개수}", str(message_class["coin"]))
+        await send_hart_history(
+            bj_name=self.user.nickname,
+            user_id=message_class["id"],
+            nickname=message_class["nick"],
+            hart_count=message_class["coin"],
+        )
+        await self.api_client.send_chatting(chat_message)
+        print(chat_message)
+
+    async def recommend_handler(self, message_class):
+        """추천 핸들러"""
+        if self.user.toggle_rc is False:
+            return
+        rc_message = self.user.rc_message
+        if "nick" in message_class:
+            rc_message = rc_message.replace("{추천인}", message_class["nick"])
+        print(rc_message)
+        await self.api_client.send_chatting(rc_message)
+
+    # 웹 소켓 연결 함수
+    async def connect_webscoket(self):
+        """웹소켓에 연결을 시도함"""
+        await logging_info(self.panda_id, "웹소켓 연결 작업 시작", {})
+        result = await self.api_client.play(self.panda_id)
+        if result is None:
+            return None
+        message = {
+            "id": 1,
+            "params": {
+                "name": "js",
+                "token": self.api_client.jwt_token,  # 실제 토큰 값
+            },
+        }
+        extra_headers = {
+            "authority": "api.pandalive.co.kr",
+            "method": "POST",
+            "path": "/v1/member/login",
+            "scheme": "https",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, deflate, br",
+            "accept-language": "ko",
+            "content-length": "37",
+            "content-type": "application/x-www-form-urlencoded",
+            "origin": "https://www.pandalive.co.kr",
+            "referer": "https://www.pandalive.co.kr/",
+            "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "X-Device-Info": '{"t":"webPc","v":"1.0","ui":0}',
+        }
+        self.websocket = await websockets.connect(
+            uri=self.websocket_url, extra_headers=extra_headers
+        )
+        if self.websocket:
+            print("websocket = ", self.websocket)
+            await logging_info(self.panda_id, "웹소켓 연결 성공", {})
+            await self.websocket.send(json.dumps(message))
+            response = await self.websocket.recv()
+            print(f"서버로부터 메시지 수신: {response}")
+            message = {
+                "id": 2,
+                "method": 1,
+                "params": {"channel": str(self.api_client.channel)},
+            }
+            await self.websocket.send(json.dumps(message))
+            response = await self.websocket.recv()
+            print(f"서버로부터 메시지 수신: {response}")
+        return self.websocket
+
+    # user정보 업데이트 및 닉네임 체크해서 갱신해주는 함수
+    async def check_nickname_changed(self):
+        """닉네임 변경시 반영하기 위한 로직"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        self.user: User = await get_bj_data(panda_id=self.panda_id)
+        if bj_info.nick != self.user.nickname:
+            await update_bj_nickname(self.panda_id, bj_info.nick)
+        if self.manager_nick != self.user.manager_nick:
+            await update_manager_nickanme(self.panda_id, self.manager_nick)
+
+    async def update_room_list(self):
+        """방에 있는 유저를 갱신시키는 함수"""
+        room_user_list = await self.api_client.get_current_room_user()
+        if room_user_list is None:
+            return [], []
+        self.prev_user_list = self.user_list
+        self.user_list = {
+            user["nick"] for user in room_user_list if user["nick"] != "게스트"
+        }
+        # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
+        new_users = {user for user in self.user_list if user not in self.prev_user_list}
+        idle_users = {
+            user for user in self.prev_user_list if user not in self.user_list
+        }
+        return new_users, idle_users
+
+    ###############
+    # 조건 리턴 함수
+    ###############
+    def is_self_chatting(self, chat: ChattingData):
+        """매니저봇의 채팅인지 확인"""
+        return chat.nickname == self.manager_nick
+
+    def is_user_chatting(self, chat: ChattingData):
+        """채팅인지 확인"""
+        if chat.type == "bj" or chat.type == "chatter" or chat.type == "manager":
+            return True
+        return False
+
+    def is_system_message(self, chat: ChattingData):
+        """하트,추천,정보갱신 인지 확인"""
+        if chat.type == "SponCoin" or chat.type == "Recommend":
+            return True
+        return False
+
+    ## 핸들러 관련 함수
+    async def chatting_handler(self, chat: ChattingData):
+        """사용자 채팅일때의 처리"""
+        splited = chat.message.split(" ")
+        if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
+            await self.api_commands[splited[0]](chat)
+        elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
+            await self.api_client.send_chatting(self.normal_commands[chat.message])
+        elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
+            await self.reserved_commands[chat.message](chat)
+        return
+
+    async def system_handler(self, chat: ChattingData):
+        """추천,하트,정보갱신 등의 처리"""
+        chat_message_class = json.loads(chat.message)
+        await self.system_commands[chat.type](chat_message_class)
+
+    async def update_room_user_timer(self):
+        """방 유저 갱신 타이머"""
+        while self.is_running:
+            new_users, idle_users = await self.update_room_list()
+            if len(new_users) > 0:
+                await add_room_user(self.panda_id, new_users)
+                if self.user.toggle_greet:
+                    combined_str = ", ".join(new_users)
+                    message = self.user.greet_message.replace(r"{list}", combined_str)
+                    await self.api_client.send_chatting(message)
+            if len(idle_users) > 0:
+                await remove_room_user(self.panda_id, idle_users)
+            await asyncio.sleep(2)
+
+    async def update_jwt_refresh(self):
+        """JWT 토큰 갱신"""
+        await asyncio.sleep(60 * 25)
+        while self.is_running:
+            await self.api_client.refresh_token()
+            message = {
+                "id": 68,
+                "method": 10,
+                "params": {"token": self.api_client.jwt_token},
+            }
+            await self.websocket.send(json.dumps(message))
+            await asyncio.sleep(60 * 25)
 
     async def pr_handler(self):
-        """일정 주기마다 안내메시지 발송하는 핸들러"""
-        if self.is_pr_message_sendable:
-            response = None
-            try:
-                response = await self.search_live_api_data.search_live_bj(
-                    self.user.nickname
-                )
-            except Exception as e:
-                print(e)
-            if response is not None:
-                message = (
-                    self.user.pr_message.replace("{추천}", str(response["likeCnt"]))
-                    .replace("{즐찾}", str(response["bookmarkCnt"]))
-                    .replace("{재생}", str(response["playCnt"]))
-                    .replace("{총점}", str(response["totalScoreCnt"]))
-                )
-            else:
-                message = self.user.pr_message
-            await self.chatting_send(emoji.emojize(message))
-            self.is_pr_message_sendable = False
+        """PR 핸들러"""
+        await asyncio.sleep(self.user.pr_period)
+        while self.is_running and self.user.toggle_pr:
+            bj_info = await self.api_client.search_bj(self.panda_id)
+            chat_message = (
+                self.user.pr_message.replace("{추천}", str(bj_info.score_like))
+                .replace("{즐찾}", str(bj_info.score_bookmark))
+                .replace("{시청}", str(bj_info.score_watch))
+                .replace("{총점}", str(bj_info.score_total))
+                .replace("{팬}", str(bj_info.fan_cnt))
+                .replace("{랭킹}", str(bj_info.rank))
+                .replace("{월방송}", str(bj_info.play_time.month))
+                .replace("{총방송}", str(bj_info.play_time.total))
+            )
+            print("PR메세지", chat_message)
+            await self.api_client.send_chatting(chat_message)
+            await asyncio.sleep(self.user.pr_period)
 
     async def update_commands(self):
         """커맨드 업데이트"""
-        if self.user:
-            self.commands = await get_commands(self.user.panda_id)
+        result = await get_commands(self.panda_id)
+        if result is not None:
+            self.normal_commands = result
 
-    async def update_recommend(self):
-        """커맨드 업데이트"""
-        if self.user:
-            response = await get_rc_message(self.user.panda_id)
-            self.user.rc_message = response.text
-            print(self.user.rc_message)
+    async def update_user(self):
+        """유저 관련 데이터 업데이트"""
+        result = await get_bj_data(self.panda_id)
+        if result is not None:
+            self.user = result
 
-    async def update_hart_message(self):
-        """커맨드 업데이트"""
-        if self.user:
-            response = await get_hart_message(self.user.panda_id)
-            self.user.hart_message = response.text
-            print(self.user.hart_message)
-
-    async def update_greet_message(self):
-        """커맨드 업데이트"""
-        if self.user:
-            response = await get_greet_message(self.user.panda_id)
-            self.user.greet_message = response.text
-            print(self.user.hart_message)
-
-    async def update_doosan_message(self):
-        """커맨드 업데이트"""
-        if self.user:
-            response = await get_doosan_message(self.user.panda_id)
-            self.user.doosan_message = response.text
-            print(self.user.doosan_message)
-
-    async def update_pr(self):
-        """PR 업데이트"""
-        if self.user:
-            pr_message = await get_pr_message(self.user.panda_id)
-            self.user.pr_message = pr_message.text
-            print(self.user.pr_message)
-
-            pr_period = await get_pr_period(self.user.panda_id)
-            self.user.pr_period = int(pr_period.text)
-            print(self.user.pr_period)
-
-    async def toggle_rc(self):
-        """RC 토글 업데이트"""
-        if self.user:
-            response = await get_rc_toggle(self.user.panda_id)
-            self.user.toggle_rc = response.json()
-            print(self.user.toggle_rc)
-
-    async def toggle_hart(self):
-        """Hart 토글 업데이트"""
-        if self.user:
-            response = await get_hart_toggle(self.user.panda_id)
-            self.user.toggle_hart = response.json()
-            print(self.user.toggle_hart)
-
-    async def toggle_pr(self):
-        """PR 토글 업데이트"""
-        if self.user:
-            response = await get_pr_toggle(self.user.panda_id)
-            self.user.toggle_pr = response.json()
-            print(self.user.toggle_pr)
-
-    async def toggle_greet(self):
-        """Greet 토글 업데이트"""
-        if self.user:
-            response = await get_greet_toggle(self.user.panda_id)
-            self.user.toggle_greet = response.json()
-            print(self.user.toggle_greet)
-
-    async def toggle_doosan(self):
-        """Doosan 토글 업데이트"""
-        if self.user:
-            response = await get_doosan_toggle(self.user.panda_id)
-            self.user.toggle_greet = response.json()
-            print(self.user.toggle_greet)
-
-    async def pr_timer(self):
-        """신청곡 타이머"""
-        while True:
-            time = self.user.pr_period
-            while time > 0:
-                time -= 1
-                await asyncio.sleep(1)
-            self.is_pr_message_sendable = True
-
-    async def send_screenshot(self):
-        """백엔드서버에 스크린샷 보냄"""
-        await self.page.screenshot(path=self.data.panda_id + ".png")
-        files = {
-            "file": (
-                self.data.panda_id + ".png",
-                open(self.data.panda_id + ".png", "rb"),
-                "image/png",
-            )
-        }
-        requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/log/upload",
-            files=files,
-            timeout=20,
-        )
-
-    async def chatting_send(self, message):
-        """채팅 전송"""
-        self.chatting_api.set_mesage(emoji.emojize(message))
-        is_success = await self.chatting_api.send_chatting_message()
-        if not is_success:
-            await self.context.route("**/chat/message", self.intercept_chatting_message)
-            await self.page.get_by_placeholder("채팅하기").fill(emoji.emojize(message))
-            await self.page.get_by_role("button", name="보내기").click()
-
-    async def error_detect_handler(self):
-        """채팅방에서 에러가 발생했는지 탐지하고 처리하는 함수"""
-        title = await self.page.query_selector("xpath=/html/body/div[3]/div/div[1]/h2")
-        error_btn = await self.page.query_selector(
-            "xpath=/html/body/div[3]/div/div[3]/button[1]"
-        )
-        send_btn = await self.page.query_selector("div.chtSend")
-        if title:
-            title_text = await title.inner_text()
-            print(title_text)
-            if "다른 기기" in title_text:
-                await self.send_screenshot()
-                await logging_error(
-                    self.data.panda_id,
-                    "다른 기기에서 로그인",
-                    {"panda_id": self.data.panda_id},
-                )
-                await self.destroy()
-                await error_in_chatting_room(self.data.panda_id)
-                await error_btn.click()
-            elif "API" in title_text:
-                await logging_error(
-                    self.data.panda_id,
-                    "API 요청을 실패했습니다.",
-                    {"panda_id": self.data.panda_id},
-                )
-                await self.destroy()
-                await error_in_chatting_room(self.data.panda_id)
-                await error_btn.click()
-            elif "문제" in title_text:
-                await logging_error(
-                    self.data.panda_id,
-                    "문제가 발생했습니다.",
-                    {"panda_id": self.data.panda_id},
-                )
-                # 일단 종료안하게 변경해봄
-                await error_btn.click()
-            elif "종료" in title_text:
-                pass
-        elif not send_btn:
-            await self.send_screenshot()
-            await logging_error(
-                self.data.panda_id,
-                "채팅창 보내기 버튼이 없어짐",
-                {"panda_id": self.data.panda_id},
-            )
-            await self.destroy()
-            await error_in_chatting_room(self.data.panda_id)
-        self.error_check_boolean = False
-
-    async def set_interceptor(self):
-        """인터셉터 설정"""
-        await self.context.route(
-            "**/channel_user_count*", self.intercept_channel_user_count
-        )
-        await self.context.route("**/chat/message", self.intercept_chatting_message)
-        await self.context.route(
-            "https://api.pandalive.co.kr/v1/live", self.intercept_search_live_bj
-        )
-
-    async def intercept_channel_user_count(self, route, request):
-        """채널의 유저 수를 요청을 인터셉트 하는 함수"""
-        if self.channel_api.is_list_enabled():
-            response = await self.channel_api.send_channel_user_count()
-            self.new_users, remove_users = await self.channel_api.get_new_users()
-            if len(self.new_users) > 0:
+    async def start(self):
+        """팬더 매니저 시작"""
+        self.is_running = True
+        # 닉네임이 변경된 게 있다면 업데이트
+        await self.check_nickname_changed()
+        # 명령어 관련 정보 가져옴
+        await self.update_commands()
+        print(self.normal_commands)
+        if self.user.toggle_pr:
+            asyncio.create_task(self.pr_handler())
+        asyncio.create_task(self.update_room_user_timer())
+        asyncio.create_task(self.update_jwt_refresh())
+        while self.is_running:
+            try:
+                data = await self.websocket.recv()
                 try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.post(
-                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-                            json={
-                                "panda_id": self.user.panda_id,
-                                "user_list": [user for user in self.new_users],
-                            },
-                        ):
-                            pass
-                except:  # pylint: disable=W0702
-                    pass
-            if len(remove_users) > 0:
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.patch(
-                            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-                            json={
-                                "panda_id": self.user.panda_id,
-                                "user_list": [user for user in remove_users],
-                            },
-                        ):
-                            pass
-                except:  # pylint: disable=W0702
-                    pass
-            await route.fulfill(
-                status=response.status_code,
-                headers=response.headers,
-                body=response.text,
-            )
-        else:
-            query = request.url.split("?")[1].split("&")
-            channel = query[0].split("=")[1]
-            token = query[1].split("=")[1]
-            self.channel_api.set_data(request.headers, channel=channel, token=token)
-            await route.continue_()
+                    chat = ChattingData(data)
+                except Exception as e:  # pylint: disable=W0718
+                    await logging_error(
+                        panda_id=self.panda_id,
+                        description="웹소켓 read Error",
+                        data={
+                            "error_message": str(e),
+                            "data": data,
+                        },
+                    )
+                    continue
+                if chat.type is None:
+                    continue
+                if self.is_self_chatting(chat):
+                    continue
+                if self.is_user_chatting(chat):
+                    await self.chatting_handler(chat)
+                elif self.is_system_message(chat):
+                    await self.system_handler(chat)
+                elif chat.type == "personal":
+                    await logging_error(self.panda_id, "다른기기에 접속하였습니다", {})
+                    await error_in_chatting_room(self.panda_id)
+            except websockets.exceptions.ConnectionClosedOK:
+                break
 
-    async def intercept_chatting_message(self, route, request):
-        """채팅 메시지를 요청을 인터셉트하는 함수"""
-        query = request.post_data.split("&")
-        message = query[0].split("=")[1]
-        roomid = query[1].split("=")[1]
-        chatoken = query[2].split("=")[1]
-        t = query[3].split("=")[1]
-        channel = query[4].split("=")[1]
-        token = query[5].split("=")[1]
-        self.chatting_api.set_data(
-            message=message,
-            roomid=roomid,
-            chatoken=chatoken,
-            t=t,
-            channel=channel,
-            token=token,
-            headers=request.headers,
-        )
-        await route.continue_()
-        await self.context.unroute("**/chat/message", self.intercept_chatting_message)
-
-    async def intercept_search_live_bj(self, route, request):
-        """실시간 방송중인 BJ 검색 요청을 인터셉트하는 함수"""
-        if self.search_live_api_data.headers is None:
-            self.search_live_api_data.headers = request.headers
-        await route.continue_()
+    async def stop(self):
+        """팬더 매니저 종료"""
+        try:
+            self.is_running = False
+            message = {
+                "id": 2,
+                "method": 2,
+                "params": {"channel": str(self.api_client.channel)},
+            }
+            await self.websocket.send(json.dumps(message))
+        except:  # pylint: disable=W0702
+            pass
+        await self.websocket.close()
+        # 웹소켓에 나간다는 웹소켓 메세지 전송하고
+        # self.is_runiing = false로 바꿈
