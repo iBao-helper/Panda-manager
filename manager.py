@@ -43,7 +43,11 @@ async def start_manager(
         proxy_ip=body.proxy_ip,
         manager_nick=manager_nick,
     )
-    result = await manager.connect_webscoket()
+    try:
+        result = await manager.connect_webscoket()
+    except:  # pylint: disable=W0702
+        await logging_error(panda_id, "웹소켓 연결 실패", {})
+        return None
     if result is None:
         await logging_error(panda_id, "웹소켓 연결 실패", {})
         return None
