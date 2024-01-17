@@ -74,7 +74,7 @@ async def destroy_panda_manager(panda_id: str):
     if panda_id in panda_managers:
         await panda_managers[panda_id].stop()
         del panda_managers[panda_id]
-        # await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
+        await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},

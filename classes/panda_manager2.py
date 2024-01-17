@@ -361,6 +361,22 @@ class PandaManager2:
             await self.websocket.send(json.dumps(message))
             await asyncio.sleep(60 * 25)
 
+    async def pr_handler(self):
+        """PR 핸들러"""
+        await asyncio.sleep(self.user.pr_period)
+        while self.is_running and self.user.toggle_pr:
+            bj_info = await self.api_client.search_bj(self.panda_id)
+            chat_message = (
+                self.user.pr_message.replace("{추천}", bj_info.score_like)
+                .replace("{즐찾}", bj_info.score_bookmark)
+                .replace("{시청}", bj_info.score_watch)
+                .replace("{총점}", bj_info.score_total)
+                .replace("{팬}", bj_info.fan_cnt)
+                .replace("{랭킹}", bj_info.rank)
+            )
+            await self.api_client.send_chatting(chat_message)
+            await asyncio.sleep(self.user.pr_period)
+
     async def update_commands(self):
         """커맨드 업데이트"""
         result = await get_commands(self.panda_id)
@@ -381,6 +397,8 @@ class PandaManager2:
         # 명령어 관련 정보 가져옴
         await self.update_commands()
         print(self.normal_commands)
+        if self.user.toggle_pr:
+            asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
         asyncio.create_task(self.update_jwt_refresh())
         while self.is_running:
