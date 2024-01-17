@@ -63,6 +63,9 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
         panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()
     )
     manager_nick = await login_api_client.login(body.manager_id, body.manager_pw)
+    if manager_nick is None:
+        await logging_error(panda_id, "매니저 로그인 실패(아마 비밀번호 틀림)", {})
+        return
     sess_key, user_idx = await login_api_client.get_login_data()
     asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
     return {"message": f"{panda_id} is started"}
