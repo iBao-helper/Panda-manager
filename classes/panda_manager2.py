@@ -373,6 +373,8 @@ class PandaManager2:
                 .replace("{총점}", str(bj_info.score_total))
                 .replace("{팬}", str(bj_info.fan_cnt))
                 .replace("{랭킹}", str(bj_info.rank))
+                .replace("{월방송}", str(bj_info.play_time.month))
+                .replace("{총방송}", str(bj_info.play_time.total))
             )
             print("PR메세지", chat_message)
             await self.api_client.send_chatting(chat_message)
@@ -405,7 +407,15 @@ class PandaManager2:
         while self.is_running:
             try:
                 data = await self.websocket.recv()
-                chat = ChattingData(data)
+                try:
+                    chat = ChattingData(data)
+                except Exception as e:  # pylint: disable=W0718
+                    await logging_error(
+                        panda_id=self.panda_id,
+                        description="웹소켓 read Error",
+                        data=str(e),
+                    )
+                    continue
                 if chat.type is None:
                     continue
                 elif self.is_self_chatting(chat):
