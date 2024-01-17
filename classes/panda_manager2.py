@@ -69,10 +69,11 @@ class PandaManager2:
             "SponCoin": self.spon_coin_handler,
             "Recommend": self.recommend_handler,
         }
-        self.reserved_commands = [
-            "!타이머",
-            "!꺼",
-        ]
+        self.reserved_commands = {
+            "!랭킹": self.get_ranking,
+            # "!타이머",
+            # "!꺼",
+        }
 
     #####################
     # API 커맨드 함수들
@@ -131,7 +132,9 @@ class PandaManager2:
     async def delete_normal_command(self, chat: ChattingData):
         """일반 커맨드 삭제"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
             return
         response = await delete_normal_command(self.panda_id, splited[1])
@@ -145,7 +148,9 @@ class PandaManager2:
     async def regist_normal_command(self, chat: ChattingData):
         """일반 커맨드 등록"""
         splited = chat.message.split(" ")
-        if len(splited) < 3:
+        if len(splited) < 3 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
             return
         response = await regist_normal_command(
@@ -161,7 +166,9 @@ class PandaManager2:
     async def regist_hart_message(self, chat: ChattingData):
         """!하트 맵핑 핸들러"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
             return
         response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
@@ -174,7 +181,9 @@ class PandaManager2:
     async def regist_recommend_message(self, chat: ChattingData):
         """!추천 맵핑 핸들러"""
         splited = chat.message.split(" ")
-        if len(splited) < 2:
+        if len(splited) < 2 and (
+            chat.type in ("manager", "bj") or chat.nickname is "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
             return
         response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
@@ -183,6 +192,11 @@ class PandaManager2:
             await self.api_client.send_chatting(response)
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
+
+    async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
+        """랭킹 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"현재 BJ랭킹은 {bj_info.rank}위 입니다")
 
     #######################
     # system handler 함수들
