@@ -250,6 +250,7 @@ class PandaManager:
         await logging_info(self.panda_id, "웹소켓 연결 작업 시작", {})
         result = await self.api_client.play(self.panda_id)
         if result is None:
+            await logging_error(self.panda_id, "웹소켓 연결 실패 - Play호출 실패", {})
             return None
         message = {
             "id": 1,
@@ -279,23 +280,31 @@ class PandaManager:
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "X-Device-Info": '{"t":"webPc","v":"1.0","ui":0}',
         }
-        self.websocket = await websockets.connect(
-            uri=self.websocket_url, extra_headers=extra_headers
-        )
-        if self.websocket:
-            print("websocket = ", self.websocket)
-            await logging_info(self.panda_id, "웹소켓 연결 성공", {})
-            await self.websocket.send(json.dumps(message))
-            response = await self.websocket.recv()
-            print(f"서버로부터 메시지 수신: {response}")
-            message = {
-                "id": 2,
-                "method": 1,
-                "params": {"channel": str(self.api_client.channel)},
-            }
-            await self.websocket.send(json.dumps(message))
-            response = await self.websocket.recv()
-            print(f"서버로부터 메시지 수신: {response}")
+        try:
+            self.websocket = await websockets.connect(
+                uri=self.websocket_url, extra_headers=extra_headers
+            )
+            if self.websocket:
+                print("websocket = ", self.websocket)
+                await logging_info(self.panda_id, "웹소켓 연결 성공", {})
+                await self.websocket.send(json.dumps(message))
+                response = await self.websocket.recv()
+                print(f"서버로부터 메시지 수신: {response}")
+                message = {
+                    "id": 2,
+                    "method": 1,
+                    "params": {"channel": str(self.api_client.channel)},
+                }
+                await self.websocket.send(json.dumps(message))
+                response = await self.websocket.recv()
+                print(f"서버로부터 메시지 수신: {response}")
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                panda_id=self.panda_id,
+                description="웹소켓 연결 시도에 실패",
+                data={"error_message": str(e)},
+            )
+            return None
         return self.websocket
 
     # user정보 업데이트 및 닉네임 체크해서 갱신해주는 함수
