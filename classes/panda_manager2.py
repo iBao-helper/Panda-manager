@@ -71,6 +71,8 @@ class PandaManager2:
         }
         self.reserved_commands = {
             "!랭킹": self.get_ranking,
+            "!월방송": self.get_month_play_time,
+            "!총방송": self.get_total_play_time,
             # "!타이머",
             # "!꺼",
         }
@@ -196,7 +198,17 @@ class PandaManager2:
     async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
         """랭킹 조회 함수"""
         bj_info = await self.api_client.search_bj(self.panda_id)
-        await self.api_client.send_chatting(f"현재 BJ랭킹은 {bj_info.rank}위 입니다")
+        await self.api_client.send_chatting(f"현재 BJ랭킹: {bj_info.rank}위")
+
+    async def get_month_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """월방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"이번달 방송시간: {bj_info.play_time.month}")
+
+    async def get_total_play_time(self, chat: ChattingData):  # pylint: disable=W0613
+        """총방송 조회 함수"""
+        bj_info = await self.api_client.search_bj(self.panda_id)
+        await self.api_client.send_chatting(f"총 방송시간: {bj_info.play_time.total}")
 
     #######################
     # system handler 함수들
