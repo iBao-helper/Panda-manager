@@ -439,7 +439,10 @@ class PandaManager2:
                     await logging_error(
                         panda_id=self.panda_id,
                         description="웹소켓 read Error",
-                        data=str(e),
+                        data={
+                            "error_message": str(e),
+                            "data": data,
+                        },
                     )
                     continue
                 if chat.type is None:
