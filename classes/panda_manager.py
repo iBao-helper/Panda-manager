@@ -400,6 +400,16 @@ class PandaManager:
             await self.websocket.send(json.dumps(message))
             await asyncio.sleep(60 * 25)
 
+    async def promotion(self):
+        """홍보함수"""
+        promotion_message = """팬더 매니저 서비스입니당
+        http://panda-manager.com/
+        여기서 등록하고 사용하시면 됩니당 ㅡㅡㄱ"""
+        await asyncio.sleep(60 * 90)
+        while self.is_running:
+            await self.api_client.send_chatting(promotion_message)
+            await asyncio.sleep(60 * 90)
+
     async def pr_handler(self):
         """PR 핸들러"""
         await asyncio.sleep(self.user.pr_period)
@@ -442,6 +452,7 @@ class PandaManager:
             asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
         asyncio.create_task(self.update_jwt_refresh())
+        asyncio.create_task(self.promotion())
         while self.is_running:
             try:
                 data = await self.websocket.recv()
