@@ -7,10 +7,8 @@ from classes.bj_info import BjInfo
 from util.my_util import (
     callback_login_failure,
     delete_bj_manager_by_panda_id,
-    logging_debug,
     logging_error,
     logging_info,
-    remove_proxy_instance,
 )
 
 
