@@ -402,7 +402,8 @@ class PandaManager:
 
     async def promotion(self):
         """홍보함수"""
-        promotion_message = """팬더 매니저 서비스입니당
+        promotion_message = """1시간30분마다 홍보 한번 할게요! 죄송합니다! 와하핫
+        팬더 매니저 서비스입니당
         http://panda-manager.com/
         여기서 등록하고 사용하시면 됩니당 ㅡㅡㄱ"""
         await asyncio.sleep(60 * 90)
