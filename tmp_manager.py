@@ -12,6 +12,7 @@ from util.my_util import (
     logging_debug,
     logging_error,
     logging_info,
+    remove_proxy_instance,
     success_connect_websocket,
 )
 from classes import api_client as api
@@ -62,9 +63,16 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     await logging_info(
         panda_id=panda_id, description="매니저 서비스 요청", data=body.model_dump_json()
     )
-    manager_nick = await login_api_client.login(body.manager_id, body.manager_pw)
+    manager_nick = await login_api_client.login(
+        body.manager_id, body.manager_pw, panda_id
+    )
     if manager_nick is None:
-        await logging_error(panda_id, "매니저 로그인 실패(아마 비밀번호 틀림)", {})
+        await logging_error(
+            panda_id,
+            "매니저 로그인 실패 - 프록시 제거 프로세스 필요",
+            {"body": body, "manager_nick": manager_nick},
+        )
+        await remove_proxy_instance(body.proxy_ip)
         return
     sess_key, user_idx = await login_api_client.get_login_data()
     asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
