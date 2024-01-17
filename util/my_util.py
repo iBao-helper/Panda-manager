@@ -187,7 +187,6 @@ async def get_bj_data(panda_id: str) -> User:
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/{panda_id}?relaiton=true",
             timeout=5,
         )
-        print(data.json())
         user = User(**data.json())
         return user
     except:  # pylint: disable=W0702
