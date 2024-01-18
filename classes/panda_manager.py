@@ -356,6 +356,7 @@ class PandaManager:
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
             await self.api_client.send_chatting(self.normal_commands[chat.message])
+            
         elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
             await self.reserved_commands[chat.message](chat)
         return
