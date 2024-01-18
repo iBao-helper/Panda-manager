@@ -327,16 +327,7 @@ class PandaManager:
         room_user_list = await self.api_client.get_current_room_user()
         if room_user_list is None:
             return [], []
-        self.prev_user_list = self.user_list
-        self.user_list = {
-            user["nick"] for user in room_user_list if user["nick"] != "게스트"
-        }
-        # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
-        new_users = {user for user in self.user_list if user not in self.prev_user_list}
-        idle_users = {
-            user for user in self.prev_user_list if user not in self.user_list
-        }
-        return new_users, idle_users
+        return room_user_list
 
     ###############
     # 조건 리턴 함수
@@ -377,7 +368,25 @@ class PandaManager:
     async def update_room_user_timer(self):
         """방 유저 갱신 타이머"""
         while self.is_running:
-            new_users, idle_users = await self.update_room_list()
+            room_user_list = await self.update_room_list()
+            self.prev_user_list = self.user_list
+            self.user_list = [
+                {"panda_id": user["id"], "nickname": user["nick"]}
+                for user in room_user_list
+                if user["nick"] != "게스트"
+            ]
+
+            # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
+            new_users = [
+                user
+                for user in list(self.user_list)
+                if user not in list(self.prev_user_list)
+            ]
+            idle_users = [
+                user
+                for user in list(self.prev_user_list)
+                if user not in list(self.user_list)
+            ]
             if len(new_users) > 0:
                 await add_room_user(self.panda_id, new_users)
                 if self.user.toggle_greet:

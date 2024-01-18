@@ -222,12 +222,12 @@ async def update_manager_nickanme(panda_id: str, nickname: str):
         return None
 
 
-async def add_room_user(panda_id: str, new_users: dict):
+async def add_room_user(panda_id: str, new_users: list):
     """방에 새로운 유저를 추가함"""
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/room/user",
-            json={"panda_id": panda_id, "user_list": list(new_users)},
+            json={"panda_id": panda_id, "user_list": new_users},
             timeout=5,
         )
     except:  # pylint: disable=W0702
