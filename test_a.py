@@ -60,10 +60,19 @@ async def main():
     # response = await get_bj_data("resetaccount3")
     # print(response.json())
     # api_client.set_login_data(sess_key, user_idx)
-    response = await api_client.login("resetaccount3", "Adkflfkd1", "resetaccount3")
-    await api_client.play("flzhflzhsl2")
-    response = await api_client.get_current_room_user()
-    print(response)
+    response = await api_client.login("siveriness00", "Adkflfkd1", "resetaccount3")
+    response = requests.get(
+        url="http://panda-manager.com:3000/user/managers/panda_id", timeout=5
+    )
+    bjs = response.json()
+    for bj in bjs:
+        bj_info = await api_client.search_bj(bj["panda_id"])
+        if bj_info.rank == 0:
+            requests.delete(
+                url=f"http://panda-manager.com:3000/bj/{bj_info.id}",
+                timeout=5,
+            )
+            print(f"delete bj_nickname = {bj_info.nick}")
     # print(response)
     # response = await api_client.search_bj("siveriness01")
     # print(response)

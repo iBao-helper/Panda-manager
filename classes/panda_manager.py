@@ -199,6 +199,7 @@ class PandaManager:
         else:
             await self.api_client.send_chatting("등록에 실패했습니다")
 
+    ## 사전 지정된 명령어
     async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
         """랭킹 조회 함수"""
         bj_info = await self.api_client.search_bj(self.panda_id)
