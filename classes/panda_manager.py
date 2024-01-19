@@ -47,6 +47,8 @@ class PandaManager:
         self.websocket = None
         self.websocket_url = "wss://chat-ws.neolive.kr/connection/websocket"
         self.user: User = None
+        self.time = 0
+        self.timer_stop = False
 
         # 현재 방 유저 갱신하기 위한 변수들
         self.user_list = []
@@ -73,8 +75,8 @@ class PandaManager:
             "!랭킹": self.get_ranking,
             "!월방송": self.get_month_play_time,
             "!총방송": self.get_total_play_time,
-            # "!타이머",
-            # "!꺼",
+            "!타이머": self.create_timer,
+            "!꺼": self.delete_timer,
         }
 
     #####################
@@ -352,13 +354,14 @@ class PandaManager:
     async def chatting_handler(self, chat: ChattingData):
         """사용자 채팅일때의 처리"""
         splited = chat.message.split(" ")
+        print(splited)
+        print(splited[0] in self.reserved_commands)
         if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
             await self.api_client.send_chatting(self.normal_commands[chat.message])
-
-        elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
-            await self.reserved_commands[chat.message](chat)
+        elif splited[0] in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
+            await self.reserved_commands[splited[0]](chat)
         return
 
     async def system_handler(self, chat: ChattingData):
@@ -413,6 +416,46 @@ class PandaManager:
             }
             await self.websocket.send(json.dumps(message))
             await asyncio.sleep(60 * 25)
+
+    async def create_timer(self, chat: ChattingData):
+        """타이머 생성"""
+        splited = chat.message.strip().split(" ")
+        try:
+            if len(splited) == 3:
+                asyncio.create_task(self.set_timer(int(splited[1]), int(splited[2])))
+            elif len(splited) == 2:
+                asyncio.create_task(self.set_timer(int(splited[1])))
+        except: # pylint: disable=W0702
+            return
+
+    async def set_timer(self, time: int, time_period: int = 60):
+        """타이머 설정"""
+        if self.time > 0:
+            return
+        self.time = time
+        time_min = self.time // 60
+        time_sec = self.time % 60
+        await self.api_client.send_chatting(
+            f"{time_min}분 {time_sec}초 / {time_period}초 간격으로 알람이 설정되었습니다"
+        )
+        count = 0
+        while self.time >= 1:
+            count += 1
+            self.time = self.time - 1
+            if self.timer_stop is True:
+                self.timer_stop = False
+                break
+            if count == time_period:
+                await self.api_client.send_chatting(f"{self.time}초 남았습니다")
+                count = 0
+            elif self.time <= 5:
+                await self.api_client.send_chatting(f"{self.time}초 남았습니다")
+            await asyncio.sleep(1)
+        await self.api_client.send_chatting("타이머가 종료되었습니다")
+
+    async def delete_timer(self, chat: ChattingData):  # pylint: disable=W0613
+        """타이머 삭제"""
+        self.timer_stop = True
 
     async def promotion(self):
         """홍보함수"""
