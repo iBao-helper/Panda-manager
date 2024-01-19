@@ -391,7 +391,10 @@ class PandaManager:
             if len(new_users) > 0:
                 await add_room_user(self.panda_id, new_users)
                 if self.user.toggle_greet:
-                    combined_str = ", ".join(new_users)
+                    filtered_new_user_nickname = [
+                        new_user["nickname"] for new_user in new_users
+                    ]
+                    combined_str = ", ".join(filtered_new_user_nickname)
                     message = self.user.greet_message.replace(r"{list}", combined_str)
                     await self.api_client.send_chatting(message)
             if len(idle_users) > 0:
