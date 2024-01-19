@@ -356,7 +356,7 @@ class PandaManager:
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
             await self.api_client.send_chatting(self.normal_commands[chat.message])
-            
+
         elif chat.message in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
             await self.reserved_commands[chat.message](chat)
         return
@@ -415,8 +415,8 @@ class PandaManager:
         """홍보함수"""
         promotion_message = """1시간30분마다 홍보 한번 할게요! 죄송합니다! 와하핫
         팬더 매니저 서비스입니당
-        http://panda-manager.com/
-        여기서 등록하고 사용하시면 됩니당 ㅡㅡㄱ"""
+        구글에 '팬더 매니저 서비스' 라고 검색하셔서 
+        등록하고 사용하시면 됩니당 ㅡㅡㄱ"""
         await asyncio.sleep(60 * 90)
         while self.is_running:
             await self.api_client.send_chatting(promotion_message)
