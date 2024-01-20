@@ -50,6 +50,7 @@ class PandaManager:
         self.user: User = None
         self.time = 0
         self.timer_stop = False
+        self.id_count = 3
 
         # 현재 방 유저 갱신하기 위한 변수들
         self.user_list = []
@@ -412,7 +413,7 @@ class PandaManager:
         while self.is_running:
             await self.api_client.refresh_token()
             message = {
-                "id": 68,
+                "id": self.id_count,
                 "method": 10,
                 "params": {"token": self.api_client.jwt_token},
             }
@@ -518,6 +519,7 @@ class PandaManager:
                 data = await self.websocket.recv()
                 try:
                     chat = ChattingData(data)
+                    self.id_count += 1
                 except Exception as e:  # pylint: disable=W0718
                     await logging_error(
                         panda_id=self.panda_id,
@@ -542,8 +544,10 @@ class PandaManager:
             except websockets.exceptions.ConnectionClosedOK:
                 break
             except websockets.exceptions.ConnectionClosedError as e:
-                await logging_error(self.panda_id, "웹소켓 연결이 끊어진 에러", str(e))
-                await error_in_chatting_room(self.panda_id)
+                await logging_error(
+                    self.panda_id, "websockets.exceptions.ConnectionClosedError", str(e)
+                )
+                # await error_in_chatting_room(self.panda_id)
                 break
 
     async def stop(self):
