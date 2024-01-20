@@ -547,7 +547,7 @@ class PandaManager:
                 await logging_error(
                     self.panda_id, "websockets.exceptions.ConnectionClosedError", str(e)
                 )
-                # await error_in_chatting_room(self.panda_id)
+                await error_in_chatting_room(self.panda_id)
                 break
 
     async def stop(self):
