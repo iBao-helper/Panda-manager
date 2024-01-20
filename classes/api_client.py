@@ -1,6 +1,7 @@
 """팬더백엔드 서버에 API를 호출하는 클래스"""
 import time
 from urllib.parse import quote
+import emoji
 import requests
 from classes.bj_info import BjInfo
 
@@ -339,7 +340,7 @@ class APIClient:
             )
             return None  # pylint: disable=W0719
         chat_url = "https://api.pandalive.co.kr/v1/chat/message"
-        data = f"message={quote(message)}&roomid={self.room_id}&chatToken={self.chat_token}&t={int(time.time())}&channel={self.channel}&token={self.jwt_token}"
+        data = f"message={emoji.emojize(quote(message))}&roomid={self.room_id}&chatToken={self.chat_token}&t={int(time.time())}&channel={self.channel}&token={self.jwt_token}"
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/message"
         dummy_header["content-length"] = str(len(data))
