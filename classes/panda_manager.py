@@ -1,6 +1,7 @@
 """팬더 매니저 V2"""
 import asyncio
 import json
+import emoji
 import websockets
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
@@ -238,6 +239,7 @@ class PandaManager:
             nickname=message_class["nick"],
             hart_count=message_class["coin"],
         )
+        chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
         print(chat_message)
 
@@ -248,7 +250,7 @@ class PandaManager:
         rc_message = self.user.rc_message
         if "nick" in message_class:
             rc_message = rc_message.replace("{추천인}", message_class["nick"])
-        print(rc_message)
+        rc_message = emoji.emojize(rc_message)
         await self.api_client.send_chatting(rc_message)
 
     # 웹 소켓 연결 함수
@@ -359,7 +361,9 @@ class PandaManager:
         if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
-            await self.api_client.send_chatting(self.normal_commands[chat.message])
+            await self.api_client.send_chatting(
+                emoji.emojize(self.normal_commands[chat.message])
+            )
         elif splited[0] in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
             await self.reserved_commands[splited[0]](chat)
         return
@@ -425,7 +429,7 @@ class PandaManager:
                 asyncio.create_task(self.set_timer(int(splited[1]), int(splited[2])))
             elif len(splited) == 2:
                 asyncio.create_task(self.set_timer(int(splited[1])))
-        except: # pylint: disable=W0702
+        except:  # pylint: disable=W0702
             return
 
     async def set_timer(self, time: int, time_period: int = 60):
