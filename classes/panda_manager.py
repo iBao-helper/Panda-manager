@@ -356,8 +356,6 @@ class PandaManager:
     async def chatting_handler(self, chat: ChattingData):
         """사용자 채팅일때의 처리"""
         splited = chat.message.split(" ")
-        print(splited)
-        print(splited[0] in self.reserved_commands)
         if splited[0] in self.api_commands:  # 명령어가 api를 호출하는 명령어일 경우
             await self.api_commands[splited[0]](chat)
         elif chat.message in self.normal_commands:  # 일반 key-value 명령어일 경우
