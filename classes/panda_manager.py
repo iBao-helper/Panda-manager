@@ -558,6 +558,20 @@ class PandaManager:
                 await logging_error(
                     self.panda_id, "websockets.exceptions.ConnectionClosedError", str(e)
                 )
+                message = {
+                    "id": self.id_count,
+                    "method": 10,
+                    "params": {"token": self.api_client.jwt_token},
+                }
+                try:
+                    response = await self.websocket.send(json.dumps(message))
+                    await logging_error(
+                        self.panda_id, "커넥션 연결해제시 10번 메소드 호출날려봄", response
+                    )
+                except:  # pylint: disable=W0702
+                    k = 9  # pylint: disable=W0612
+
+                await asyncio.sleep(60 * 25)
                 await error_in_chatting_room(self.panda_id)
                 break
 
