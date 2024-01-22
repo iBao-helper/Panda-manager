@@ -5,6 +5,7 @@ import emoji
 import websockets
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
+from gpt import gpt3_turbo
 from util.my_util import (
     User,
     add_room_user,
@@ -79,6 +80,7 @@ class PandaManager:
             "!총방송": self.get_total_play_time,
             "!타이머": self.create_timer,
             "!꺼": self.delete_timer,
+            "@": self.create_gpt_task,
         }
 
     #####################
@@ -459,6 +461,15 @@ class PandaManager:
     async def delete_timer(self, chat: ChattingData):  # pylint: disable=W0613
         """타이머 삭제"""
         self.timer_stop = True
+
+    async def create_gpt_task(self, chat: ChattingData):
+        """GPT3.5에게 물어보는 비동기 태스크 만들기"""
+        asyncio.create_task(self.question_gpt3_turbo(chat.message))
+
+    async def question_gpt3_turbo(self, question):
+        """GPT3 API 호출하고 요청 받으면 채팅치기"""
+        response = await gpt3_turbo(question)
+        await self.api_client.send_chatting(response)
 
     async def promotion(self):
         """홍보함수"""
