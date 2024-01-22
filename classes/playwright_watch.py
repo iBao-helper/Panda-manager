@@ -20,7 +20,7 @@ class PlayWrightNightWatch:
 
     async def login(self):
         """로그인"""
-        await self.api_client.login(self.watch_id, self.watch_pw)
+        await self.api_client.login(self.watch_id, self.watch_pw, "NightWatch")
 
     async def start(self):
         """NightWatch Loop 함수"""
@@ -125,7 +125,7 @@ class PlayWrightNightWatch:
     async def refresh(self):
         """새로고침"""
         self.api_client = APIClient()
-        await self.api_client.login(self.watch_id, self.watch_pw)
+        await self.api_client.login(self.watch_id, self.watch_pw, "NightWatch")
         # await self.page.reload()
 
     async def get_nickname_by_panda_id(self, panda_id: str):
