@@ -387,38 +387,47 @@ class PandaManager:
 
     async def update_room_user_timer(self):
         """방 유저 갱신 타이머"""
-        while self.is_running:
-            room_user_list = await self.update_room_list()
-            self.prev_user_list = self.user_list
-            self.user_list = [
-                {"panda_id": user["id"], "nickname": user["nick"]}
-                for user in room_user_list
-                if user["nick"] != "게스트"
-            ]
+        try:
+            while self.is_running:
+                room_user_list = await self.update_room_list()
+                self.prev_user_list = self.user_list
+                self.user_list = [
+                    {"panda_id": user["id"], "nickname": user["nick"]}
+                    for user in room_user_list
+                    if user["nick"] != "게스트"
+                ]
 
-            # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
-            new_users = [
-                user
-                for user in list(self.user_list)
-                if user not in list(self.prev_user_list)
-            ]
-            idle_users = [
-                user
-                for user in list(self.prev_user_list)
-                if user not in list(self.user_list)
-            ]
-            if len(new_users) > 0:
-                await add_room_user(self.panda_id, new_users)
-                if self.user.toggle_greet:
-                    filtered_new_user_nickname = [
-                        new_user["nickname"] for new_user in new_users
-                    ]
-                    combined_str = ", ".join(filtered_new_user_nickname)
-                    message = self.user.greet_message.replace(r"{list}", combined_str)
-                    await self.api_client.send_chatting(message)
-            if len(idle_users) > 0:
-                await remove_room_user(self.panda_id, idle_users)
-            await asyncio.sleep(2)
+                # Set으로 구현하여 700명 풀방일 경우 49만번의 연산이 일어나는것을 방지
+                new_users = [
+                    user
+                    for user in list(self.user_list)
+                    if user not in list(self.prev_user_list)
+                ]
+                idle_users = [
+                    user
+                    for user in list(self.prev_user_list)
+                    if user not in list(self.user_list)
+                ]
+                if len(new_users) > 0:
+                    await add_room_user(self.panda_id, new_users)
+                    if self.user.toggle_greet:
+                        filtered_new_user_nickname = [
+                            new_user["nickname"] for new_user in new_users
+                        ]
+                        combined_str = ", ".join(filtered_new_user_nickname)
+                        message = self.user.greet_message.replace(
+                            r"{list}", combined_str
+                        )
+                        await self.api_client.send_chatting(message)
+                if len(idle_users) > 0:
+                    await remove_room_user(self.panda_id, idle_users)
+                await asyncio.sleep(2)
+        except:  # pylint: disable=W0702
+            await logging_error(
+                panda_id=self.panda_id,
+                description="update_room_user 에러",
+                data={"error_message": str(e)},
+            )
 
     async def update_jwt_refresh(self):
         """JWT 토큰 갱신"""
@@ -581,8 +590,6 @@ class PandaManager:
                     )
                 except:  # pylint: disable=W0702
                     k = 9  # pylint: disable=W0612
-
-                await asyncio.sleep(60 * 25)
                 await error_in_chatting_room(self.panda_id)
                 break
 
