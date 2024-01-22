@@ -1,6 +1,7 @@
 """팬더 매니저 V2"""
 import asyncio
 import json
+import threading
 import emoji
 import websockets
 from classes.api_client import APIClient
@@ -482,14 +483,25 @@ class PandaManager:
         """타이머 삭제"""
         self.timer_stop = True
 
-    async def create_gpt_task(self, chat: ChattingData):
-        """GPT3.5에게 물어보는 비동기 태스크 만들기"""
-        asyncio.create_task(self.question_gpt3_turbo(chat.message))
+    def run_in_thread(self, loop, coro):
+        """b"""
+        asyncio.run_coroutine_threadsafe(coro, loop)
 
-    async def question_gpt3_turbo(self, question):
-        """GPT3 API 호출하고 요청 받으면 채팅치기"""
-        response = await gpt3_turbo(question)
-        await self.api_client.send_chatting(response)
+    async def create_gpt_task(self, chat: ChattingData):  # pylint: disable=W0613
+        """GPT3.5에게 물어보는 비동기 태스크 만들기"""
+        thread = threading.Thread(
+            target=gpt3_turbo,
+            args=(
+                chat.message.replace("@ ", ""),
+                self.api_client.room_id,
+                self.api_client.chat_token,
+                self.api_client.jwt_token,
+                self.api_client.channel,
+                self.api_client.sess_key,
+                self.api_client.user_idx,
+            ),
+        )
+        thread.start()
 
     async def promotion(self):
         """홍보함수"""
