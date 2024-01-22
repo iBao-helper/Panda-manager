@@ -42,6 +42,7 @@ class PandaManager:
         manager_nick: str,
     ):
         self.api_client = APIClient(panda_id=panda_id, proxy_ip=proxy_ip)
+        self.proxy_ip = proxy_ip
         self.api_client.set_login_data(sess_key, user_idx)
         self.panda_id = panda_id
         self.manager_nick = manager_nick
@@ -293,9 +294,19 @@ class PandaManager:
             "X-Device-Info": '{"t":"webPc","v":"1.0","ui":0}',
         }
         try:
-            self.websocket = await websockets.connect(
-                uri=self.websocket_url, extra_headers=extra_headers
-            )
+            if self.proxy_ip == "":
+                print("프록시 없음")
+                self.websocket = await websockets.connect(
+                    uri=self.websocket_url,
+                    extra_headers=extra_headers,
+                )
+            else:
+                print(f"proxy_ip = {self.proxy_ip}")
+                self.websocket = await websockets.connect(
+                    uri=self.websocket_url,
+                    extra_headers=extra_headers,
+                    origin=f"http://{self.proxy_ip}:8888",
+                )
             if self.websocket:
                 print("websocket = ", self.websocket)
                 await logging_info(self.panda_id, "웹소켓 연결 성공", {})
