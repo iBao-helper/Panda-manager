@@ -1,12 +1,13 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
 import os
 import asyncio
+import threading
 from typing import Dict
 import uvicorn
 from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from classes.panda_manager import PandaManager
+from classes.panda_manager2 import PandaManager2
 from classes.dto.CreateManagerDto import CreateManagerDto
 from classes.api_client import APIClient
 from util.my_util import (
@@ -27,31 +28,33 @@ INSTANCE_ID = os.getenv("INSTANCE_ID")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 app = FastAPI()
-panda_managers: Dict[str, PandaManager] = {}
+panda_managers: Dict[str, PandaManager2] = {}
 login_api_client = APIClient()
 
 
-async def start_manager(
+def start_manager(
     panda_id, body: CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
 ):
     "매니저 쓰레드 함수"
-    manager = PandaManager(
+    manager = PandaManager2(
         panda_id=panda_id,
         sess_key=sess_key,
         user_idx=user_idx,
         proxy_ip=body.proxy_ip,
         manager_nick=manager_nick,
     )
-    result = await manager.connect_webscoket()
+    result = manager.connect_webscoket()
     if result is None:
-        await callback_login_failure(panda_id)
+        asyncio.run(callback_login_failure(panda_id))
         return None
     print(panda_id, "웹소켓 연결 성공")
     panda_managers[panda_id] = manager
-    await success_connect_websocket(
-        panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
+    asyncio.run(
+        success_connect_websocket(
+            panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
+        )
     )
-    await manager.start()
+    manager.start()
     return
 
 
@@ -67,7 +70,12 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     if manager_nick is None:
         return
     sess_key, user_idx = await login_api_client.get_login_data()
-    asyncio.create_task(start_manager(panda_id, body, sess_key, user_idx, manager_nick))
+    thread = threading.Thread(
+        target=start_manager,
+        args=(panda_id, body, sess_key, user_idx, manager_nick),
+    )
+    thread.start()
+    # asyncio.create_task(start_manager())
     return {"message": f"{panda_id} is started"}
 
 
