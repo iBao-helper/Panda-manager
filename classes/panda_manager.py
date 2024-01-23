@@ -119,7 +119,7 @@ class PandaManager:
             self.panda_id, chat.nickname, " ".join(splited[1:])
         )
         if response.status_code == 200 or response.status_code == 201:
-            await self.api_client.send_chatting(f"{' '.join(splited[1:])}' 신청되었습니다.")
+            await self.api_client.send_chatting(f"'{' '.join(splited[1:])}' 신청되었습니다.")
         else:
             await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 

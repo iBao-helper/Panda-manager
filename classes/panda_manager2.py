@@ -4,6 +4,7 @@ import json
 import threading
 import emoji
 import websockets
+from websocket import create_connection
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
 from gpt import gpt3_turbo
@@ -313,11 +314,8 @@ class PandaManager2:
         try:
             if self.proxy_ip == "":
                 print("프록시 없음")
-                self.websocket = asyncio.run(
-                    websockets.connect(
-                        uri=self.websocket_url,
-                        extra_headers=extra_headers,
-                    )
+                self.websocket = create_connection(
+                    url=self.websocket_url, header=extra_headers
                 )
             else:
                 print(f"proxy_ip = {self.proxy_ip}")
@@ -331,18 +329,19 @@ class PandaManager2:
             if self.websocket:
                 print("websocket = ", self.websocket)
                 asyncio.run(logging_info(self.panda_id, "웹소켓 연결 성공", {}))
-                asyncio.run(self.websocket.send(json.dumps(message)))
-                response = asyncio.run(self.websocket.recv())
+                self.websocket.send(json.dumps(message))
+                response = self.websocket.recv()
                 print(f"서버로부터 메시지 수신: {response}")
                 message = {
                     "id": 2,
                     "method": 1,
                     "params": {"channel": str(self.api_client.channel)},
                 }
-                asyncio.run(self.websocket.send(json.dumps(message)))
-                response = asyncio.run(self.websocket.recv())
+                self.websocket.send(json.dumps(message))
+                response = self.websocket.recv()
                 print(f"서버로부터 메시지 수신: {response}")
         except Exception as e:  # pylint: disable=W0703
+            print(str(e))
             asyncio.run(
                 logging_error(
                     panda_id=self.panda_id,
@@ -573,13 +572,13 @@ class PandaManager2:
         if result is not None:
             self.user = result
 
-    def start(self):
+    async def start(self):
         """팬더 매니저 시작"""
         self.is_running = True
         # 닉네임이 변경된 게 있다면 업데이트
-        asyncio.run(self.check_nickname_changed())
+        await self.check_nickname_changed()
         # 명령어 관련 정보 가져옴
-        asyncio.run(self.update_commands())
+        await self.update_commands()
         if self.user.toggle_pr:
             asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
@@ -587,20 +586,18 @@ class PandaManager2:
         asyncio.create_task(self.promotion())
         while self.is_running:
             try:
-                data = asyncio.run(self.websocket.recv())
+                data = self.websocket.recv()
                 try:
                     chat = ChattingData(data)
                     self.id_count += 1
                 except Exception as e:  # pylint: disable=W0718
-                    asyncio.run(
-                        logging_error(
-                            panda_id=self.panda_id,
-                            description="웹소켓 read Error",
-                            data={
-                                "error_message": str(e),
-                                "data": data,
-                            },
-                        )
+                    await logging_error(
+                        panda_id=self.panda_id,
+                        description="웹소켓 read Error",
+                        data={
+                            "error_message": str(e),
+                            "data": data,
+                        },
                     )
                     continue
                 if chat.type is None:
