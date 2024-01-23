@@ -21,6 +21,10 @@ def gpt3_turbo(question, room_id, chat_token, jwt_token, channel, sess_key, user
                 "content": "Just answer the questions asked and don't use flowery language.",
             },
             {
+                "role": "system",
+                "content": "Keep your answers short and simple.",
+            },
+            {
                 "role": "user",
                 "content": question,
             },
