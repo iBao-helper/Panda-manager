@@ -582,7 +582,10 @@ class PandaManager:
                 elif self.is_system_message(chat):
                     await self.system_handler(chat)
                 elif chat.type == "personal":
-                    await logging_error(self.panda_id, "다른기기에서 접속하였습니다", {})
+                    if "refresh" in chat.message:
+                        await logging_error(self.panda_id, "매니저 권한 변경 - 현재는 재접속하게 처리되어있음", {})
+                    else:
+                        await logging_error(self.panda_id, "다른기기에서 접속하였습니다", {})
                     await error_in_chatting_room(self.panda_id)
             except websockets.exceptions.ConnectionClosedOK:
                 break
