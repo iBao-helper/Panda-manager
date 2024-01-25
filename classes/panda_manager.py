@@ -592,9 +592,6 @@ class PandaManager:
             except websockets.exceptions.ConnectionClosedOK:
                 break
             except websockets.exceptions.ConnectionClosedError as e:
-                await logging_error(
-                    self.panda_id, "websockets.exceptions.ConnectionClosedError", str(e)
-                )
                 result = await self.connect_webscoket()
                 if result is None:
                     await logging_error(
