@@ -25,7 +25,7 @@ INSTANCE_ID = os.getenv("INSTANCE_ID")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
 app = FastAPI()
-panda_managers: Dict[str, subprocess.Popen] = {}
+panda_managers: Dict[str, PandaManager] = {}
 login_api_client = APIClient()
 
 
@@ -80,27 +80,6 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     return {"message": f"{panda_id} is started"}
 
 
-# @app.post("/panda_manager/{panda_id}")
-# async def panda_manager_start(body: CreateManagerDto, panda_id: str):
-#     """판다매니저 시작"""
-#     sub_process = subprocess.Popen(
-#         [
-#             "python",
-#             "subprocess_test.py",
-#             body.panda_id,
-#             body.proxy_ip,
-#             body.manager_id,
-#             body.manager_pw,
-#             body.resource_ip,
-#         ],
-#     )
-#     panda_managers[panda_id] = sub_process
-#     return JSONResponse(
-#         status_code=status.HTTP_200_OK,
-#         content={"message": f"{panda_id} is created"},
-#     )
-
-
 @app.delete("/panda_manager/{panda_id}")
 async def destroy_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
@@ -112,19 +91,6 @@ async def destroy_panda_manager(panda_id: str):
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},
     )
-
-
-# @app.delete("/panda_manager/{panda_id}")
-# async def destroy_panda_manager(panda_id: str):
-#     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
-#     if panda_id in panda_managers:
-#         panda_managers[panda_id].terminate()
-#         del panda_managers[panda_id]
-#         await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
-#     return JSONResponse(
-#         status_code=status.HTTP_200_OK,
-#         content={"message": f"{panda_id} is deleted"},
-#     )
 
 
 @app.put("/panda_manager/{panda_id}/command")
