@@ -105,13 +105,26 @@ async def panda_manager_start(body: CreateManagerDto, panda_id: str):
 async def destroy_panda_manager(panda_id: str):
     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
     if panda_id in panda_managers:
-        panda_managers[panda_id].terminate()
+        await panda_managers[panda_id].stop()
         del panda_managers[panda_id]
         await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is deleted"},
     )
+
+
+# @app.delete("/panda_manager/{panda_id}")
+# async def destroy_panda_manager(panda_id: str):
+#     """dict에서 해당 panda_id를 키로 가진 리소스 제거"""
+#     if panda_id in panda_managers:
+#         panda_managers[panda_id].terminate()
+#         del panda_managers[panda_id]
+#         await logging_info(panda_id, "[리소스 회수 성공]", {"panda_id": panda_id})
+#     return JSONResponse(
+#         status_code=status.HTTP_200_OK,
+#         content={"message": f"{panda_id} is deleted"},
+#     )
 
 
 @app.put("/panda_manager/{panda_id}/command")
