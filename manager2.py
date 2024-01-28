@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from classes.panda_manager import PandaManager
 from classes.dto.CreateManagerDto import CreateManagerDto
 from classes.api_client import APIClient
-from util.my_util import logging_info
+from util.my_util import callback_login_failure, logging_info, success_connect_websocket
 
 
 load_dotenv()
@@ -29,25 +29,76 @@ panda_managers: Dict[str, subprocess.Popen] = {}
 login_api_client = APIClient()
 
 
+def start_manager(
+    panda_id, body: CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
+):
+    """매니저 쓰레드 함수"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    manager = PandaManager(
+        panda_id=panda_id,
+        sess_key=sess_key,
+        user_idx=user_idx,
+        proxy_ip=body.proxy_ip,
+        manager_nick=manager_nick,
+    )
+    result = loop.run_until_complete(manager.connect_webscoket())
+    if result is None:
+        loop.run_until_complete(callback_login_failure(panda_id))
+        print("k")
+        return None
+    print(panda_id, "웹소켓 연결 성공")
+    panda_managers[panda_id] = manager
+    loop.run_until_complete(
+        success_connect_websocket(
+            panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
+        )
+    )
+    loop.run_until_complete(manager.start())
+    return
+
+
 @app.post("/panda_manager/{panda_id}")
 async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
-    sub_process = subprocess.Popen(
-        [
-            "python",
-            "subprocess_test.py",
-            body.panda_id,
-            body.proxy_ip,
-            body.manager_id,
-            body.manager_pw,
-            body.resource_ip,
-        ],
+    await logging_info(
+        panda_id=panda_id, description="[리소스] - 매니저 요청 받음", data=body.model_dump_json()
     )
-    panda_managers[panda_id] = sub_process
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"message": f"{panda_id} is created"},
+    manager_nick = await login_api_client.login(
+        body.manager_id, body.manager_pw, panda_id
     )
+    if manager_nick is None:
+        return
+    sess_key, user_idx = await login_api_client.get_login_data()
+    thread = threading.Thread(
+        target=start_manager,
+        args=(panda_id, body, sess_key, user_idx, manager_nick),
+    )
+    thread.start()
+    # asyncio.create_task(start_manager())
+    return {"message": f"{panda_id} is started"}
+
+
+# @app.post("/panda_manager/{panda_id}")
+# async def panda_manager_start(body: CreateManagerDto, panda_id: str):
+#     """판다매니저 시작"""
+#     sub_process = subprocess.Popen(
+#         [
+#             "python",
+#             "subprocess_test.py",
+#             body.panda_id,
+#             body.proxy_ip,
+#             body.manager_id,
+#             body.manager_pw,
+#             body.resource_ip,
+#         ],
+#     )
+#     panda_managers[panda_id] = sub_process
+#     return JSONResponse(
+#         status_code=status.HTTP_200_OK,
+#         content={"message": f"{panda_id} is created"},
+#     )
 
 
 @app.delete("/panda_manager/{panda_id}")
