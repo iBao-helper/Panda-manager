@@ -469,7 +469,7 @@ class PandaManager:
             count += 1
             self.time = self.time - 1
             if self.timer_stop is True:
-                self.timer_stop = False
+                self.time = 0
                 break
             if count == time_period:
                 await self.api_client.send_chatting(f"{self.time}초 남았습니다")
@@ -478,11 +478,12 @@ class PandaManager:
                 await self.api_client.send_chatting(f"{self.time}초 남았습니다")
             await asyncio.sleep(1)
         await self.api_client.send_chatting("타이머가 종료되었습니다")
+        if self.timer_stop is True:
+            self.timer_stop = False
 
     async def delete_timer(self, chat: ChattingData):  # pylint: disable=W0613
         """타이머 삭제"""
         self.timer_stop = True
-        self.time = 0
 
     def run_in_thread(self, loop, coro):
         """b"""
