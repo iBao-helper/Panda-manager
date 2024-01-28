@@ -482,6 +482,7 @@ class PandaManager:
     async def delete_timer(self, chat: ChattingData):  # pylint: disable=W0613
         """타이머 삭제"""
         self.timer_stop = True
+        self.time = 0
 
     def run_in_thread(self, loop, coro):
         """b"""
