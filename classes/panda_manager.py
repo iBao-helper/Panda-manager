@@ -622,6 +622,5 @@ class PandaManager:
             await self.websocket.send(json.dumps(message))
         except:  # pylint: disable=W0702
             pass
-        await self.websocket.close()
         # 웹소켓에 나간다는 웹소켓 메세지 전송하고
         # self.is_runiing = false로 바꿈
