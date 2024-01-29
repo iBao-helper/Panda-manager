@@ -134,7 +134,7 @@ async def add_book_mark(bj_id: str):
     """북마크 추가"""
     await play_watch.add_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
-    await logging_info("add-bookmark", "북마크 등록", lists)
+    await logging_info("add-bookmark", "북마크 등록", {"리스트": lists, "등록된 아이디": bj_id})
     return {"message": "success"}
 
 
@@ -143,7 +143,7 @@ async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     await play_watch.delete_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
-    await logging_info("delete-bookmark", "북마크 삭제", lists)
+    await logging_info("delete-bookmark", "북마크 삭제", {"리스트": lists, "삭제된 아이디": bj_id})
     return {"message": "success"}
 
 

@@ -119,7 +119,7 @@ class PandaManager:
             self.panda_id, chat.nickname, " ".join(splited[1:])
         )
         if response.status_code == 200 or response.status_code == 201:
-            await self.api_client.send_chatting(f"{' '.join(splited[1:])}' 신청되었습니다.")
+            await self.api_client.send_chatting(f"'{' '.join(splited[1:])}' 신청되었습니다.")
         else:
             await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
 
@@ -469,7 +469,7 @@ class PandaManager:
             count += 1
             self.time = self.time - 1
             if self.timer_stop is True:
-                self.timer_stop = False
+                self.time = 0
                 break
             if count == time_period:
                 await self.api_client.send_chatting(f"{self.time}초 남았습니다")
@@ -478,6 +478,8 @@ class PandaManager:
                 await self.api_client.send_chatting(f"{self.time}초 남았습니다")
             await asyncio.sleep(1)
         await self.api_client.send_chatting("타이머가 종료되었습니다")
+        if self.timer_stop is True:
+            self.timer_stop = False
 
     async def delete_timer(self, chat: ChattingData):  # pylint: disable=W0613
         """타이머 삭제"""
@@ -582,28 +584,31 @@ class PandaManager:
                 elif self.is_system_message(chat):
                     await self.system_handler(chat)
                 elif chat.type == "personal":
-                    await logging_error(self.panda_id, "다른기기에서 접속하였습니다", {})
+                    if "refresh" in chat.message:
+                        await logging_error(
+                            self.panda_id, "매니저 권한 변경 - 현재는 재접속하게 처리되어있음", {}
+                        )
+                    else:
+                        await logging_error(self.panda_id, "다른기기에서 접속하였습니다", {})
                     await error_in_chatting_room(self.panda_id)
             except websockets.exceptions.ConnectionClosedOK:
                 break
             except websockets.exceptions.ConnectionClosedError as e:
-                await logging_error(
-                    self.panda_id, "websockets.exceptions.ConnectionClosedError", str(e)
-                )
-                message = {
-                    "id": self.id_count,
-                    "method": 10,
-                    "params": {"token": self.api_client.jwt_token},
-                }
-                try:
-                    response = await self.websocket.send(json.dumps(message))
+                result = await self.connect_webscoket()
+                if result is None:
                     await logging_error(
-                        self.panda_id, "커넥션 연결해제시 10번 메소드 호출날려봄", response
+                        self.panda_id,
+                        "websockets.exceptions.ConnectionClosedError - 소켓 재접속 실패",
+                        str(e),
                     )
-                except:  # pylint: disable=W0702
-                    k = 9  # pylint: disable=W0612
-                await error_in_chatting_room(self.panda_id)
-                break
+                    await error_in_chatting_room(self.panda_id)
+                    break
+                else:
+                    await logging_error(
+                        self.panda_id,
+                        "websockets.exceptions.ConnectionClosedError - 소켓 재접속 성공",
+                        str(e),
+                    )
 
     async def stop(self):
         """팬더 매니저 종료"""
