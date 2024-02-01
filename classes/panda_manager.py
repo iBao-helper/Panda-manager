@@ -565,15 +565,15 @@ class PandaManager:
                 try:
                     chat = ChattingData(data)
                     self.id_count += 1
-                except Exception as e:  # pylint: disable=W0718
-                    await logging_error(
-                        panda_id=self.panda_id,
-                        description="웹소켓 read Error",
-                        data={
-                            "error_message": str(e),
-                            "data": data,
-                        },
-                    )
+                except Exception as e:  # pylint: disable=W0718 W0612
+                    # await logging_error(
+                    #     panda_id=self.panda_id,
+                    #     description="웹소켓 read Error",
+                    #     data={
+                    #         "error_message": str(e),
+                    #         "data": data,
+                    #     },
+                    # )
                     continue
                 if chat.type is None:
                     continue
