@@ -558,7 +558,7 @@ class PandaManager:
             asyncio.create_task(self.pr_handler())
         asyncio.create_task(self.update_room_user_timer())
         asyncio.create_task(self.update_jwt_refresh())
-        asyncio.create_task(self.promotion())
+        # asyncio.create_task(self.promotion())
         while self.is_running:
             try:
                 data = await self.websocket.recv()
