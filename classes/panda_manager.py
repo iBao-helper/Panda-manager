@@ -1,4 +1,5 @@
 """팬더 매니저 V2"""
+
 import asyncio
 import json
 import threading
@@ -60,7 +61,7 @@ class PandaManager:
         self.prev_user_list = []
         ###
 
-        self.normal_commands = []
+        self.normal_commands = {}
         self.api_commands = {
             "!등록": self.regist_normal_command,
             "!삭제": self.delete_normal_command,
@@ -94,7 +95,9 @@ class PandaManager:
         if response.status_code == 200 or response.status_code == 201:
             await self.api_client.send_chatting("신청곡 리스트가 초기화 되었습니다")
         else:
-            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting(
+                "백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!"
+            )
 
     async def send_song_list(self, chat: ChattingData):  # pylint: disable=W0613
         """신청곡 리스트 보내기"""
@@ -107,7 +110,9 @@ class PandaManager:
                 message += f"{song}\n"
             await self.api_client.send_chatting(message)
         else:
-            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting(
+                "백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!"
+            )
 
     async def add_song_list(self, chat: ChattingData):
         """신청곡 추가"""
@@ -119,9 +124,13 @@ class PandaManager:
             self.panda_id, chat.nickname, " ".join(splited[1:])
         )
         if response.status_code == 200 or response.status_code == 201:
-            await self.api_client.send_chatting(f"'{' '.join(splited[1:])}' 신청되었습니다.")
+            await self.api_client.send_chatting(
+                f"'{' '.join(splited[1:])}' 신청되었습니다."
+            )
         else:
-            await self.api_client.send_chatting("백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!")
+            await self.api_client.send_chatting(
+                "백엔드 서버가 맛탱이가 갔습니다! 죄송합니당! 문의넣어주세욤!"
+            )
 
     async def hart_search_by_total(self, chat: ChattingData):
         """하트내역 모두 조회"""
@@ -145,7 +154,9 @@ class PandaManager:
         if len(splited) < 2:
             await self.api_client.send_chatting("ex)\n!삭제 [커맨드]")
             return
-        if not (chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"):
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
             return
         response = await delete_normal_command(self.panda_id, splited[1])
@@ -162,7 +173,9 @@ class PandaManager:
         if len(splited) < 3:
             await self.api_client.send_chatting("ex)\n!등록 [커맨드] [메세지]")
             return
-        if not (chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"):
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
             return
         response = await regist_normal_command(
@@ -179,9 +192,13 @@ class PandaManager:
         """!하트 맵핑 핸들러"""
         splited = chat.message.split(" ")
         if len(splited) < 2:
-            await self.api_client.send_chatting("ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~")
+            await self.api_client.send_chatting(
+                "ex)\n!하트 {후원인}님 {후원개수}개 감사합니다~"
+            )
             return
-        if not (chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"):
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
             return
         response = await regist_hart_message(self.panda_id, " ".join(splited[1:]))
@@ -195,9 +212,13 @@ class PandaManager:
         """!추천 맵핑 핸들러"""
         splited = chat.message.split(" ")
         if len(splited) < 2:
-            await self.api_client.send_chatting("ex)\n!추천 {추천인}님 추천 감사합니다~")
+            await self.api_client.send_chatting(
+                "ex)\n!추천 {추천인}님 추천 감사합니다~"
+            )
             return
-        if not (chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"):
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
             await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
             return
         response = await regist_recommend_message(self.panda_id, " ".join(splited[1:]))
@@ -216,7 +237,9 @@ class PandaManager:
     async def get_month_play_time(self, chat: ChattingData):  # pylint: disable=W0613
         """월방송 조회 함수"""
         bj_info = await self.api_client.search_bj(self.panda_id)
-        await self.api_client.send_chatting(f"이번달 방송시간: {bj_info.play_time.month}")
+        await self.api_client.send_chatting(
+            f"이번달 방송시간: {bj_info.play_time.month}"
+        )
 
     async def get_total_play_time(self, chat: ChattingData):  # pylint: disable=W0613
         """총방송 조회 함수"""
@@ -237,7 +260,9 @@ class PandaManager:
         if "nick" in message_class:
             chat_message = chat_message.replace("{후원인}", message_class["nick"])
         if "coin" in message_class:
-            chat_message = chat_message.replace("{후원개수}", str(message_class["coin"]))
+            chat_message = chat_message.replace(
+                "{후원개수}", str(message_class["coin"])
+            )
         await send_hart_history(
             bj_name=self.user.nickname,
             user_id=message_class["id"],
@@ -377,6 +402,18 @@ class PandaManager:
             await self.api_client.send_chatting(
                 emoji.emojize(self.normal_commands[chat.message])
             )
+            keys_list = list(self.normal_commands.keys())
+            print(keys_list)
+            for key in keys_list:
+                tmp = "#" + key
+                print(tmp)
+                print(chat.message)
+                print(tmp in chat.message)
+                if tmp in self.normal_commands[chat.message]:
+                    await self.api_client.send_chatting(
+                        emoji.emojize(self.normal_commands[key])
+                    )
+
         elif splited[0] in self.reserved_commands:  # 그 외 기능적인 예약어일 경우
             await self.reserved_commands[splited[0]](chat)
         return
@@ -586,10 +623,14 @@ class PandaManager:
                 elif chat.type == "personal":
                     if "refresh" in chat.message:
                         await logging_error(
-                            self.panda_id, "매니저 권한 변경 - 현재는 재접속하게 처리되어있음", {}
+                            self.panda_id,
+                            "매니저 권한 변경 - 현재는 재접속하게 처리되어있음",
+                            {},
                         )
                     else:
-                        await logging_error(self.panda_id, "다른기기에서 접속하였습니다", {})
+                        await logging_error(
+                            self.panda_id, "다른기기에서 접속하였습니다", {}
+                        )
                     await error_in_chatting_room(self.panda_id)
             except websockets.exceptions.ConnectionClosedOK:
                 break
