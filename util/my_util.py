@@ -1,4 +1,5 @@
 """ 잡다한 함수로 뺼 것들 모아놓은곳"""
+
 import emoji
 from pydantic import BaseModel
 import requests
@@ -32,6 +33,8 @@ class User(BaseModel):
     toggle_rc: bool
     toggle_pr: bool
     toggle_doosan: bool
+    webhook_string: str | None
+    webhook_count: int
 
 
 async def callback_login_failure(panda_id: str):
@@ -87,6 +90,18 @@ async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
             },
             timeout=5,
         )
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def send_webhook(random_string: str):
+    """웹훅 전송"""
+    try:
+        data = requests.get(
+            url=f"http://panda-manager.com:8083/webhook/{random_string}",
+            timeout=5,
+        )
+        return data
     except:  # pylint: disable=W0702
         return None
 

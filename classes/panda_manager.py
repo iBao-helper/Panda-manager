@@ -27,6 +27,7 @@ from util.my_util import (
     regist_recommend_message,
     remove_room_user,
     send_hart_history,
+    send_webhook,
     update_bj_nickname,
     update_manager_nickanme,
 )
@@ -254,9 +255,6 @@ class PandaManager:
         if self.user.toggle_hart is False:
             return
         chat_message = self.user.hart_message
-        # if "rk" in message_class:
-        #     if message_class["rk"] != 0:
-        #         chat_message = f"팬 랭킹{message_class['rk']}위!\n" + chat_message
         if "nick" in message_class:
             chat_message = chat_message.replace("{후원인}", message_class["nick"])
         if "coin" in message_class:
@@ -271,6 +269,12 @@ class PandaManager:
         )
         chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
+
+        if self.user.webhook_string is not None and self.user.webhook_count == int(
+            message_class["coin"]
+        ):
+            data = await send_webhook(self.user.webhook_string)
+            print(data)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
@@ -603,14 +607,6 @@ class PandaManager:
                     chat = ChattingData(data)
                     self.id_count += 1
                 except Exception as e:  # pylint: disable=W0718 W0612
-                    # await logging_error(
-                    #     panda_id=self.panda_id,
-                    #     description="웹소켓 read Error",
-                    #     data={
-                    #         "error_message": str(e),
-                    #         "data": data,
-                    #     },
-                    # )
                     continue
                 if chat.type is None:
                     continue
