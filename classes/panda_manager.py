@@ -83,6 +83,7 @@ class PandaManager:
             "!월방송": self.get_month_play_time,
             "!총방송": self.get_total_play_time,
             "!타이머": self.create_timer,
+            "!타이머추가": self.add_timer_time,
             "!꺼": self.delete_timer,
             "@": self.create_gpt_task,
         }
@@ -492,6 +493,15 @@ class PandaManager:
                 asyncio.create_task(self.set_timer(int(splited[1]), int(splited[2])))
             elif len(splited) == 2:
                 asyncio.create_task(self.set_timer(int(splited[1])))
+        except:  # pylint: disable=W0702
+            return
+
+    async def add_timer_time(self, chat: ChattingData):
+        """타이머 시간 추가"""
+        splited = chat.message.strip().split(" ")
+        try:
+            self.time += int(splited[1])
+            await self.api_client.send_chatting(f"{splited[1]}초 추가되었습니다")
         except:  # pylint: disable=W0702
             return
 
