@@ -1,12 +1,15 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
+
+import json
 import os
 import asyncio
 import urllib.request
 import concurrent.futures
 import requests
 import uvicorn
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Response, status, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 # from playwright.async_api import async_playwright
 from playwright.async_api import Page
@@ -23,6 +26,15 @@ BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 app = FastAPI()
+
+
+class LoginDto(BaseModel):
+    """로그인 DTO"""
+
+    login_id: str
+    login_pw: str
+
+
 play_watch: pws.PlayWrightNightWatch = pws.PlayWrightNightWatch(
     watch_id="siveriness1", watch_pw="Adkflfkd1"
 )
@@ -54,6 +66,98 @@ async def night_watch_stop():
     return {"message": "NightWatch"}
 
 
+@app.get("/session/guest")
+async def get_guest_session_key():
+    """게스트 세션키를 가져오는 함수"""
+    default_header: dict = {
+        "authority": "api.pandalive.co.kr",
+        "method": "POST",
+        "scheme": "https",
+        "accept": "application/json, text/plain, */*",
+        "accept-encoding": "gzip, deflate, br",
+        "Accept-Language": "ko,ko-KR;q=0.9",
+        "content-type": "application/x-www-form-urlencoded",
+        "origin": "https://www.pandalive.co.kr",
+        "referer": "https://www.pandalive.co.kr/",
+        "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "Windows",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
+    }
+    url = "https://api.pandalive.co.kr/v1/member/login_info"
+    try:
+        response = requests.post(
+            url=url,
+            headers=default_header,
+            data={},
+            timeout=10,
+        )
+        sess_key = response.json()["loginInfo"]["sessKey"]
+        print(sess_key)
+        return sess_key
+    except:  # pylint: disable=W0702
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "게스트 세션을 받아오는데 실패하였습니다"},
+        )
+
+
+@app.post("/session/member")
+async def get_member_session_key(request: Request):
+    """게스트 세션키를 가져오는 함수"""
+    default_header: dict = {
+        "authority": "api.pandalive.co.kr",
+        "method": "POST",
+        "scheme": "https",
+        "accept": "application/json, text/plain, */*",
+        "accept-encoding": "gzip, deflate, br",
+        "Accept-Language": "ko,ko-KR;q=0.9",
+        "content-type": "application/x-www-form-urlencoded",
+        "origin": "https://www.pandalive.co.kr",
+        "referer": "https://www.pandalive.co.kr/",
+        "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "Windows",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
+    }
+    body = await request.body()
+    data = json.loads(body)
+    login_id = data.get("login_id")
+    login_pw = data.get("login_pw")
+    # login_id와 login_pw 변수로 본문 데이터에 접근할 수 있음
+    print(login_id, login_pw)
+
+    login_url = "https://api.pandalive.co.kr/v1/member/login"
+    data = f"id={login_id}&pw={login_pw}&idSave=N"
+    default_header["path"] = "/v1/member/login"
+    default_header["content-length"] = str(len(data))
+    try:
+        response = requests.post(
+            url=login_url,
+            headers=default_header,
+            data=data,
+            timeout=5,
+        )
+        result = response.json()
+        login_info = result["loginInfo"]
+        sess_key = login_info["sessKey"]
+        print(sess_key)
+        return sess_key
+    except:  # pylint: disable=W0702
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "멤버 세션을 받아오는데 실패하였습니다"},
+        )
+
+
 @app.get("/check-manager")
 async def check_manager_login(manager_id: str, manager_pw: str, response: Response):
     """매니저로 사용하는 id/pw가 로그인이 가능한지 확인하는 함수"""
@@ -80,7 +184,9 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
     }
     data = f"id={manager_id}&pw={manager_pw}&idSave=N"
     await logging_info(
-        "리소스 서버", "매니저 등록 시도", {manager_id: manager_id, manager_pw: manager_pw}
+        "리소스 서버",
+        "매니저 등록 시도",
+        {manager_id: manager_id, manager_pw: manager_pw},
     )
     try:
         api_response = requests.post(
@@ -99,7 +205,9 @@ async def check_manager_login(manager_id: str, manager_pw: str, response: Respon
                     return
                 print(user_info["nick"])
                 await logging_info(
-                    "리소스 서버", "매니저 등록 성공", {"매니저 닉네임": user_info["nick"]}
+                    "리소스 서버",
+                    "매니저 등록 성공",
+                    {"매니저 닉네임": user_info["nick"]},
                 )
                 return user_info["nick"]
         if "errorData" in response_data:
@@ -134,7 +242,9 @@ async def add_book_mark(bj_id: str):
     """북마크 추가"""
     await play_watch.add_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
-    await logging_info("add-bookmark", "북마크 등록", {"리스트": lists, "등록된 아이디": bj_id})
+    await logging_info(
+        "add-bookmark", "북마크 등록", {"리스트": lists, "등록된 아이디": bj_id}
+    )
     return {"message": "success"}
 
 
@@ -143,7 +253,9 @@ async def delete_book_mark(bj_id: str):
     """북마크 추가"""
     await play_watch.delete_book_mark_list(bj_id)
     lists = await play_watch.get_bookmark_list_to_nickname()
-    await logging_info("delete-bookmark", "북마크 삭제", {"리스트": lists, "삭제된 아이디": bj_id})
+    await logging_info(
+        "delete-bookmark", "북마크 삭제", {"리스트": lists, "삭제된 아이디": bj_id}
+    )
     return {"message": "success"}
 
 
@@ -176,27 +288,37 @@ async def check_book_mark():
 #######  manager 관련 유틸 함수들 #######
 async def check_popup_recaptcha_failed(show_frame: FrameLocator):
     """popup recaptcha failed"""
-    retry_detect = await show_frame.get_by_text("나중에 다시 시도해 주세요").is_visible()
+    retry_detect = await show_frame.get_by_text(
+        "나중에 다시 시도해 주세요"
+    ).is_visible()
     print("retry_detect", retry_detect)
     if retry_detect:
         print("잦은 재시도 탐지에 걸림")
         await logging_error(
-            "check-manager", "잦은 재시도 탐지에 걸림", {"debug_message": "잦은 재시도 탐지에 걸림"}
+            "check-manager",
+            "잦은 재시도 탐지에 걸림",
+            {"debug_message": "잦은 재시도 탐지에 걸림"},
         )
         raise ex.PlayWrightException(ex.PWEEnum.PD_LOGIN_STT_FAILED)
 
 
 async def login(page: Page, manager_id, manager_pw):
     """로그인 시도"""
-    await logging_debug("check-manager", "[login] - 닫기", {"debug_message": "닫기 성공"})
+    await logging_debug(
+        "check-manager", "[login] - 닫기", {"debug_message": "닫기 성공"}
+    )
     await page.get_by_role("button", name="로그인 / 회원가입").click()
     await logging_debug(
-        "check-manager", "[login] - 회원가입 버튼 클릭", {"debug_message": "로그인 / 회원가입"}
+        "check-manager",
+        "[login] - 회원가입 버튼 클릭",
+        {"debug_message": "로그인 / 회원가입"},
     )
     await asyncio.sleep(0.3)
     await page.get_by_role("link", name="로그인 / 회원가입").click()
     await logging_debug(
-        "check-manager", "[login] - 로그인 / 회원가입 링크 클릭", {"debug_message": "로그인 / 회원가입"}
+        "check-manager",
+        "[login] - 로그인 / 회원가입 링크 클릭",
+        {"debug_message": "로그인 / 회원가입"},
     )
     await asyncio.sleep(0.3)
     await page.get_by_role("link", name="로그인").click()
@@ -227,7 +349,9 @@ async def login(page: Page, manager_id, manager_pw):
         "[빨간줄 통과]",
         {"id": manager_id, "pw": manager_pw},
     )
-    invalid_label_id = await page.get_by_label("존재하지 않는 사용자입니다.").is_visible()
+    invalid_label_id = await page.get_by_label(
+        "존재하지 않는 사용자입니다."
+    ).is_visible()
     invalid_label_pw = await page.get_by_label(
         "비밀번호가 일치하지 않습니다.다시 입력해 주세요."
     ).is_visible()
@@ -245,7 +369,9 @@ async def login(page: Page, manager_id, manager_pw):
     invalid_login_detect = await page.get_by_label(
         "비정상적인 로그인이 감지되었습니다.잠시 후 다시 시도해 주세요."
     ).is_visible()
-    auto_detect = await page.get_by_label("자동접속방지 체크박스를 확인해주세요").is_visible()
+    auto_detect = await page.get_by_label(
+        "자동접속방지 체크박스를 확인해주세요"
+    ).is_visible()
     await logging_debug(
         "check-manager",
         "[invalid-login_detect check]",
@@ -255,7 +381,10 @@ async def login(page: Page, manager_id, manager_pw):
         await logging_debug(
             "check-manager",
             "[비정상적인 로그인 / 자동접속방지 체크박스] 감지됨",
-            {"비정상 로그인 감지": invalid_login_detect, "자동접속방지 체크박스": auto_detect},
+            {
+                "비정상 로그인 감지": invalid_login_detect,
+                "자동접속방지 체크박스": auto_detect,
+            },
         )
         await page.get_by_role("button", name="확인").click()
         await asyncio.sleep(2)
@@ -277,7 +406,9 @@ async def login(page: Page, manager_id, manager_pw):
         await check_popup_recaptcha_failed(show_frame)
         await show_frame.get_by_role("button", name="음성 보안문자 듣기").click()
         await logging_debug(
-            "check-manager", "[음성 보안문자 듣기]", {"debug_message": "음성 보안문자 듣기"}
+            "check-manager",
+            "[음성 보안문자 듣기]",
+            {"debug_message": "음성 보안문자 듣기"},
         )
         await asyncio.sleep(1)
         # 보안문자 떳는지 확인
@@ -286,7 +417,9 @@ async def login(page: Page, manager_id, manager_pw):
             "link", name="또는 오디오를 MP3로 다운로드하세요."
         ).get_attribute("href")
         await logging_debug(
-            "check-manager", "[음성 보안문자 듣기] - 다운로드 주소", {"debug_message": audio_url}
+            "check-manager",
+            "[음성 보안문자 듣기] - 다운로드 주소",
+            {"debug_message": audio_url},
         )
         await asyncio.sleep(1)
         urllib.request.urlretrieve(audio_url, "stt/audio.mp3")
@@ -294,12 +427,16 @@ async def login(page: Page, manager_id, manager_pw):
         if response:
             print(response)
             await logging_debug(
-                "check-manager", "[음성 보안문자 듣기] - 음성인식 결과", {"stt_result": response}
+                "check-manager",
+                "[음성 보안문자 듣기] - 음성인식 결과",
+                {"stt_result": response},
             )
             await show_frame.get_by_label("들리는 대로 입력하세요.").fill(response)
             await show_frame.get_by_role("button", name="확인").click()
             await logging_debug(
-                "check-manager", "[들리는대로 입력하세요 확인]", {"debug_message": "들리는대로 입력하세요 확인"}
+                "check-manager",
+                "[들리는대로 입력하세요 확인]",
+                {"debug_message": "들리는대로 입력하세요 확인"},
             )
             # 보안 문자 떳는지 확인
             await asyncio.sleep(1)
@@ -312,15 +449,21 @@ async def login(page: Page, manager_id, manager_pw):
             await check_popup_recaptcha_failed(show_frame)
             await page.wait_for_selector("div.profile_img")
         else:
-            await logging_error("check-manager", "stt 실패", {"err_message": "stt 실패"})
+            await logging_error(
+                "check-manager", "stt 실패", {"err_message": "stt 실패"}
+            )
             print("stt 실패")
-            await logging_debug("check-manager", "stt 실패", {"debug_message": "stt 실패"})
+            await logging_debug(
+                "check-manager", "stt 실패", {"debug_message": "stt 실패"}
+            )
             raise ex.PlayWrightException(ex.PWEEnum.PD_LOGIN_STT_FAILED)
     else:
         print("로그인 성공")
         login_profile = await page.query_selector("div.profile_img")
         manager_nickname = await login_profile.inner_text()
-        await logging_debug("check-manager", "로그인 성공", {"debug_message": "로그인 성공"})
+        await logging_debug(
+            "check-manager", "로그인 성공", {"debug_message": "로그인 성공"}
+        )
         return manager_nickname
 
 
