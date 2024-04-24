@@ -97,6 +97,7 @@ async def get_guest_session_key():
             timeout=10,
         )
         sess_key = response.json()["loginInfo"]["sessKey"]
+        print(response.json())
         print(sess_key)
         return sess_key
     except:  # pylint: disable=W0702
@@ -106,9 +107,9 @@ async def get_guest_session_key():
         )
 
 
-@app.post("/session/member")
-async def get_member_session_key(request: Request):
-    """게스트 세션키를 가져오는 함수"""
+@app.get("/session/member")
+async def get_member_session_key(login_id: str, login_pw: str):
+    """멤버 세션키를 가져오는 함수"""
     default_header: dict = {
         "authority": "api.pandalive.co.kr",
         "method": "POST",
@@ -128,10 +129,6 @@ async def get_member_session_key(request: Request):
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
     }
-    body = await request.body()
-    data = json.loads(body)
-    login_id = data.get("login_id")
-    login_pw = data.get("login_pw")
     # login_id와 login_pw 변수로 본문 데이터에 접근할 수 있음
     print(login_id, login_pw)
 
@@ -147,11 +144,15 @@ async def get_member_session_key(request: Request):
             timeout=5,
         )
         result = response.json()
+        print(result)
+        if "errorData" in result:
+            raise Exception("멤버 세션을 받아오는데 실패")  # pylint: disable=W0719
         login_info = result["loginInfo"]
         sess_key = login_info["sessKey"]
         print(sess_key)
         return sess_key
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=W0702 W0718
+        await logging_error("대리접속", "멤버 로그인 실패", result)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "멤버 세션을 받아오는데 실패하였습니다"},

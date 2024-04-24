@@ -1,9 +1,11 @@
 """팬더백엔드 서버에 API를 호출하는 클래스"""
+
 import time
 from urllib.parse import quote
 import emoji
 import requests
 from classes.bj_info import BjInfo
+from fastapi import HTTPException
 
 from util.my_util import (
     callback_login_failure,
@@ -55,7 +57,7 @@ class APIClient:
                 url=url,
                 headers=headers,
                 data=data,
-                timeout=5,
+                timeout=30,
                 proxies={
                     "http": f"http://{self.proxy_ip}:8888",
                     "https": f"http://{self.proxy_ip}:8888",
@@ -63,7 +65,9 @@ class APIClient:
             )
         if response.status_code == 200:
             return response.json()
-        await logging_error(self.panda_id, "API 호출 실패", {"response": response.json()})
+        await logging_error(
+            self.panda_id, "API 호출 실패", {"response": response.json()}
+        )
         raise Exception(response.json()["message"])  # pylint: disable=W0719
 
     async def login(self, login_id, login_pw, panda_id):
@@ -116,9 +120,9 @@ class APIClient:
         data = f"userId={panda_id}&info=media%20fanGrade%20bookmark"
         dummy_header["path"] = "/v1/member/bj"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(search_bj_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
@@ -144,9 +148,9 @@ class APIClient:
         data = f"userIdx={user_idx}"
         dummy_header["path"] = "/v1/bookmark/add"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(add_bookmark_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
@@ -166,9 +170,9 @@ class APIClient:
         data = f"userIdx%5B0%5D={user_idx}"
         dummy_header["path"] = "/v1/bookmark/delete"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(
                 delete_bookmark_url,
@@ -201,9 +205,9 @@ class APIClient:
         data = "offset=0&limit=200&isLive=&hideOnly=N"
         dummy_header["path"] = "/v1/live/bookmark"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(book_mark_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
@@ -237,9 +241,9 @@ class APIClient:
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/live/play"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(play_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
@@ -274,12 +278,12 @@ class APIClient:
             f"channel={self.channel}&token={self.jwt_token}"
         )
         dummy_header = self.default_header.copy()
-        dummy_header[
-            "path"
-        ] = f"/v1/chat/channel_user_list?channel={self.channel}&token={self.jwt_token}"
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["path"] = (
+            f"/v1/chat/channel_user_list?channel={self.channel}&token={self.jwt_token}"
+        )
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             response = requests.get(
                 url=room_list_url, headers=self.default_header, timeout=5
@@ -296,9 +300,9 @@ class APIClient:
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/refresh_token"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(refresh_token_url, data, dummy_header)
             if "token" in result:
@@ -344,9 +348,9 @@ class APIClient:
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/message"
         dummy_header["content-length"] = str(len(data))
-        dummy_header[
-            "cookie"
-        ] = f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
         try:
             result = await self.request_api_call(chat_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
@@ -357,3 +361,50 @@ class APIClient:
             )
             return None  # pylint: disable=W0719 W0707
         return result
+
+    async def guest_login(self):
+        """게스트 로그인"""
+        guest_login_url = "https://api.pandalive.co.kr/v1/member/login_info"
+        dummy_header = self.default_header.copy()
+        data = {}
+        try:
+            result = await self.request_api_call(guest_login_url, data, dummy_header)
+        except Exception as e:  # pylint: disable=W0703
+            print(str(e))
+            await logging_error(
+                self.panda_id,
+                "[게스트 로그인 실패]",
+                {"data": str(e)},
+            )
+            return HTTPException(status_code=409, detail="게스트 로그인 실패")
+        login_info = result["loginInfo"]
+        self.sess_key = login_info["sessKey"]
+        self.user_idx = ""
+        print(self.sess_key, self.user_idx)
+        return self.sess_key
+
+    async def guest_play(self, panda_id):
+        """방송 시청 API 호출, 아마 방송에 대한 정보를 받는 API일듯"""
+        play_url = "https://api.pandalive.co.kr/v1/live/play"
+        data = f"action=watch&userId={panda_id}&password=&shareLinkType="
+        dummy_header = self.default_header.copy()
+        dummy_header["path"] = "/v1/live/play"
+        dummy_header["content-length"] = str(len(data))
+        dummy_header["cookie"] = f"sessKey={self.sess_key};"
+        result = await self.request_api_call(play_url, data, dummy_header)
+        print(result)
+        # await logging_info(self.panda_id, "[view_play API 결과]", result)
+        try:
+            self.chat_token = result["chatServer"]["token"]
+            self.jwt_token = result["token"]
+            self.channel = result["media"]["userIdx"]
+            self.room_id = result["media"]["code"]
+            self.is_manager = result["fan"]["isManager"]
+            return result
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[play API 결과 파싱 실패]",
+                {"error": str(e), "result": result},
+            )
+            raise HTTPException(status_code=409, detail=str(e)) from e
