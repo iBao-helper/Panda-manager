@@ -20,6 +20,7 @@ from util.my_util import (
     logging_info,
 )
 
+
 class WebsocketData:
     """대리접속 관련 데이터 클래스"""
 
@@ -29,12 +30,14 @@ class WebsocketData:
         self.websocket = websocket
         self.api_client = api_client
 
+
 app = FastAPI()
 app.counter = 0
 app.ws_dict = {}
 
 
 BACKEND_URL = "175.200.191.11"
+
 
 async def connect_websocket(token: str, channel: str):
     """웹소켓 연결 하는 함수"""
@@ -162,6 +165,7 @@ async def refresh_ws():
 
 
 def run_refresh_ws():
+    """웹소켓 refresh 관리 쓰레드"""
     asyncio.set_event_loop(asyncio.new_event_loop())
     asyncio.run(refresh_ws())
 
