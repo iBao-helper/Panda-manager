@@ -383,10 +383,10 @@ class APIClient:
         print(self.sess_key, self.user_idx)
         return self.sess_key
 
-    async def guest_play(self, panda_id):
+    async def guest_play(self):
         """방송 시청 API 호출, 아마 방송에 대한 정보를 받는 API일듯"""
         play_url = "https://api.pandalive.co.kr/v1/live/play"
-        data = f"action=watch&userId={panda_id}&password=&shareLinkType="
+        data = f"action=watch&userId={self.panda_id}&password=&shareLinkType="
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/live/play"
         dummy_header["content-length"] = str(len(data))
