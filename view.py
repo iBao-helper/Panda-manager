@@ -6,55 +6,19 @@ AWS EC2에서 돌아갈 View Server
 import asyncio
 import json
 import threading
-from dataclasses import dataclass
 from typing import Optional, Dict, List
 from pydantic import BaseModel
 import uvicorn
-import requests
 import websockets
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from classes.api_client import APIClient
-from classes.panda_manager import PandaManager
 from util.my_util import (
     logging_error,
     logging_info,
 )
-
-
-@dataclass
-class RequestedListItem:
-    """RequestedListItem"""
-
-    id: int
-    user_id: str
-    panda_id: str
-    kinds: str
-    desired: int
-    state: str
-
-
-@dataclass
-class UserProxyDetail:
-    """UserProxyDetail"""
-
-    id: int
-    user_proxy_pk: int
-    kinds: str
-    panda_id: str
-
-
-@dataclass
-class UserProxy:
-    """UserProxy"""
-
-    id: int
-    user_pk: int
-    ip: str
-    instance_id: str
-    available_count: int
 
 
 class RequestData(BaseModel):
@@ -164,20 +128,6 @@ async def connect_websocket(token: str, channel: str, proxy_ip: str):
     return websocket
 
 
-def check_available_count(
-    requested_item: RequestedListItem, user_proxy: UserProxy
-) -> bool:
-    """프록시의 사용가능한 용량을 체크하고, 사용가능한 용량이 있다면 True 반환"""
-    if user_proxy.instance_id in app.ws_dict:
-        if len(app.ws_dict[user_proxy.instance_id]) >= 3:
-            return False
-    if user_proxy.available_count <= 0:
-        return False
-    if requested_item.desired <= 0:
-        return False
-    return True
-
-
 async def update_jwt_refresh(
     api_client: APIClient, websocket: websockets.WebSocketClientProtocol
 ):
@@ -252,96 +202,6 @@ async def process_guest(request_data: RequestData):
         args=(request_data,),
         daemon=True,
     ).start()
-
-
-async def get_proxy_request_list() -> RequestedListItem:
-    """프록시 요청 리스트 가져오기"""
-    response = requests.get(
-        url=f"http://{BACKEND_URL}:3000/proxy-request-list", timeout=10
-    )
-    if response.status_code != 200:
-        await logging_error(
-            "View-Proxy",
-            "Backend 서버와의 통신에 문제가 발생했습니다.",
-            {"url": f"http://{BACKEND_URL}:3000/proxy-request-list"},
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend 서버와의 통신에 문제가 발생했습니다.",
-        )
-    data = response.json()
-    requested_item = RequestedListItem(**data)
-    return requested_item
-
-
-async def get_user_proxy(user_id) -> UserProxy:
-    """해당 user의 가장 가용용량이 적은 프록시 가져오기"""
-    response = requests.get(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/{user_id}",
-        timeout=10,
-    )
-    if response.status_code != 200:
-        await logging_error(
-            "View-Proxy",
-            "Backend 서버와의 통신에 문제가 발생했습니다.",
-            {"url": f"http://{BACKEND_URL}:3000/user-proxy/{user_id}"},
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend 서버와의 통신에 문제가 발생했습니다.",
-        )
-    data = response.json()
-    user_proxy = UserProxy(**data)
-    return user_proxy
-
-
-async def delete_request_list(user_id: str):
-    """요청 리스트 삭제"""
-    response = requests.delete(
-        url=f"http://{BACKEND_URL}:3000/proxy-request-list/{user_id}",
-        timeout=10,
-    )
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend 서버와의 통신에 문제가 발생했습니다.",
-        )
-
-
-async def update_request_list(user_id: str, desired: int):
-    """요청 리스트 업데이트"""
-    response = requests.patch(
-        url=f"http://{BACKEND_URL}:3000/proxy-request-list/{user_id}",
-        data={"desired": desired},
-        timeout=10,
-    )
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend 서버와의 통신에 문제가 발생했습니다.",
-        )
-
-
-async def update_user_proxy(pk: int, available_count: int):
-    """UserProxy 업데이트"""
-    response = requests.patch(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/{pk}",
-        data={"available_count": available_count},
-        timeout=10,
-    )
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Backend 서버와의 통신에 문제가 발생했습니다.",
-        )
-
-
-async def callback_connect_failed(user_proxy: UserProxy):
-    """특정 프록시 연결 실패시 콜백 함수"""
-    requests.patch(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/{user_proxy.id}/connect-failed",
-        timeout=10,
-    )
 
 
 @app.post("/connect")
@@ -427,6 +287,7 @@ async def check():
             if v.websocket.open:
                 count += 1
     print(count)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3010)
