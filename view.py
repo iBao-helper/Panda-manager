@@ -8,9 +8,10 @@ import json
 import threading
 from typing import Optional, Dict, List
 from pydantic import BaseModel
+import requests
 import uvicorn
 import websockets
-
+from dataclasses import dataclass
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -21,9 +22,21 @@ from util.my_util import (
 )
 
 
+@dataclass
+class Account:
+    """계정 정보"""
+
+    id: int
+    user_pk: int
+    login_id: str
+    login_pw: str
+    logined: bool
+
+
 class RequestData(BaseModel):
     """매니저 생성 DTO"""
 
+    user_id: str
     panda_id: str
     proxy_ip: str
     instance_id: str
@@ -33,6 +46,7 @@ class RequestData(BaseModel):
 
     def set(
         self,
+        user_id: str,
         panda_id: str,
         proxy_ip: str,
         instance_id: str,
@@ -41,6 +55,7 @@ class RequestData(BaseModel):
         login_pw: Optional[str] = None,
     ):
         """set"""
+        self.user_id = user_id
         self.panda_id = panda_id
         self.proxy_ip = proxy_ip
         self.instance_id = instance_id
@@ -163,20 +178,53 @@ async def viewbot_start(
             break
 
 
+async def get_account(user_id: str):
+    """멤버 아이디 가져오기"""
+    response = requests.get(
+        url=f"http://{BACKEND_URL}:3000/user-proxy/member/{user_id}",
+        timeout=5,
+    )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="해당 유저가 존재하지 않습니다.",
+        )
+    data = response.json()
+    account = Account(**data)
+    return account
+
+
 def start_view_bot(
     request_data: RequestData,
 ):
     """매니저 쓰레드 함수"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    api_client = APIClient(
-        panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
-    )
-    loop.run_until_complete(api_client.guest_login())
-    loop.run_until_complete(api_client.guest_play())
-    websocket = loop.run_until_complete(
-        connect_websocket(api_client.jwt_token, api_client.channel, api_client.proxy_ip)
-    )
+    if request_data.kinds == "guest":
+        api_client = APIClient(
+            panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
+        )
+        loop.run_until_complete(api_client.guest_login())
+        loop.run_until_complete(api_client.guest_play())
+        websocket = loop.run_until_complete(
+            connect_websocket(
+                api_client.jwt_token, api_client.channel, api_client.proxy_ip
+            )
+        )
+    elif request_data.kinds == "member":
+        account = loop.run_until_complete(get_account(user_id=request_data.user_id))
+        print(account)
+        api_client = APIClient(
+            panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
+        )
+        loop.run_until_complete(api_client.member_login(account))
+        loop.run_until_complete(api_client.member_play(request_data.panda_id))
+        print(api_client.jwt_token, api_client.sess_key, api_client.user_idx)
+        websocket = loop.run_until_complete(
+            connect_websocket(
+                api_client.jwt_token, api_client.channel, api_client.proxy_ip
+            )
+        )
     ws_data = WebsocketData(websocket, api_client, request_data)
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
@@ -186,17 +234,8 @@ def start_view_bot(
     return
 
 
-async def process_guest(request_data: RequestData):
+async def process_request_thread(request_data: RequestData):
     """게스트를 처리하고 성공한다면 app.ws_dict에 추가"""
-
-    # await api_client.guest_login()
-    # await api_client.guest_play()
-    # websocket = await connect_websocket(
-    #     token=api_client.jwt_token,
-    #     channel=api_client.channel,
-    #     proxy_ip=api_client.proxy_ip,
-    # )
-
     threading.Thread(
         target=start_view_bot,
         args=(request_data,),
@@ -219,11 +258,7 @@ async def connect_proxy(request_data: RequestData):
             detail="kinds 값이 올바르지 않습니다.",
         )
     try:
-        if request_data.kinds == "guest":
-            await process_guest(request_data=request_data)
-        elif request_data.kinds == "member":
-            # await process_member()
-            pass
+        await process_request_thread(request_data=request_data)
     except:  # pylint: disable=W0702
         return HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE,
