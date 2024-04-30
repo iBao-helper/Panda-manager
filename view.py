@@ -194,17 +194,22 @@ async def update_jwt_refresh(
         await asyncio.sleep(60 * 25)
 
 
-async def start(api_client: APIClient, websocket: websockets.WebSocketClientProtocol):
-    """AAA"""
-    asyncio.create_task(update_jwt_refresh(api_client, websocket))
-    while api_client.proxy_ip in app.refresh_dict:
+async def viewbot_start(
+    api_client: APIClient, websocket: websockets.WebSocketClientProtocol
+):
+    """팬더 매니저 시작"""
+    is_running = True
+    # 닉네임이 변경된 게 있다면 업데이트
+    asyncio.create_task(update_jwt_refresh(api_client=api_client, websocket=websocket))
+    # asyncio.create_task(self.promotion())
+    while is_running:
         try:
             await websocket.recv()
         except websockets.exceptions.ConnectionClosedOK as e:
-            print(e)
+            print(str(e))
             break
         except websockets.exceptions.ConnectionClosedError as e:
-            print(e)
+            print(str(e))
             break
 
 
@@ -219,20 +224,15 @@ def start_view_bot(
     )
     loop.run_until_complete(api_client.guest_login())
     loop.run_until_complete(api_client.guest_play())
-    manager = PandaManager(
-        panda_id=api_client.panda_id,
-        sess_key=api_client.sess_key,
-        user_idx="",
-        proxy_ip=api_client.proxy_ip,
-        manager_nick="",
+    websocket = loop.run_until_complete(
+        connect_websocket(api_client.jwt_token, api_client.channel, api_client.proxy_ip)
     )
-    loop.run_until_complete(manager.guest_connect_webscoket())
-    ws_data = WebsocketData(manager.websocket, api_client, request_data)
+    ws_data = WebsocketData(websocket, api_client, request_data)
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
     app.ws_dict[request_data.instance_id].append(ws_data)
     app.refresh_dict.append(api_client.proxy_ip)
-    loop.run_until_complete(manager.viewbot_start())
+    loop.run_until_complete(viewbot_start(websocket=websocket, api_client=api_client))
     return
 
 
@@ -427,26 +427,6 @@ async def check():
             if v.websocket.open:
                 count += 1
     print(count)
-
-
-async def refresh_ws():
-    """웹소켓 리프레쉬"""
-    while True:
-        print("AA")
-        await asyncio.sleep(60 * 20)
-
-
-def run_refresh_ws():
-    """웹소켓 refresh 관리 쓰레드"""
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    asyncio.run(refresh_ws())
-
-
-@app.on_event("startup")
-async def startup_event():
-    """메인쓰레드 이벤트루프 설정"""
-    threading.Thread(target=run_refresh_ws, daemon=True).start()
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3010)
