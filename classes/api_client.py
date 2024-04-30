@@ -391,10 +391,10 @@ class APIClient:
         dummy_header["path"] = "/v1/live/play"
         dummy_header["content-length"] = str(len(data))
         dummy_header["cookie"] = f"sessKey={self.sess_key};"
-        result = await self.request_api_call(play_url, data, dummy_header)
-        print(result)
         # await logging_info(self.panda_id, "[view_play API 결과]", result)
         try:
+            result = await self.request_api_call(play_url, data, dummy_header)
+            print(result)
             self.chat_token = result["chatServer"]["token"]
             self.jwt_token = result["token"]
             self.channel = result["media"]["userIdx"]
@@ -408,3 +408,25 @@ class APIClient:
                 {"error": str(e), "result": result},
             )
             raise HTTPException(status_code=409, detail=str(e)) from e
+
+    async def guest_refresh_token(self):
+        """토큰 갱신하는 요청"""
+        refresh_token_url = "https://api.pandalive.co.kr/v1/chat/refresh_token"
+        data = f"channel={self.channel}&token={self.jwt_token}"
+        dummy_header = self.default_header.copy()
+        dummy_header["path"] = "/v1/chat/refresh_token"
+        dummy_header["content-length"] = str(len(data))
+        dummy_header["cookie"] = f"sessKey={self.sess_key};"
+        try:
+            result = await self.request_api_call(refresh_token_url, data, dummy_header)
+            if "token" in result:
+                print(result["token"])
+                self.jwt_token = result["token"]
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[refresh_token API 호출 실패]",
+                {"data": str(e)},
+            )
+            return None  # pylint: disable=W0719 W0707
+        return result

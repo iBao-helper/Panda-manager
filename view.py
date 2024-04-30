@@ -17,6 +17,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from classes.api_client import APIClient
+from classes.panda_manager import PandaManager
 from util.my_util import (
     logging_error,
     logging_info,
@@ -104,6 +105,7 @@ class MyFastAPI(FastAPI):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ws_dict: Dict[str, List[WebsocketData]] = {}
+        self.refresh_dict = []
 
 
 app = MyFastAPI()
@@ -167,7 +169,7 @@ def check_available_count(
 ) -> bool:
     """프록시의 사용가능한 용량을 체크하고, 사용가능한 용량이 있다면 True 반환"""
     if user_proxy.instance_id in app.ws_dict:
-        if len(app.ws_dict[user_proxy.instance_id]) >= 4:
+        if len(app.ws_dict[user_proxy.instance_id]) >= 3:
             return False
     if user_proxy.available_count <= 0:
         return False
@@ -176,22 +178,80 @@ def check_available_count(
     return True
 
 
-async def process_guest(request_data: RequestData):
-    """게스트를 처리하고 성공한다면 app.ws_dict에 추가"""
+async def update_jwt_refresh(
+    api_client: APIClient, websocket: websockets.WebSocketClientProtocol
+):
+    """JWT 토큰 갱신"""
+    await asyncio.sleep(60 * 25)
+    while api_client.proxy_ip in app.refresh_dict:
+        await api_client.refresh_token()
+        message = {
+            "id": 3,
+            "method": 10,
+            "params": {"token": api_client.jwt_token},
+        }
+        await websocket.send(json.dumps(message))
+        await asyncio.sleep(60 * 25)
+
+
+async def start(api_client: APIClient, websocket: websockets.WebSocketClientProtocol):
+    """AAA"""
+    asyncio.create_task(update_jwt_refresh(api_client, websocket))
+    while api_client.proxy_ip in app.refresh_dict:
+        try:
+            await websocket.recv()
+        except websockets.exceptions.ConnectionClosedOK as e:
+            print(e)
+            break
+        except websockets.exceptions.ConnectionClosedError as e:
+            print(e)
+            break
+
+
+def start_view_bot(
+    request_data: RequestData,
+):
+    """매니저 쓰레드 함수"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     api_client = APIClient(
         panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
     )
-    await api_client.guest_login()
-    await api_client.guest_play()
-    websocket = await connect_websocket(
-        token=api_client.jwt_token,
-        channel=api_client.channel,
+    loop.run_until_complete(api_client.guest_login())
+    loop.run_until_complete(api_client.guest_play())
+    manager = PandaManager(
+        panda_id=api_client.panda_id,
+        sess_key=api_client.sess_key,
+        user_idx="",
         proxy_ip=api_client.proxy_ip,
+        manager_nick="",
     )
-    ws_data = WebsocketData(websocket, api_client, request_data)
+    loop.run_until_complete(manager.guest_connect_webscoket())
+    ws_data = WebsocketData(manager.websocket, api_client, request_data)
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
     app.ws_dict[request_data.instance_id].append(ws_data)
+    app.refresh_dict.append(api_client.proxy_ip)
+    loop.run_until_complete(manager.viewbot_start())
+    return
+
+
+async def process_guest(request_data: RequestData):
+    """게스트를 처리하고 성공한다면 app.ws_dict에 추가"""
+
+    # await api_client.guest_login()
+    # await api_client.guest_play()
+    # websocket = await connect_websocket(
+    #     token=api_client.jwt_token,
+    #     channel=api_client.channel,
+    #     proxy_ip=api_client.proxy_ip,
+    # )
+
+    threading.Thread(
+        target=start_view_bot,
+        args=(request_data,),
+        daemon=True,
+    ).start()
 
 
 async def get_proxy_request_list() -> RequestedListItem:
@@ -356,6 +416,17 @@ async def disconnect_proxy_by_ip(instance_id: str, ip: str):
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
     )
+
+
+@app.get("/check")
+async def check():
+    """a"""
+    count = 0
+    for key, value in app.ws_dict.items():
+        for v in value:
+            if v.websocket.open:
+                count += 1
+    print(count)
 
 
 async def refresh_ws():
