@@ -3,6 +3,8 @@ AWS EC2에서 돌아갈 View Server
 한 서버당 4명의 유저를 접속관리함
 """
 
+import string
+import random
 import asyncio
 import json
 import threading
@@ -72,10 +74,12 @@ class WebsocketData:
         websocket: websockets.WebSocketClientProtocol,
         api_client: APIClient,
         request_data: RequestData,
+        random_string: str,
     ):
         self.websocket = websocket
         self.api_client = api_client
         self.request_data = request_data
+        self.random_string = random_string
 
 
 class MyFastAPI(FastAPI):
@@ -85,6 +89,7 @@ class MyFastAPI(FastAPI):
         super().__init__(*args, **kwargs)
         self.ws_dict: Dict[str, List[WebsocketData]] = {}
         self.refresh_dict = []
+        self.thread_lists = []
 
 
 app = MyFastAPI()
@@ -160,20 +165,24 @@ async def update_jwt_refresh(
 
 
 async def viewbot_start(
-    api_client: APIClient, websocket: websockets.WebSocketClientProtocol
+    api_client: APIClient,
+    websocket: websockets.WebSocketClientProtocol,
+    random_string: str,
 ):
     """팬더 매니저 시작"""
-    is_running = True
     # 닉네임이 변경된 게 있다면 업데이트
     asyncio.create_task(update_jwt_refresh(api_client=api_client, websocket=websocket))
     # asyncio.create_task(self.promotion())
-    while is_running:
+    while random_string in app.thread_lists:
         try:
             await websocket.recv()
         except websockets.exceptions.ConnectionClosedOK as e:
             print(str(e))
             break
         except websockets.exceptions.ConnectionClosedError as e:
+            print(str(e))
+            break
+        except websockets.exceptions.ConnectionClosed as e:
             print(str(e))
             break
 
@@ -192,6 +201,15 @@ async def get_account(user_id: str):
     data = response.json()
     account = Account(**data)
     return account
+
+
+def generate_random_string(length=12):
+    """쓰레드를 지칭하기 위한 랜덤 문자열 생성"""
+    characters = string.ascii_letters + string.digits
+    random_string = "".join(random.choices(characters, k=length))
+    while random_string in app.thread_lists:
+        random_string = "".join(random.choices(characters, k=length))
+    return random_string
 
 
 def start_view_bot(
@@ -219,18 +237,23 @@ def start_view_bot(
         )
         loop.run_until_complete(api_client.member_login(account))
         loop.run_until_complete(api_client.member_play(request_data.panda_id))
-        print(api_client.jwt_token, api_client.sess_key, api_client.user_idx)
         websocket = loop.run_until_complete(
             connect_websocket(
                 api_client.jwt_token, api_client.channel, api_client.proxy_ip
             )
         )
-    ws_data = WebsocketData(websocket, api_client, request_data)
+    random_string = generate_random_string()
+    ws_data = WebsocketData(websocket, api_client, request_data, random_string)
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
     app.ws_dict[request_data.instance_id].append(ws_data)
     app.refresh_dict.append(api_client.proxy_ip)
-    loop.run_until_complete(viewbot_start(websocket=websocket, api_client=api_client))
+    app.thread_lists.append(random_string)
+    loop.run_until_complete(
+        viewbot_start(
+            websocket=websocket, api_client=api_client, random_string=random_string
+        )
+    )
     return
 
 
@@ -273,13 +296,7 @@ async def disconnect_proxy(instance_id: str):
         print(app.ws_dict.keys())
         socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
         for socket_data in socket_datas:
-            message = {
-                "id": 2,
-                "method": 2,
-                "params": {"channel": str(socket_data.api_client.channel)},
-            }
-            await socket_data.websocket.send(json.dumps(message))
-            await socket_data.websocket.close()
+            app.thread_lists.remove(socket_data.random_string)
         del app.ws_dict[instance_id]
         print(app.ws_dict.keys())
     return JSONResponse(
@@ -296,13 +313,7 @@ async def disconnect_proxy_by_ip(instance_id: str, ip: str):
         socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
         for socket_data in socket_datas:
             if socket_data.api_client.proxy_ip == ip:
-                message = {
-                    "id": 2,
-                    "method": 2,
-                    "params": {"channel": str(socket_data.api_client.channel)},
-                }
-                await socket_data.websocket.send(json.dumps(message))
-                await socket_data.websocket.close()
+                app.thread_lists.remove(socket_data.random_string)
                 socket_datas.remove(socket_data)
                 break
         app.ws_dict[instance_id] = socket_datas
