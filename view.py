@@ -149,11 +149,13 @@ async def connect_websocket(token: str, channel: str, proxy_ip: str):
 
 
 async def update_jwt_refresh(
-    api_client: APIClient, websocket: websockets.WebSocketClientProtocol
+    api_client: APIClient,
+    websocket: websockets.WebSocketClientProtocol,
+    random_string: str,
 ):
     """JWT 토큰 갱신"""
     await asyncio.sleep(60 * 25)
-    while api_client.proxy_ip in app.refresh_dict:
+    while random_string in app.thread_lists:
         await api_client.refresh_token()
         message = {
             "id": 3,
@@ -164,18 +166,38 @@ async def update_jwt_refresh(
         await asyncio.sleep(60 * 25)
 
 
+async def reqeust_delete_point(instance_id: str):
+    """인스턴스 제거 및 포인트 차감 요청"""
+    requests.delete(
+        url=f"http://{BACKEND_URL}:3000/user-proxy/instance_id/{instance_id}",
+        timeout=10,
+    )
+
+
 async def viewbot_start(
     api_client: APIClient,
     websocket: websockets.WebSocketClientProtocol,
     random_string: str,
+    instance_id: str,
 ):
     """팬더 매니저 시작"""
     # 닉네임이 변경된 게 있다면 업데이트
-    asyncio.create_task(update_jwt_refresh(api_client=api_client, websocket=websocket))
+    asyncio.create_task(
+        update_jwt_refresh(
+            api_client=api_client, websocket=websocket, random_string=random_string
+        )
+    )
     # asyncio.create_task(self.promotion())
     while random_string in app.thread_lists:
         try:
-            await websocket.recv()
+            data = await websocket.recv()
+            chatting_data = json.loads(data)
+            result = chatting_data.get("result", None)
+            if result is not None:
+                ws_type = result["data"]["data"].get("type", None)
+                if ws_type == "RoomEnd":
+                    remove_ws_dict(instance_id=instance_id, ip=api_client.proxy_ip)
+                    break
         except websockets.exceptions.ConnectionClosedOK as e:
             print(str(e))
             break
@@ -185,6 +207,13 @@ async def viewbot_start(
         except websockets.exceptions.ConnectionClosed as e:
             print(str(e))
             break
+        except Exception as e:  # pylint: disable=W0703
+            pass
+    if instance_id not in app.ws_dict:
+        # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
+        await reqeust_delete_point(instance_id=instance_id)
+        print("instance_id is deleted in dict. len")
+        return
 
 
 async def get_account(user_id: str):
@@ -247,11 +276,13 @@ def start_view_bot(
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
     app.ws_dict[request_data.instance_id].append(ws_data)
-    app.refresh_dict.append(api_client.proxy_ip)
     app.thread_lists.append(random_string)
     loop.run_until_complete(
         viewbot_start(
-            websocket=websocket, api_client=api_client, random_string=random_string
+            websocket=websocket,
+            api_client=api_client,
+            random_string=random_string,
+            instance_id=request_data.instance_id,
         )
     )
     return
@@ -305,11 +336,9 @@ async def disconnect_proxy(instance_id: str):
     )
 
 
-@app.delete("/disconnect/{instance_id}/{ip}")
-async def disconnect_proxy_by_ip(instance_id: str, ip: str):
-    """게스트 세션 끊기"""
+def remove_ws_dict(instance_id: str, ip: str):
+    """ws_dict로부터 해당 ip를 가진 요소 1개 제거한 후 요소가 0이면 instance_id도 제거"""
     if instance_id in app.ws_dict:
-        print(app.ws_dict.keys())
         socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
         for socket_data in socket_datas:
             if socket_data.api_client.proxy_ip == ip:
@@ -317,7 +346,15 @@ async def disconnect_proxy_by_ip(instance_id: str, ip: str):
                 socket_datas.remove(socket_data)
                 break
         app.ws_dict[instance_id] = socket_datas
+        if len(app.ws_dict[instance_id]) == 0:
+            del app.ws_dict[instance_id]
         print(app.ws_dict.keys())
+
+
+@app.delete("/disconnect/{instance_id}/{ip}")
+async def disconnect_proxy_by_ip(instance_id: str, ip: str):
+    """게스트 세션 끊기"""
+    remove_ws_dict(instance_id=instance_id, ip=ip)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
