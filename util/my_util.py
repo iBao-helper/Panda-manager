@@ -62,6 +62,28 @@ async def delete_bj_manager_by_panda_id(panda_id: str):
         return None
 
 
+async def delete_member(member_id: int):
+    """panda_id의 팬더 매니저 해제"""
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user-proxy/callback-failed-login/{member_id}",
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
+async def reset_member_status(member_id: int):
+    """panda_id의 팬더 매니저 해제"""
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user-proxy/login-status/{member_id}",
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def success_connect_websocket(panda_id: str, proxy_ip: str, resource_ip: str):
     """웹소켓 연결 성공"""
     try:

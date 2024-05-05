@@ -47,8 +47,8 @@ default_header: dict = {
 async def main():
     """docstring"""
     url = "https://api.pandalive.co.kr/v1/member/login_info"
-    proxy_ip = "158.181.204.159"
-    proxy_port = "8080"
+    proxy_ip = "52.79.227.47"
+    proxy_port = "8888"
     response = requests.post(
         url=url,
         headers=default_header,
@@ -66,8 +66,7 @@ async def main():
     default_header["cookie"] = f"sessKey={sess_key};"
     data = {
         "action": "watch",
-        # "userIdx": "24249268",
-        "userId": "aazznn1",
+        "userId": "doitbabe",
         "password": "",
         "shareLinkType": "",
     }
