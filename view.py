@@ -209,6 +209,7 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
+
     if instance_id not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
         await reqeust_delete_point(instance_id=instance_id)
@@ -325,11 +326,13 @@ async def disconnect_proxy(instance_id: str):
     """게스트 세션 끊기"""
     if instance_id in app.ws_dict:
         print(app.ws_dict.keys())
+        print(app.thread_lists)
         socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
         for socket_data in socket_datas:
             app.thread_lists.remove(socket_data.random_string)
         del app.ws_dict[instance_id]
         print(app.ws_dict.keys())
+        print(app.thread_lists)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
