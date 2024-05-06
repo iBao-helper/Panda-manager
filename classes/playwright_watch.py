@@ -1,4 +1,5 @@
 """playwright용 nightwatch"""
+
 import os
 
 import requests
@@ -46,36 +47,36 @@ class PlayWrightNightWatch:
             print(f"watned play lsit = {wanted_play_list}")
             print(f"watend stop list = {wanted_stop_list}")
             # 이 부분 이후에 에러 발생 1
-            if len(wanted_play_list) > 0:
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/log/info",
-                    json={
-                        "panda_id": "Night-Watch",
-                        "description": "Detect - 방송시작",
-                        "data": wanted_play_list,
-                    },
-                    timeout=5,
-                )
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
-                    json={"panda_ids": wanted_play_list},
-                    timeout=5,
-                )
-            if len(wanted_stop_list) > 0:
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/log/info",
-                    json={
-                        "panda_id": "Night-Watch",
-                        "description": "Detect - 방송종료",
-                        "data": wanted_stop_list,
-                    },
-                    timeout=5,
-                )
-                requests.delete(
-                    url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
-                    json={"panda_ids": wanted_stop_list},
-                    timeout=5,
-                )
+            # if len(wanted_play_list) > 0:
+            #     requests.post(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/log/info",
+            #         json={
+            #             "panda_id": "Night-Watch",
+            #             "description": "Detect - 방송시작",
+            #             "data": wanted_play_list,
+            #         },
+            #         timeout=5,
+            #     )
+            #     requests.post(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+            #         json={"panda_ids": wanted_play_list},
+            #         timeout=5,
+            #     )
+            # if len(wanted_stop_list) > 0:
+            #     requests.post(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/log/info",
+            #         json={
+            #             "panda_id": "Night-Watch",
+            #             "description": "Detect - 방송종료",
+            #             "data": wanted_stop_list,
+            #         },
+            #         timeout=5,
+            #     )
+            #     requests.delete(
+            #         url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+            #         json={"panda_ids": wanted_stop_list},
+            #         timeout=5,
+            #     )
         except Exception as e:  # pylint: disable=W0703
             print("what the fuck ?")
             print(e)
@@ -86,13 +87,18 @@ class PlayWrightNightWatch:
         idle_users = [
             user["userId"] for user in user_datas if user.get("media") is None
         ]
-        live_users = [
-            user["userId"]
-            for user in user_datas
-            if user.get("media") is not None
-            and user["media"]["liveType"] != "rec"
-            and user["media"]["isPw"] is False
-        ]
+        live_users = []
+        rec_users = []
+        for user in user_datas:
+            if user.get("media") is not None:
+                if (
+                    user["media"]["liveType"] != "rec"
+                    and user["media"]["isPw"] is False
+                ):
+                    live_users.append(user["userId"])
+                if user["media"]["liveType"] == "rec":
+                    rec_users.append(user["userId"])
+        print(idle_users, live_users)
         return idle_users, live_users
 
     def filter_wanted_play_list(self, current_live_list: list, backend_idle_list: list):
