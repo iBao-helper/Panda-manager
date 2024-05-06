@@ -95,7 +95,7 @@ class MyFastAPI(FastAPI):
 app = MyFastAPI()
 
 
-BACKEND_URL = "175.200.191.11"
+BACKEND_URL = "panda-manager.com"
 
 
 async def connect_websocket(token: str, channel: str, proxy_ip: str):
