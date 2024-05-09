@@ -267,7 +267,7 @@ class APIClient:
             await logging_error(
                 self.panda_id,
                 "[play API 결과 파싱 실패]",
-                {"error": str(e), "result": result},
+                {"error": str(e)},
             )
             return None
 
