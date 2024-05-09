@@ -175,6 +175,21 @@ async def reqeust_delete_point(instance_id: str):
     )
 
 
+async def request_decrease_ip(ip: str):
+    """프록시 IP 차감 요청"""
+    requests.patch(
+        url=f"http://{BACKEND_URL}:3000/user-proxy/decrease/{ip}", timeout=10
+    )
+
+
+async def request_callback_failed_member_id(account: Account):
+    """실패한 계정의 로그인 상태를 변경"""
+    requests.patch(
+        url=f"http://{BACKEND_URL}:3000/user-proxy/callback-failed-login/{account.id}",
+        timeout=10,
+    )
+
+
 async def viewbot_start(
     api_client: APIClient,
     websocket: websockets.WebSocketClientProtocol,
@@ -250,35 +265,43 @@ def start_view_bot(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     if request_data.kinds == "guest":
-        api_client = APIClient(
-            panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
-        )
-        loop.run_until_complete(api_client.guest_login())
-        loop.run_until_complete(api_client.guest_play())
-        websocket = loop.run_until_complete(
-            connect_websocket(
-                api_client.jwt_token, api_client.channel, api_client.proxy_ip
+        try:
+            api_client = APIClient(
+                panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
             )
-        )
+            loop.run_until_complete(api_client.guest_login())
+            loop.run_until_complete(api_client.guest_play())
+            websocket = loop.run_until_complete(
+                connect_websocket(
+                    api_client.jwt_token, api_client.channel, api_client.proxy_ip
+                )
+            )
+        except:  # pylint: disable=W0702
+            return
     elif request_data.kinds == "member":
-        account = loop.run_until_complete(get_account(user_id=request_data.user_id))
-        print(account)
-        api_client = APIClient(
-            panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
-        )
-        loop.run_until_complete(api_client.member_login(account))
-        loop.run_until_complete(api_client.member_play(request_data.panda_id))
-        websocket = loop.run_until_complete(
-            connect_websocket(
-                api_client.jwt_token, api_client.channel, api_client.proxy_ip
+        try:
+            account = loop.run_until_complete(get_account(user_id=request_data.user_id))
+            print(account)
+            api_client = APIClient(
+                panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
             )
-        )
+            loop.run_until_complete(api_client.member_login(account))
+            loop.run_until_complete(api_client.member_play(request_data.panda_id))
+            websocket = loop.run_until_complete(
+                connect_websocket(
+                    api_client.jwt_token, api_client.channel, api_client.proxy_ip
+                )
+            )
+        except:  # pylint: disable=W0702
+            loop.run_until_complete(request_callback_failed_member_id(account))
+            return
     random_string = generate_random_string()
     ws_data = WebsocketData(websocket, api_client, request_data, random_string)
     if request_data.instance_id not in app.ws_dict:
         app.ws_dict[request_data.instance_id] = []
     app.ws_dict[request_data.instance_id].append(ws_data)
     app.thread_lists.append(random_string)
+    loop.run_until_complete(request_decrease_ip(ip=request_data.proxy_ip))
     loop.run_until_complete(
         viewbot_start(
             websocket=websocket,
