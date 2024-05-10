@@ -225,7 +225,7 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
-
+    await websocket.close()
     if instance_id not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
         await reqeust_delete_point(instance_id=instance_id)
@@ -392,11 +392,22 @@ async def disconnect_proxy_by_ip(instance_id: str, ip: str):
 async def check():
     """a"""
     count = 0
+    result = []
     for key, value in app.ws_dict.items():
         for v in value:
             if v.websocket.open:
+                result.append(
+                    {
+                        "instance_id": v.api_client.panda_id,
+                        "proxy_ip": v.api_client.proxy_ip,
+                    }
+                )
                 count += 1
-    print(count)
+    result = {
+        "len": len(result),
+        "result": result,
+    }
+    return result
 
 
 if __name__ == "__main__":
