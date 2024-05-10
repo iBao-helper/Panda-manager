@@ -136,7 +136,8 @@ class PandaManager:
 
     async def hart_search_by_total(self, chat: ChattingData):
         """하트내역 모두 조회"""
-        response = await get_hart_history_with_total(chat.nickname)
+        splited = chat.message.split(" ")
+        response = await get_hart_history_with_total(splited[1])
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
