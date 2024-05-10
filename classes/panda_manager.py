@@ -144,7 +144,8 @@ class PandaManager:
 
     async def hart_search_by_three(self, chat: ChattingData):
         """최근 하트내역 3개 조회"""
-        response = await get_hart_history_with_three(chat.nickname)
+        splited = chat.message.split(" ")
+        response = await get_hart_history_with_three(splited[1])
         if response is not None:
             await self.api_client.send_chatting(response)
         else:
