@@ -276,7 +276,9 @@ def start_view_bot(
                     api_client.jwt_token, api_client.channel, api_client.proxy_ip
                 )
             )
-        except:  # pylint: disable=W0702
+        except Exception as e:  # pylint: disable=W0702 W0718
+            print(str(e))
+            app.lock.release()
             return
     elif request_data.kinds == "member":
         try:
@@ -293,6 +295,8 @@ def start_view_bot(
                 )
             )
         except:  # pylint: disable=W0702
+            print(str(e))
+            app.lock.release()
             loop.run_until_complete(request_callback_failed_member_id(account))
             return
     random_string = generate_random_string()
