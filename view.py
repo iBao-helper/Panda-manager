@@ -9,19 +9,14 @@ import asyncio
 import json
 import threading
 from typing import Optional, Dict, List
+from dataclasses import dataclass
 from pydantic import BaseModel
 import requests
 import uvicorn
 import websockets
-from dataclasses import dataclass
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
-
 from classes.api_client import APIClient
-from util.my_util import (
-    logging_error,
-    logging_info,
-)
 
 
 @dataclass
@@ -90,13 +85,14 @@ class MyFastAPI(FastAPI):
         self.ws_dict: Dict[str, List[WebsocketData]] = {}
         self.refresh_dict = []
         self.thread_lists = []
+        self.lock = threading.Lock()
 
 
 app = MyFastAPI()
 
 
 BACKEND_URL = "panda-manager.com"
-# BACKEND_URL = "175.200.191.11"
+# BACKEND_URL = "175.200.191.38"
 
 
 async def connect_websocket(token: str, channel: str, proxy_ip: str):
@@ -155,16 +151,19 @@ async def update_jwt_refresh(
     random_string: str,
 ):
     """JWT 토큰 갱신"""
-    await asyncio.sleep(60 * 25)
+    time = 0
     while random_string in app.thread_lists:
-        await api_client.refresh_token()
-        message = {
-            "id": 3,
-            "method": 10,
-            "params": {"token": api_client.jwt_token},
-        }
-        await websocket.send(json.dumps(message))
-        await asyncio.sleep(60 * 25)
+        if time >= 1500:
+            time = 0
+            await api_client.refresh_token()
+            message = {
+                "id": 3,
+                "method": 10,
+                "params": {"token": api_client.jwt_token},
+            }
+            await websocket.send(json.dumps(message))
+        time += 1
+        await asyncio.sleep(30)
 
 
 async def reqeust_delete_point(instance_id: str):
@@ -262,6 +261,7 @@ def start_view_bot(
     request_data: RequestData,
 ):
     """매니저 쓰레드 함수"""
+    app.lock.acquire()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     if request_data.kinds == "guest":
@@ -302,6 +302,7 @@ def start_view_bot(
     app.ws_dict[request_data.instance_id].append(ws_data)
     app.thread_lists.append(random_string)
     loop.run_until_complete(request_decrease_ip(ip=request_data.proxy_ip))
+    app.lock.release()
     loop.run_until_complete(
         viewbot_start(
             websocket=websocket,
