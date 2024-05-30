@@ -1,4 +1,5 @@
 """oepnAI 사용 예제"""
+
 import time
 from urllib.parse import quote
 from openai import OpenAI
@@ -7,10 +8,10 @@ import requests
 client = OpenAI()
 
 
-def gpt3_turbo(question, room_id, chat_token, jwt_token, channel, sess_key, user_idx):
+def gpt4_omni(question, room_id, chat_token, jwt_token, channel, sess_key, user_idx):
     """GPT3.5 turbo에게 물어보기"""
     completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=[
             {
                 "role": "system",

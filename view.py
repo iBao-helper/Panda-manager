@@ -151,19 +151,16 @@ async def update_jwt_refresh(
     random_string: str,
 ):
     """JWT 토큰 갱신"""
-    time = 0
+    await asyncio.sleep(60 * 25)
     while random_string in app.thread_lists:
-        if time >= 1500:
-            time = 0
-            await api_client.refresh_token()
-            message = {
-                "id": 3,
-                "method": 10,
-                "params": {"token": api_client.jwt_token},
-            }
-            await websocket.send(json.dumps(message))
-        time += 1
-        await asyncio.sleep(30)
+        await api_client.refresh_token()
+        message = {
+            "id": 3,
+            "method": 10,
+            "params": {"token": api_client.jwt_token},
+        }
+        await websocket.send(json.dumps(message))
+        await asyncio.sleep(60 * 25)
 
 
 async def reqeust_delete_point(instance_id: str):
@@ -343,7 +340,8 @@ async def connect_proxy(request_data: RequestData):
         )
     try:
         await process_request_thread(request_data=request_data)
-    except:  # pylint: disable=W0702
+    except Exception as e:  # pylint: disable=W0702
+        print(str(e))
         return HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE,
             detail="웹소켓 접속 실패.",

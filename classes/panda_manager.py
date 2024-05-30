@@ -7,7 +7,7 @@ import emoji
 import websockets
 from classes.api_client import APIClient
 from classes.chatting_data import ChattingData
-from gpt import gpt3_turbo
+from gpt import gpt4_omni
 from util.my_util import (
     User,
     add_room_user,
@@ -545,7 +545,7 @@ class PandaManager:
     async def create_gpt_task(self, chat: ChattingData):  # pylint: disable=W0613
         """GPT3.5에게 물어보는 비동기 태스크 만들기"""
         thread = threading.Thread(
-            target=gpt3_turbo,
+            target=gpt4_omni,
             args=(
                 chat.message.replace("@ ", ""),
                 self.api_client.room_id,
