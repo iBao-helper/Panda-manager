@@ -151,7 +151,7 @@ async def update_jwt_refresh(
     random_string: str,
 ):
     """JWT 토큰 갱신"""
-    await asyncio.sleep(60 * 25)
+    await asyncio.sleep(60 * 20)
     while random_string in app.thread_lists:
         await api_client.refresh_token()
         message = {
@@ -160,7 +160,7 @@ async def update_jwt_refresh(
             "params": {"token": api_client.jwt_token},
         }
         await websocket.send(json.dumps(message))
-        await asyncio.sleep(60 * 25)
+        await asyncio.sleep(60 * 20)
 
 
 async def reqeust_delete_point(instance_id: str):
@@ -221,6 +221,12 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
+    message = {
+        "id": 2,
+        "method": 2,
+        "params": {"channel": str(api_client.channel)},
+    }
+    await websocket.send(json.dumps(message))
     await websocket.close()
     if instance_id not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
