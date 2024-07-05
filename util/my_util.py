@@ -116,18 +116,6 @@ async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
         return None
 
 
-async def send_webhook(random_string: str):
-    """웹훅 전송"""
-    try:
-        data = requests.get(
-            url=f"http://panda-manager.com:8083/webhook/{random_string}",
-            timeout=5,
-        )
-        return data
-    except:  # pylint: disable=W0702
-        return None
-
-
 async def delete_normal_command(panda_id: str, key: str):
     """일반 커맨드 삭제"""
     try:
