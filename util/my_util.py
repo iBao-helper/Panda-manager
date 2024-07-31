@@ -37,6 +37,39 @@ class User(BaseModel):
     webhook_count: int
 
 
+async def get_manager_data(jwt: str):
+    """JWT로 매니저 정보 가져오기"""
+    response = requests.get(
+        url=f"http://panda-manager.com:3000/user/manager_data",
+        headers={"Authorization": f"Bearer {jwt}"},
+        timeout=5,
+    )
+    return response.json()
+
+
+async def get_info(jwt: str):
+    """JWT로 유저 정보 가져오기"""
+    response = requests.get(
+        url=f"http://panda-manager.com:3000/user",
+        headers={"Authorization": f"Bearer {jwt}"},
+        timeout=5,
+    )
+    return response.json()
+
+
+async def login(id: str, pw: str) -> str:
+    """팬더 매니저에 가입된 id, pw로 로그인하여 jwt 발급"""
+    try:
+        response = requests.post(
+            url=f"http://panda-manager.com:3000/auth/login",
+            json={"user_id": id, "user_pw": pw},
+            timeout=5,
+        )
+        return response.text
+    except:
+        return ""
+
+
 async def callback_login_failure(panda_id: str):
     """
     로그인 실패 콜백

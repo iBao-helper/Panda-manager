@@ -249,6 +249,7 @@ class APIClient:
         try:
             result = await self.request_api_call(play_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
+            print(str(e))
             await logging_error(
                 self.panda_id,
                 "[play API 호출 실패]",
