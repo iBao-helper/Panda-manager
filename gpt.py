@@ -7,12 +7,7 @@ import requests
 import os
 
 # Set environment variables
-env_name = "OPEN"
-env_name += "AI_AP"
-env_name += "I_KEY"
-env_value = "sk-lDPhhwI1XadlIaLNAK5zT3Blbk"
-env_value += "FJMzMJ42pNp1hS0yJUaoKo"
-os.environ[env_name] = env_value
+os.environ["OPENAI_API_KEY"] = "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"
 client = OpenAI()
 
 
