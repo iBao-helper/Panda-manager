@@ -80,6 +80,7 @@ class PandaManager:
             "Recommend": self.recommend_handler,
         }
         self.reserved_commands = {
+            "!명령어": self.show_commands,
             "!랭킹": self.get_ranking,
             "!월방송": self.get_month_play_time,
             "!총방송": self.get_total_play_time,
@@ -233,6 +234,13 @@ class PandaManager:
             await self.api_client.send_chatting("등록에 실패했습니다")
 
     ## 사전 지정된 명령어
+    async def show_commands(self, chat: ChattingData):
+        """명령어 보여주기 함수"""
+        message = "사용가능한 명령어\n"
+        for key in self.normal_commands:
+            message += f"{key}\n"
+        await self.api_client.send_chatting(message)
+
     async def get_ranking(self, chat: ChattingData):  # pylint: disable=W0613
         """랭킹 조회 함수"""
         bj_info = await self.api_client.search_bj(self.panda_id)
