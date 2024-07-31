@@ -37,6 +37,16 @@ class User(BaseModel):
     webhook_count: int
 
 
+async def program_login_success(jwt: str):
+    """자신의 상태를 사용중 상태로 변경하기"""
+    requests.post(
+        url=f"http://panda-manager.com:3000/user/program_login_success",
+        headers={"Authorization": f"Bearer {jwt}"},
+        timeout=5,
+    )
+    return
+
+
 async def get_manager_data(jwt: str):
     """JWT로 매니저 정보 가져오기"""
     response = requests.get(
