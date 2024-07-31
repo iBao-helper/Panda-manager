@@ -4,7 +4,10 @@ import time
 from urllib.parse import quote
 from openai import OpenAI
 import requests
+import os
 
+# Set environment variables
+os.environ["OPENAI_API_KEY"] = "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"
 client = OpenAI()
 
 
