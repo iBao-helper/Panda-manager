@@ -109,7 +109,6 @@ class PandaManager:
         song_list = await get_song_list(self.panda_id)
         if song_list.status_code == 200 or song_list.status_code == 201:
             song_list = song_list.json()
-            print(song_list)
             for song in song_list:
                 message += f"{song}\n"
             await self.api_client.send_chatting(message)
@@ -292,7 +291,6 @@ class PandaManager:
         )
         chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
-        print(chat_message)
 
     async def recommend_handler(self, message_class):
         """추천 핸들러"""
@@ -342,7 +340,6 @@ class PandaManager:
         }
         try:
             if self.proxy_ip == "":
-                print("프록시 없음")
                 self.websocket = await websockets.connect(
                     uri=self.websocket_url,
                     extra_headers=extra_headers,
@@ -355,7 +352,7 @@ class PandaManager:
                     origin=f"http://{self.proxy_ip}:8888",
                 )
             if self.websocket:
-                print("websocket = ", self.websocket)
+                # print("websocket = ", self.websocket)
                 await logging_info(self.panda_id, "웹소켓 연결 성공", {})
                 await self.websocket.send(json.dumps(message))
                 response = await self.websocket.recv()
@@ -369,6 +366,7 @@ class PandaManager:
                 response = await self.websocket.recv()
                 print(f"서버로부터 메시지 수신: {response}")
         except Exception as e:  # pylint: disable=W0703
+            print(str(e))
             await logging_error(
                 panda_id=self.panda_id,
                 description="웹소켓 연결 시도에 실패",
@@ -424,12 +422,12 @@ class PandaManager:
                 emoji.emojize(self.normal_commands[chat.message])
             )
             keys_list = list(self.normal_commands.keys())
-            print(keys_list)
+            # print(keys_list)
             for key in keys_list:
                 tmp = "#" + key
-                print(tmp)
-                print(chat.message)
-                print(tmp in chat.message)
+                # print(tmp)
+                # print(chat.message)
+                # print(tmp in chat.message)
                 if tmp in self.normal_commands[chat.message]:
                     await self.api_client.send_chatting(
                         emoji.emojize(self.normal_commands[key])
@@ -598,7 +596,7 @@ class PandaManager:
                 .replace("{월방송}", str(bj_info.play_time.month))
                 .replace("{총방송}", str(bj_info.play_time.total))
             )
-            print("PR메세지", chat_message)
+            # print("PR메세지", chat_message)
             await self.api_client.send_chatting(chat_message)
             await asyncio.sleep(self.user.pr_period)
 

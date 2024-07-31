@@ -44,12 +44,13 @@ async def get_jwt():
         return jwt
 
 
-def start_manager(
+async def start_manager(
     panda_id, body: CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
 ):
     """매니저 쓰레드 함수"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # loop = asyncio.get_event_loop()
+    # loop = asyncio.new_event_loop()
+    # asyncio.set_event_loop(loop)
 
     manager = PandaManager(
         panda_id=panda_id,
@@ -58,7 +59,7 @@ def start_manager(
         proxy_ip=body.proxy_ip,
         manager_nick=manager_nick,
     )
-    result = loop.run_until_complete(manager.connect_webscoket())
+    result = await manager.connect_webscoket()
     if result is None:
         # loop.run_until_complete(callback_login_failure(panda_id))
         print("매니저 연결에 실패하였습니다")
@@ -69,7 +70,7 @@ def start_manager(
     #         panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
     #     )
     # )
-    loop.run_until_complete(manager.start())
+    await manager.start()
     return
 
 
@@ -101,11 +102,9 @@ async def main():
     if manager_nick is None:
         return
     sess_key, user_idx = await login_api_client.get_login_data()
-    thread = threading.Thread(
-        target=start_manager,
-        args=(manager_data.panda_id, manager_data, sess_key, user_idx, manager_nick),
+    await start_manager(
+        manager_data.panda_id, manager_data, sess_key, user_idx, manager_nick
     )
-    thread.start()
 
 
 asyncio.run(main())
