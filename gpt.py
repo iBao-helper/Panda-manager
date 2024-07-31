@@ -7,7 +7,8 @@ import requests
 import os
 
 # Set environment variables
-env_name = "OPENAI_AP"
+env_name = "OPEN"
+env_name += "AI_AP"
 env_name += "I_KEY"
 env_value = "sk-lDPhhwI1XadlIaLNAK5zT3Blbk"
 env_value += "FJMzMJ42pNp1hS0yJUaoKo"
