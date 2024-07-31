@@ -53,8 +53,8 @@ async def loop2():
 async def night_watch_start():
     """감시자 시작"""
     await play_watch.login()
-    # await asyncio.sleep(1)
-    # asyncio.create_task(loop2())
+    await asyncio.sleep(1)
+    asyncio.create_task(loop2())
     return {"message": "NightWatch"}
 
 

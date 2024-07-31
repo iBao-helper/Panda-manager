@@ -30,11 +30,11 @@ class PlayWrightNightWatch:
             idle_users, live_users = await self.get_user_status()
             print(live_users)
             backend_live_users = requests.get(
-                url=f"http://{self.backend_url}:{self.backend_port}/bj?mode=playing",
+                url=f"http://{self.backend_url}:{self.backend_port}/bj/status-program?mode=playing",
                 timeout=5,
             ).json()
             backend_idle_users = requests.get(
-                f"http://{self.backend_url}:{self.backend_port}/bj?mode=idle",
+                f"http://{self.backend_url}:{self.backend_port}/bj/status-program?mode=idle",
                 timeout=5,
             ).json()
             print("[start night watch] - filter_dict_by_list")
