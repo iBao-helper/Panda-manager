@@ -93,7 +93,8 @@ class APIClient:
             # 매니저의 비밀번호가 변경되었다면 여기서 등록됐던 manager 제거, 이후 None을 보고 Proxy 제거
             if "비밀번호" in str(e):
                 await delete_bj_manager_by_panda_id(panda_id)
-            await callback_login_failure(panda_id)
+            print(str(e))
+            # await callback_login_failure(panda_id)
             return None  # pylint: disable=W0719 W0707
         login_info = result["loginInfo"]
         self.sess_key = login_info["sessKey"]
