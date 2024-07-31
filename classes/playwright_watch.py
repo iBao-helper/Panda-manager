@@ -57,11 +57,11 @@ class PlayWrightNightWatch:
                     },
                     timeout=5,
                 )
-                requests.post(
-                    url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
-                    json={"panda_ids": wanted_play_list},
-                    timeout=5,
-                )
+                # requests.post(
+                #     url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+                #     json={"panda_ids": wanted_play_list},
+                #     timeout=5,
+                # )
             if len(wanted_stop_list) > 0:
                 requests.post(
                     url=f"http://{self.backend_url}:{self.backend_port}/log/info",
@@ -72,11 +72,16 @@ class PlayWrightNightWatch:
                     },
                     timeout=5,
                 )
-                requests.delete(
-                    url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+                requests.patch(
+                    url=f"http://{self.backend_url}:{self.backend_port}/user/broadcast",
                     json={"panda_ids": wanted_stop_list},
                     timeout=5,
                 )
+                # requests.delete(
+                #     url=f"http://{self.backend_url}:{self.backend_port}/resource/task",
+                #     json={"panda_ids": wanted_stop_list},
+                #     timeout=5,
+                # )
         except Exception as e:  # pylint: disable=W0703
             print("what the fuck ?")
             print(e)

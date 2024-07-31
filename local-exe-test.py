@@ -2,7 +2,13 @@ import os
 import threading
 from classes.api_client import APIClient
 from classes.panda_manager import PandaManager
-from util.my_util import get_info, logging_info, login, get_manager_data
+from util.my_util import (
+    get_info,
+    logging_info,
+    login,
+    get_manager_data,
+    program_login_success,
+)
 from classes.dto.CreateManagerDto import CreateManagerDto
 import asyncio
 
@@ -45,7 +51,12 @@ async def get_jwt():
 
 
 async def start_manager(
-    panda_id, body: CreateManagerDto, sess_key: str, user_idx: str, manager_nick: str
+    panda_id,
+    body: CreateManagerDto,
+    sess_key: str,
+    user_idx: str,
+    manager_nick: str,
+    jwt: str,
 ):
     """매니저 쓰레드 함수"""
     # loop = asyncio.get_event_loop()
@@ -70,6 +81,7 @@ async def start_manager(
     #         panda_id=panda_id, proxy_ip=body.proxy_ip, resource_ip=body.resource_ip
     #     )
     # )
+    await program_login_success(jwt)
     await manager.start()
     return
 
@@ -103,7 +115,7 @@ async def main():
         return
     sess_key, user_idx = await login_api_client.get_login_data()
     await start_manager(
-        manager_data.panda_id, manager_data, sess_key, user_idx, manager_nick
+        manager_data.panda_id, manager_data, sess_key, user_idx, manager_nick, jwt
     )
 
 
