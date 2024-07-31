@@ -27,7 +27,6 @@ from util.my_util import (
     regist_recommend_message,
     remove_room_user,
     send_hart_history,
-    send_webhook,
     update_bj_nickname,
     update_manager_nickanme,
 )
@@ -56,6 +55,8 @@ class PandaManager:
         self.time = 0
         self.timer_stop = False
         self.id_count = 3
+        self.prev_hart_count = 0
+        self.doosan_count = 0
 
         # 현재 방 유저 갱신하기 위한 변수들
         self.user_list = []
@@ -266,12 +267,23 @@ class PandaManager:
         if self.user.toggle_hart is False:
             return
         chat_message = self.user.hart_message
+        if self.prev_hart_count + 1 == message_class["coin"]:
+            self.doosan_count += 1
+        else:
+            self.doosan_count = 0
+
+        if self.doosan_count >= 3:
+            chat_message = self.user.hart_message
+        else:
+            chat_message = self.user.doosan_message
+
         if "nick" in message_class:
             chat_message = chat_message.replace("{후원인}", message_class["nick"])
         if "coin" in message_class:
             chat_message = chat_message.replace(
                 "{후원개수}", str(message_class["coin"])
             )
+        self.prev_hart_count = int(message_class["coin"])
         await send_hart_history(
             bj_name=self.user.nickname,
             user_id=message_class["id"],
@@ -280,12 +292,6 @@ class PandaManager:
         )
         chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
-
-        if self.user.webhook_string is not None and self.user.webhook_count == int(
-            message_class["coin"]
-        ):
-            data = await send_webhook(self.user.webhook_string)
-            print(data)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
