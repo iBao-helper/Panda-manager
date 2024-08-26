@@ -1,4 +1,5 @@
 """ 후........ 쉬발 파이린트는 넘 빡세다 """
+
 import os
 import asyncio
 import threading
@@ -46,7 +47,6 @@ def start_manager(
     result = loop.run_until_complete(manager.connect_webscoket())
     if result is None:
         loop.run_until_complete(callback_login_failure(panda_id))
-        print("k")
         return None
     print(panda_id, "웹소켓 연결 성공")
     panda_managers[panda_id] = manager
@@ -63,7 +63,9 @@ def start_manager(
 async def panda_manager_start(body: CreateManagerDto, panda_id: str):
     """판다매니저 시작"""
     await logging_info(
-        panda_id=panda_id, description="[리소스] - 매니저 요청 받음", data=body.model_dump_json()
+        panda_id=panda_id,
+        description="[리소스] - 매니저 요청 받음",
+        data=body.model_dump_json(),
     )
     manager_nick = await login_api_client.login(
         body.manager_id, body.manager_pw, panda_id
@@ -98,7 +100,9 @@ async def update_manager_command(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_commands()
-        await logging_info(panda_id, "[Front - 커맨드 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - 커맨드 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -158,7 +162,9 @@ async def update_manager_doosan(panda_id: str):
     """백엔드로부터 커맨드가 업데이트 될 경우"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - Doosan 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - Doosan 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -170,7 +176,9 @@ async def update_rc_toggle(panda_id: str):
     """RC 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - 추천 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - 추천 토글 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -182,7 +190,9 @@ async def update_hart_toggle(panda_id: str):
     """Hart 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - 하트 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - 하트 토글 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -194,7 +204,9 @@ async def update_pr_toggle(panda_id: str):
     """PR 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - PR 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - PR 토글 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -206,7 +218,9 @@ async def update_greet_toggle(panda_id: str):
     """Greet 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - Greet 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - Greet 토글 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},
@@ -218,7 +232,9 @@ async def update_doosan_toggle(panda_id: str):
     """Greet 토글 업데이트"""
     if panda_id in panda_managers:
         await panda_managers[panda_id].update_user()
-        await logging_info(panda_id, "[Front - Doosan 토글 업데이트]", {"panda_id": panda_id})
+        await logging_info(
+            panda_id, "[Front - Doosan 토글 업데이트]", {"panda_id": panda_id}
+        )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": f"{panda_id} is command updated"},

@@ -106,7 +106,6 @@ class PandaManager:
         song_list = await get_song_list(self.panda_id)
         if song_list.status_code == 200 or song_list.status_code == 201:
             song_list = song_list.json()
-            print(song_list)
             for song in song_list:
                 message += f"{song}\n"
             await self.api_client.send_chatting(message)
@@ -271,7 +270,6 @@ class PandaManager:
         )
         chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
-        print(chat_message)
 
     async def recommend_handler(self, message_class):
         """추천 핸들러"""
@@ -403,12 +401,8 @@ class PandaManager:
                 emoji.emojize(self.normal_commands[chat.message])
             )
             keys_list = list(self.normal_commands.keys())
-            print(keys_list)
             for key in keys_list:
                 tmp = "#" + key
-                print(tmp)
-                print(chat.message)
-                print(tmp in chat.message)
                 if tmp in self.normal_commands[chat.message]:
                     await self.api_client.send_chatting(
                         emoji.emojize(self.normal_commands[key])
