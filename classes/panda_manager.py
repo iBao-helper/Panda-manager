@@ -338,7 +338,7 @@ class PandaManager:
                 self.websocket = await websockets.connect(
                     uri=self.websocket_url,
                     extra_headers=extra_headers,
-                    origin=f"http://{self.proxy_ip}:8888",
+                    origin=f"http://{self.proxy_ip}:8800",
                 )
             if self.websocket:
                 print("websocket = ", self.websocket)
@@ -721,7 +721,7 @@ class PandaManager:
                 self.websocket = await websockets.connect(
                     uri=self.websocket_url,
                     extra_headers=extra_headers,
-                    origin=f"http://{self.proxy_ip}:8888",
+                    origin=f"http://{self.proxy_ip}:8800",
                 )
             if self.websocket:
                 print("websocket = ", self.websocket)
@@ -780,7 +780,7 @@ class PandaManager:
         websocket = await websockets.connect(
             uri=websocket_url,
             extra_headers=extra_headers,
-            origin=f"http://{self.api_client.proxy_ip}:8888",
+            origin=f"http://{self.api_client.proxy_ip}:8800",
         )
         await websocket.send(json.dumps(message))
         response = await websocket.recv()

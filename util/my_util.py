@@ -27,14 +27,12 @@ class User(BaseModel):
     greet_message: str
     doosan_message: str
     pr_period: int
-    resource_id: int | None
+    proxy_ip: str
     toggle_greet: bool
     toggle_hart: bool
     toggle_rc: bool
     toggle_pr: bool
     toggle_doosan: bool
-    webhook_string: str | None
-    webhook_count: int
 
 
 async def callback_login_failure(panda_id: str):

@@ -41,6 +41,7 @@ class APIClient:
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "X-Device-Info": '{"t":"webPc","v":"1.0","ui":24229319}',
         }
+        self.proxy_port = 8800
         self.sess_key = None
         self.user_idx = None
         self.chat_token = None
@@ -61,8 +62,8 @@ class APIClient:
                 data=data,
                 timeout=30,
                 proxies={
-                    "http": f"http://{self.proxy_ip}:8888",
-                    "https": f"http://{self.proxy_ip}:8888",
+                    "http": f"http://{self.proxy_ip}:{self.proxy_port}",
+                    "https": f"http://{self.proxy_ip}:{self.proxy_port}",
                 },
             )
         if response.status_code == 200:
