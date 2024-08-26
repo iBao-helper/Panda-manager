@@ -27,7 +27,6 @@ from util.my_util import (
     regist_recommend_message,
     remove_room_user,
     send_hart_history,
-    send_webhook,
     update_bj_nickname,
     update_manager_nickanme,
 )
@@ -272,12 +271,6 @@ class PandaManager:
         )
         chat_message = emoji.emojize(chat_message)
         await self.api_client.send_chatting(chat_message)
-
-        if self.user.webhook_string is not None and self.user.webhook_count == int(
-            message_class["coin"]
-        ):
-            data = await send_webhook(self.user.webhook_string)
-            print(data)
         print(chat_message)
 
     async def recommend_handler(self, message_class):
