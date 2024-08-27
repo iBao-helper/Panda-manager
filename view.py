@@ -168,10 +168,10 @@ async def reqeust_delete_point(user_id: str, login_id: str, proxy_ip: str):
     )
 
 
-async def request_decrease_ip(proxy_ip: str):
+async def request_increase_ip(proxy_ip: str):
     """프록시 IP 차감 요청"""
     requests.patch(
-        url=f"http://{BACKEND_URL}:3000/proxy/decrease/{proxy_ip}", timeout=10
+        url=f"http://{BACKEND_URL}:3000/proxy/increase/{proxy_ip}", timeout=10
     )
 
 
@@ -291,6 +291,7 @@ def start_view_bot(
             )
         except Exception as e:  # pylint: disable=W0702 W0718
             print(str(e))
+            loop.run_until_complete(request_increase_ip(proxy_ip=request_data.proxy_ip))
             app.lock.release()
             return
     elif request_data.kinds == "member":
@@ -309,6 +310,7 @@ def start_view_bot(
             )
         except:  # pylint: disable=W0702
             app.lock.release()
+            loop.run_until_complete(request_increase_ip(proxy_ip=request_data.proxy_ip))
             loop.run_until_complete(request_callback_failed_member_id(account))
             return
     random_string = generate_random_string()
@@ -317,7 +319,6 @@ def start_view_bot(
         app.ws_dict[request_data.proxy_ip] = []
     app.ws_dict[request_data.proxy_ip].append(ws_data)
     app.thread_lists.append(random_string)
-    loop.run_until_complete(request_decrease_ip(proxy_ip=request_data.proxy_ip))
     app.lock.release()
     loop.run_until_complete(
         viewbot_start(
