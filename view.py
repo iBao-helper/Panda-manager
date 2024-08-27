@@ -88,8 +88,8 @@ class MyFastAPI(FastAPI):
 app = MyFastAPI()
 
 
-# BACKEND_URL = "panda-manager.com"
-BACKEND_URL = "175.200.191.38"
+BACKEND_URL = "panda-manager.com"
+# BACKEND_URL = "175.200.191.38"
 
 
 async def connect_websocket(token: str, channel: str, proxy_ip: str):
@@ -233,7 +233,7 @@ async def viewbot_start(
             await reqeust_delete_point(
                 user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
             )
-            await request_increase_ip(proxy_ip=proxy_ip)
+        await request_increase_ip(proxy_ip=proxy_ip)
         print("ip is deleted in dict. len")
         return
 
