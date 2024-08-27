@@ -233,6 +233,7 @@ async def viewbot_start(
             await reqeust_delete_point(
                 user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
             )
+            await request_increase_ip(proxy_ip=proxy_ip)
         print("ip is deleted in dict. len")
         return
 
