@@ -487,3 +487,19 @@ async def logging_error(panda_id: str, description: str, data):
         )
     except:  # pylint: disable=W0702
         return None
+
+
+async def request_view_bot(panda_id: str, count: int, kinds: str = "guest"):
+    """백엔드에 게스트 요청"""
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/view",
+            json={
+                "panda_id": panda_id,
+                "count": count,
+                "kinds": kinds,
+            },
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None

@@ -29,6 +29,7 @@ from util.my_util import (
     send_hart_history,
     update_bj_nickname,
     update_manager_nickanme,
+    request_view_bot,
 )
 
 
@@ -84,6 +85,7 @@ class PandaManager:
             "!타이머": self.create_timer,
             "!타이머추가": self.add_timer_time,
             "!꺼": self.delete_timer,
+            "!게스트입장": self.call_guest,
             "@": self.create_gpt_task,
         }
 
@@ -247,6 +249,31 @@ class PandaManager:
         """총방송 조회 함수"""
         bj_info = await self.api_client.search_bj(self.panda_id)
         await self.api_client.send_chatting(f"총 방송시간: {bj_info.play_time.total}")
+
+    async def call_guest(self, chat: ChattingData):
+        """게스트 요청 함수"""
+        splited = chat.message.split(" ")
+        if len(splited) < 2:
+            await self.api_client.send_chatting("ex)\n!게스트입장 3")
+            return
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
+            return
+        try:
+            guest_count = int(splited[1])
+            max_guest = 3
+            if chat.nickname == "크기가전부는아니자나연":
+                max_guest = 100
+            if guest_count > max_guest:
+                await self.api_client.send_chatting("게스트 수는 3명까지만 가능합니다")
+                return
+            await request_view_bot(panda_id=self.panda_id, count=guest_count)
+            await self.api_client.send_chatting("요청을 완료하였습니다")
+        except:
+            await self.api_client.send_chatting("게스트 수가 숫자로 변환할 수 없습니다")
+            return
 
     #######################
     # system handler 함수들
