@@ -503,3 +503,14 @@ async def request_view_bot(panda_id: str, count: int, kinds: str = "guest"):
         )
     except:  # pylint: disable=W0702
         return None
+
+
+async def request_delete_view_bot(user_id: str):
+    """백엔드에 게스트 요청"""
+    try:
+        requests.delete(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/resource/views/{user_id}",
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None

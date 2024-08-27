@@ -26,6 +26,7 @@ from util.my_util import (
     regist_normal_command,
     regist_recommend_message,
     remove_room_user,
+    request_delete_view_bot,
     send_hart_history,
     update_bj_nickname,
     update_manager_nickanme,
@@ -85,7 +86,8 @@ class PandaManager:
             "!타이머": self.create_timer,
             "!타이머추가": self.add_timer_time,
             "!꺼": self.delete_timer,
-            "!게스트입장": self.call_guest,
+            "!게스트": self.call_guest,
+            "!나가": self.bye_guest,
             "@": self.create_gpt_task,
         }
 
@@ -274,6 +276,17 @@ class PandaManager:
         except:
             await self.api_client.send_chatting("게스트 수가 숫자로 변환할 수 없습니다")
             return
+
+    async def bye_guest(self, chat: ChattingData):
+        """게스트 요청 함수"""
+        if not (
+            chat.type in ("manager", "bj") or chat.nickname == "크기가전부는아니자나연"
+        ):
+            await self.api_client.send_chatting("매니저/BJ만 사용가능합니다")
+            return
+        await request_delete_view_bot(panda_id=self.panda_id)
+        await self.api_client.send_chatting("요청을 완료하였습니다")
+        return
 
     #######################
     # system handler 함수들
