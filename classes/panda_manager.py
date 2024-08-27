@@ -57,6 +57,7 @@ class PandaManager:
         self.time = 0
         self.timer_stop = False
         self.id_count = 3
+        self.guest_bool = True
 
         # 현재 방 유저 갱신하기 위한 변수들
         self.user_list = []
@@ -254,6 +255,9 @@ class PandaManager:
 
     async def call_guest(self, chat: ChattingData):
         """게스트 요청 함수"""
+        if self.guest_bool is False:
+            await self.api_client.send_chatting("한번밖에 안됩니당~")
+            return
         splited = chat.message.split(" ")
         if len(splited) < 2:
             await self.api_client.send_chatting("ex)\n!게스트입장 3")
@@ -273,6 +277,7 @@ class PandaManager:
                 return
             await request_view_bot(panda_id=self.panda_id, count=guest_count)
             await self.api_client.send_chatting("요청을 완료하였습니다")
+            self.guest_bool = False
         except:
             await self.api_client.send_chatting("게스트 수가 숫자로 변환할 수 없습니다")
             return
