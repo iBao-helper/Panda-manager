@@ -67,11 +67,15 @@ class WebsocketData:
         api_client: APIClient,
         request_data: RequestData,
         random_string: str,
+        proxy_ip: str,
+        user_id: str,
     ):
         self.websocket = websocket
         self.api_client = api_client
         self.request_data = request_data
         self.random_string = random_string
+        self.proxy_ip = proxy_ip
+        self.user_id = user_id
 
 
 class MyFastAPI(FastAPI):
@@ -79,7 +83,7 @@ class MyFastAPI(FastAPI):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ws_dict: Dict[str, List[WebsocketData]] = {}
+        self.ws_dict: Dict[str, WebsocketData] = {}
         self.refresh_dict = []
         self.thread_lists = []
         self.lock = threading.Lock()
@@ -207,7 +211,11 @@ async def viewbot_start(
             if result is not None:
                 ws_type = result["data"]["data"].get("type", None)
                 if ws_type == "RoomEnd":
-                    remove_ws_dict(proxy_ip=api_client.proxy_ip)
+                    for key, value in app.ws_dict.items():
+                        if key == random_string:
+                            app.thread_lists.remove(random_string)
+                            del app.ws_dict[key]
+                            break
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
             print(str(e))
@@ -315,10 +323,17 @@ def start_view_bot(
             loop.run_until_complete(request_callback_failed_member_id(account))
             return
     random_string = generate_random_string()
-    ws_data = WebsocketData(websocket, api_client, request_data, random_string)
+    ws_data = WebsocketData(
+        websocket,
+        api_client,
+        request_data,
+        random_string,
+        request_data.proxy_ip,
+        request_data.user_id,
+    )
     if request_data.proxy_ip not in app.ws_dict:
         app.ws_dict[request_data.proxy_ip] = []
-    app.ws_dict[request_data.proxy_ip].append(ws_data)
+    app.ws_dict[random_string] = ws_data
     app.thread_lists.append(random_string)
     app.lock.release()
     loop.run_until_complete(
@@ -367,43 +382,35 @@ async def connect_proxy(request_data: RequestData):
         )
 
 
-@app.delete("/disconnect/{proxy_ip}")
-async def disconnect_proxy(proxy_ip: str):
+@app.delete("/disconnect/one/{user_id}")
+async def disconnect_proxy(user_id: str):
     """게스트 세션 끊기"""
-    if proxy_ip in app.ws_dict:
-        print(app.ws_dict.keys())
-        print(app.thread_lists)
-        socket_datas: List[WebsocketData] = app.ws_dict[proxy_ip]
-        for socket_data in socket_datas:
-            app.thread_lists.remove(socket_data.random_string)
-        del app.ws_dict[proxy_ip]
-        print(app.ws_dict.keys())
-        print(app.thread_lists)
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
+    for key, value in app.ws_dict.items():
+        if value.user_id == user_id:
+            app.thread_lists.remove(value.random_string)
+            del app.ws_dict[key]
+            break
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
     )
 
 
-def remove_ws_dict(proxy_ip: str):
-    """ws_dict로부터 해당 ip를 가진 요소 1개 제거한 후 요소가 0이면 ip도 제거"""
-    if proxy_ip in app.ws_dict:
-        socket_datas: List[WebsocketData] = app.ws_dict[proxy_ip]
-        for socket_data in socket_datas:
-            if socket_data.api_client.proxy_ip == proxy_ip:
-                app.thread_lists.remove(socket_data.random_string)
-                socket_datas.remove(socket_data)
-                break
-        app.ws_dict[proxy_ip] = socket_datas
-        if len(app.ws_dict[proxy_ip]) == 0:
-            del app.ws_dict[proxy_ip]
-        print(app.ws_dict.keys())
-
-
-@app.delete("/disconnect/{proxy_ip}")
-async def disconnect_proxy_by_ip(proxy_ip: str):
+@app.delete("/disconnect/{user_id}")
+async def disconnect_proxy_by_ip(user_id: str):
     """게스트 세션 끊기"""
-    remove_ws_dict(proxy_ip=proxy_ip)
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
+    for key, value in app.ws_dict.items():
+        if value.user_id == user_id:
+            app.thread_lists.remove(value.random_string)
+            del app.ws_dict[key]
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
@@ -416,14 +423,9 @@ async def check():
     count = 0
     result = []
     for key, value in app.ws_dict.items():
-        for v in value:
-            if v.websocket.open:
-                result.append(
-                    {
-                        "proxy_ip": v.api_client.proxy_ip,
-                    }
-                )
-                count += 1
+        if value.websocket.open:
+            result.append({"user_id": value.user_id, "proxy_ip": value.proxy_ip})
+            count += 1
     result = {
         "len": len(result),
         "result": result,
