@@ -331,8 +331,8 @@ def start_view_bot(
         request_data.proxy_ip,
         request_data.user_id,
     )
-    if request_data.proxy_ip not in app.ws_dict:
-        app.ws_dict[request_data.proxy_ip] = []
+    if random_string not in app.ws_dict:
+        app.ws_dict[random_string] = ws_data
     app.ws_dict[random_string] = ws_data
     app.thread_lists.append(random_string)
     app.lock.release()
