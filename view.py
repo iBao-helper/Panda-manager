@@ -36,7 +36,6 @@ class RequestData(BaseModel):
     user_id: str
     panda_id: str
     proxy_ip: str
-    instance_id: str
     kinds: str
     login_id: Optional[str] = None
     login_pw: Optional[str] = None
@@ -46,7 +45,6 @@ class RequestData(BaseModel):
         user_id: str,
         panda_id: str,
         proxy_ip: str,
-        instance_id: str,
         kinds: str,
         login_id: Optional[str] = None,
         login_pw: Optional[str] = None,
@@ -55,7 +53,6 @@ class RequestData(BaseModel):
         self.user_id = user_id
         self.panda_id = panda_id
         self.proxy_ip = proxy_ip
-        self.instance_id = instance_id
         self.login_id = login_id
         self.login_pw = login_pw
         self.kinds = kinds
@@ -91,8 +88,8 @@ class MyFastAPI(FastAPI):
 app = MyFastAPI()
 
 
-BACKEND_URL = "panda-manager.com"
-# BACKEND_URL = "175.200.191.38"
+# BACKEND_URL = "panda-manager.com"
+BACKEND_URL = "175.200.191.38"
 
 
 async def connect_websocket(token: str, channel: str, proxy_ip: str):
@@ -129,7 +126,7 @@ async def connect_websocket(token: str, channel: str, proxy_ip: str):
     websocket = await websockets.connect(
         uri=websocket_url,
         extra_headers=extra_headers,
-        origin=f"http://{proxy_ip}:8888",
+        origin=f"http://{proxy_ip}:8800",
     )
     await websocket.send(json.dumps(message))
     response = await websocket.recv()
@@ -163,25 +160,25 @@ async def update_jwt_refresh(
         await asyncio.sleep(60 * 20)
 
 
-async def reqeust_delete_point(instance_id: str):
+async def reqeust_delete_point(user_id: str, login_id: str, proxy_ip: str):
     """인스턴스 제거 및 포인트 차감 요청"""
     requests.delete(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/instance_id/{instance_id}",
+        url=f"http://{BACKEND_URL}:3000/proxy/decrease/{user_id}/{login_id}/{proxy_ip}",
         timeout=10,
     )
 
 
-async def request_decrease_ip(ip: str):
+async def request_decrease_ip(proxy_ip: str):
     """프록시 IP 차감 요청"""
     requests.patch(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/decrease/{ip}", timeout=10
+        url=f"http://{BACKEND_URL}:3000/proxy/decrease/{proxy_ip}", timeout=10
     )
 
 
 async def request_callback_failed_member_id(account: Account):
     """실패한 계정의 로그인 상태를 변경"""
     requests.patch(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/callback-failed-login/{account.id}",
+        url=f"http://{BACKEND_URL}:3000/proxy/callback-failed-login/{account.id}",
         timeout=10,
     )
 
@@ -190,7 +187,9 @@ async def viewbot_start(
     api_client: APIClient,
     websocket: websockets.WebSocketClientProtocol,
     random_string: str,
-    instance_id: str,
+    proxy_ip: str,
+    user_id: str,
+    account: Account,
 ):
     """팬더 매니저 시작"""
     # 닉네임이 변경된 게 있다면 업데이트
@@ -208,7 +207,7 @@ async def viewbot_start(
             if result is not None:
                 ws_type = result["data"]["data"].get("type", None)
                 if ws_type == "RoomEnd":
-                    remove_ws_dict(instance_id=instance_id, ip=api_client.proxy_ip)
+                    remove_ws_dict(proxy_ip=api_client.proxy_ip)
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
             print(str(e))
@@ -228,17 +227,20 @@ async def viewbot_start(
     }
     await websocket.send(json.dumps(message))
     await websocket.close()
-    if instance_id not in app.ws_dict:
+    if proxy_ip not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
-        await reqeust_delete_point(instance_id=instance_id)
-        print("instance_id is deleted in dict. len")
+        if account.login_id != "":
+            await reqeust_delete_point(
+                user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
+            )
+        print("ip is deleted in dict. len")
         return
 
 
 async def get_account(user_id: str):
     """멤버 아이디 가져오기"""
     response = requests.get(
-        url=f"http://{BACKEND_URL}:3000/user-proxy/member/{user_id}",
+        url=f"http://{BACKEND_URL}:3000/proxy/member/{user_id}",
         timeout=5,
     )
     if response.status_code != 200:
@@ -269,6 +271,14 @@ def start_view_bot(
     asyncio.set_event_loop(loop)
     if request_data.kinds == "guest":
         try:
+            dummy_account = {
+                "id": 0,
+                "user_pk": 0,
+                "login_id": "",
+                "login_pw": "",
+                "logined": False,
+            }
+            account = Account(**dummy_account)
             api_client = APIClient(
                 panda_id=request_data.panda_id, proxy_ip=request_data.proxy_ip
             )
@@ -298,24 +308,25 @@ def start_view_bot(
                 )
             )
         except:  # pylint: disable=W0702
-            print(str(e))
             app.lock.release()
             loop.run_until_complete(request_callback_failed_member_id(account))
             return
     random_string = generate_random_string()
     ws_data = WebsocketData(websocket, api_client, request_data, random_string)
-    if request_data.instance_id not in app.ws_dict:
-        app.ws_dict[request_data.instance_id] = []
-    app.ws_dict[request_data.instance_id].append(ws_data)
+    if request_data.proxy_ip not in app.ws_dict:
+        app.ws_dict[request_data.proxy_ip] = []
+    app.ws_dict[request_data.proxy_ip].append(ws_data)
     app.thread_lists.append(random_string)
-    loop.run_until_complete(request_decrease_ip(ip=request_data.proxy_ip))
+    loop.run_until_complete(request_decrease_ip(proxy_ip=request_data.proxy_ip))
     app.lock.release()
     loop.run_until_complete(
         viewbot_start(
             websocket=websocket,
             api_client=api_client,
             random_string=random_string,
-            instance_id=request_data.instance_id,
+            proxy_ip=request_data.proxy_ip,
+            user_id=request_data.user_id,
+            account=account,
         )
     )
     return
@@ -354,16 +365,16 @@ async def connect_proxy(request_data: RequestData):
         )
 
 
-@app.delete("/disconnect/{instance_id}")
-async def disconnect_proxy(instance_id: str):
+@app.delete("/disconnect/{proxy_ip}")
+async def disconnect_proxy(proxy_ip: str):
     """게스트 세션 끊기"""
-    if instance_id in app.ws_dict:
+    if proxy_ip in app.ws_dict:
         print(app.ws_dict.keys())
         print(app.thread_lists)
-        socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
+        socket_datas: List[WebsocketData] = app.ws_dict[proxy_ip]
         for socket_data in socket_datas:
             app.thread_lists.remove(socket_data.random_string)
-        del app.ws_dict[instance_id]
+        del app.ws_dict[proxy_ip]
         print(app.ws_dict.keys())
         print(app.thread_lists)
     return JSONResponse(
@@ -372,25 +383,25 @@ async def disconnect_proxy(instance_id: str):
     )
 
 
-def remove_ws_dict(instance_id: str, ip: str):
-    """ws_dict로부터 해당 ip를 가진 요소 1개 제거한 후 요소가 0이면 instance_id도 제거"""
-    if instance_id in app.ws_dict:
-        socket_datas: List[WebsocketData] = app.ws_dict[instance_id]
+def remove_ws_dict(proxy_ip: str):
+    """ws_dict로부터 해당 ip를 가진 요소 1개 제거한 후 요소가 0이면 ip도 제거"""
+    if proxy_ip in app.ws_dict:
+        socket_datas: List[WebsocketData] = app.ws_dict[proxy_ip]
         for socket_data in socket_datas:
-            if socket_data.api_client.proxy_ip == ip:
+            if socket_data.api_client.proxy_ip == proxy_ip:
                 app.thread_lists.remove(socket_data.random_string)
                 socket_datas.remove(socket_data)
                 break
-        app.ws_dict[instance_id] = socket_datas
-        if len(app.ws_dict[instance_id]) == 0:
-            del app.ws_dict[instance_id]
+        app.ws_dict[proxy_ip] = socket_datas
+        if len(app.ws_dict[proxy_ip]) == 0:
+            del app.ws_dict[proxy_ip]
         print(app.ws_dict.keys())
 
 
-@app.delete("/disconnect/{instance_id}/{ip}")
-async def disconnect_proxy_by_ip(instance_id: str, ip: str):
+@app.delete("/disconnect/{proxy_ip}")
+async def disconnect_proxy_by_ip(proxy_ip: str):
     """게스트 세션 끊기"""
-    remove_ws_dict(instance_id=instance_id, ip=ip)
+    remove_ws_dict(proxy_ip=proxy_ip)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "success"},
@@ -407,7 +418,6 @@ async def check():
             if v.websocket.open:
                 result.append(
                     {
-                        "instance_id": v.api_client.panda_id,
                         "proxy_ip": v.api_client.proxy_ip,
                     }
                 )
