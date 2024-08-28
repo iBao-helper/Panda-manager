@@ -382,6 +382,24 @@ async def connect_proxy(request_data: RequestData):
         )
 
 
+@app.delete("/disconnect/proxy_ip/{proxy_ip}")
+async def disconnect_proxy(proxy_ip: str):
+    """게스트 세션 끊기"""
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
+    for key, value in app.ws_dict.items():
+        if value.proxy_ip == proxy_ip:
+            app.thread_lists.remove(value.random_string)
+            del app.ws_dict[key]
+            break
+    print(app.ws_dict.keys())
+    print(app.thread_lists)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "success"},
+    )
+
+
 @app.delete("/disconnect/one/{user_id}")
 async def disconnect_proxy(user_id: str):
     """게스트 세션 끊기"""
