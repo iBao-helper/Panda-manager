@@ -424,7 +424,14 @@ async def check():
     result = []
     for key, value in app.ws_dict.items():
         if value.websocket.open:
-            result.append({"user_id": value.user_id, "proxy_ip": value.proxy_ip})
+            result.append(
+                {
+                    "user_id": value.user_id,
+                    "proxy_ip": value.proxy_ip,
+                    "random_string": key,
+                    "panda_id": value.request_data.panda_id,
+                }
+            )
             count += 1
     result = {
         "len": len(result),
