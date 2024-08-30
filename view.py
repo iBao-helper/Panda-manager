@@ -17,6 +17,7 @@ import websockets
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from classes.api_client import APIClient
+from util.my_util import logging_info
 
 
 @dataclass
@@ -218,23 +219,42 @@ async def viewbot_start(
                             break
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
+            await logging_info(
+                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+            )
             print(str(e))
             break
         except websockets.exceptions.ConnectionClosedError as e:
+            await logging_info(
+                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+            )
             print(str(e))
             break
         except websockets.exceptions.ConnectionClosed as e:
+            await logging_info(
+                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+            )
             print(str(e))
             break
         except Exception as e:  # pylint: disable=W0703
+            await logging_info(
+                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+            )
             pass
     message = {
         "id": 2,
         "method": 2,
         "params": {"channel": str(api_client.channel)},
     }
-    await websocket.send(json.dumps(message))
-    await websocket.close()
+    try:
+        await websocket.send(json.dumps(message))
+        await websocket.close()
+    except Exception as e:
+        await logging_info(
+            panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+        )
+        print("send 실패")
+        pass
     if proxy_ip not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
         if account.login_id != "":
