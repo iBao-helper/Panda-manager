@@ -220,25 +220,33 @@ async def viewbot_start(
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
             await logging_info(
-                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+                panda_id=api_client.panda_id,
+                description="view 에러 - ConnectionClosedOK",
+                data=e,
             )
             print(str(e))
             break
         except websockets.exceptions.ConnectionClosedError as e:
             await logging_info(
-                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+                panda_id=api_client.panda_id,
+                description="view 에러 - ConnectionClosedError",
+                data=e,
             )
             print(str(e))
             break
         except websockets.exceptions.ConnectionClosed as e:
             await logging_info(
-                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+                panda_id=api_client.panda_id,
+                description="view 에러 - ConnectionClosed",
+                data=e,
             )
             print(str(e))
             break
         except Exception as e:  # pylint: disable=W0703
             await logging_info(
-                panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+                panda_id=api_client.panda_id,
+                description="view 에러 - Exception",
+                data=e,
             )
             pass
     message = {
@@ -251,7 +259,7 @@ async def viewbot_start(
         await websocket.close()
     except Exception as e:
         await logging_info(
-            panda_id=api_client.panda_id, description="view 에러 발견", data=str(e)
+            panda_id=api_client.panda_id, description="view 에러 - await send", data=e
         )
         print("send 실패")
         pass
