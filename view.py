@@ -265,10 +265,9 @@ async def viewbot_start(
         pass
     if proxy_ip not in app.ws_dict:
         # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
-        if account.login_id != "":
-            await reqeust_delete_point(
-                user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
-            )
+        await reqeust_delete_point(
+            user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
+        )
         await request_increase_ip(proxy_ip=proxy_ip)
         print("ip is deleted in dict. len")
         return
@@ -311,8 +310,8 @@ def start_view_bot(
             dummy_account = {
                 "id": 0,
                 "user_pk": 0,
-                "login_id": "",
-                "login_pw": "",
+                "login_id": "guest",
+                "login_pw": "guest",
                 "logined": False,
             }
             account = Account(**dummy_account)
