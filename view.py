@@ -17,7 +17,7 @@ import websockets
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from classes.api_client import APIClient
-from util.my_util import logging_info
+from util.my_util import callback_create_proxy_history, logging_info
 
 
 @dataclass
@@ -203,6 +203,7 @@ async def viewbot_start(
             api_client=api_client, websocket=websocket, random_string=random_string
         )
     )
+    await callback_create_proxy_history(user_pk=account.user_pk, proxy_ip=proxy_ip)
     # asyncio.create_task(self.promotion())
     while random_string in app.thread_lists:
         try:

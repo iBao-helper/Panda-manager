@@ -49,6 +49,21 @@ async def callback_login_failure(panda_id: str):
         return None
 
 
+async def callback_create_proxy_history(user_pk: int, proxy_ip: str):
+    """
+    프록시 생성 이력 콜백
+    - 프록시 생성 이력을 생성한다
+    """
+    try:
+        requests.post(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/callback/manager-connect",
+            json={"user_pk": user_pk, "proxy_ip": proxy_ip},
+            timeout=5,
+        )
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def delete_bj_manager_by_panda_id(panda_id: str):
     """panda_id의 팬더 매니저 해제"""
     try:
