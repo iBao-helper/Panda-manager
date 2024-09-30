@@ -309,7 +309,6 @@ class APIClient:
         try:
             result = await self.request_api_call(refresh_token_url, data, dummy_header)
             if "token" in result:
-                print(result["token"])
                 self.jwt_token = result["token"]
         except Exception as e:  # pylint: disable=W0703
             await logging_error(
@@ -373,7 +372,7 @@ class APIClient:
         try:
             result = await self.request_api_call(guest_login_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
-            print(str(e))
+            print(f"게스트 로그인 실패 : {str(e)}")
             await logging_error(
                 self.panda_id,
                 "[게스트 로그인 실패]",
@@ -405,6 +404,7 @@ class APIClient:
             self.is_manager = result["fan"]["isManager"]
             return result
         except Exception as e:  # pylint: disable=W0703
+            print(f"게스트 play 실패 : {str(e)}")
             await logging_error(
                 self.panda_id,
                 "[play API 결과 파싱 실패]",
@@ -551,23 +551,22 @@ class APIClient:
             offset += limit + 1
 
         # Adult를 제외한다면 필터링 한 리스트를 반납
-        if isAdult == False:
-            ret = []
-            for item in tmp:
-                if (
-                    item["isAdult"] == False
-                    and item["liveType"] != "rec"
-                    and item["type"] == "free"
-                ):
-                    ret.append(
-                        {
-                            "panda_id": item["userId"],
-                            "isAdult": item["isAdult"],
-                            "liveType": item["liveType"],
-                            "playCnt": item["playCnt"],
-                            "totalScoreCnt": item["totalScoreCnt"],
-                            "userIdx": item["userIdx"],
-                        }
-                    )
-            return ret
-        return tmp
+        ret = []
+        for item in tmp:
+            if (
+                item["isAdult"] == False
+                and item["liveType"] != "rec"
+                and item["type"] == "free"
+            ):
+                ret.append(
+                    {
+                        "panda_id": item["userId"],
+                        "isAdult": item["isAdult"],
+                        "liveType": item["liveType"],
+                        "playCnt": item["playCnt"],
+                        "totalScoreCnt": item["totalScoreCnt"],
+                        "userIdx": item["userIdx"],
+                    }
+                )
+        sorted_ret = sorted(ret, key=lambda x: x["totalScoreCnt"], reverse=True)
+        return sorted_ret

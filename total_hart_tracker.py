@@ -24,6 +24,7 @@ tim.sort_ips()
 
 current_watching = []
 lock = threading.Lock()
+duplicate_lock = threading.Lock()
 
 
 class WebsocketData:
@@ -104,6 +105,11 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
+    try:
+        current_watching.remove(tracker_data.panda_id)
+    except Exception as e:  # pylint: disable=W0702 W0718
+        print(f"current_watching.remove 에러  {str(e)}")
+    tim.increase_ip(api_client.proxy_ip)
     message = {
         "id": 2,
         "method": 2,
@@ -119,16 +125,26 @@ async def viewbot_start(
 
 def start_view_bot(
     tracker_data: TrackerData,
+    last_flag: Optional[bool] = False,
 ):
     """매니저 쓰레드 함수"""
     global lock
+    global duplicate_lock
+
+    # 마지막 요소라면 중복방지락을 풀어줌
     lock.acquire()
+    if last_flag:
+        duplicate_lock.release()
+    print(tracker_data.panda_id, "시작", last_flag)
     if tim.get_total_ip() <= 0:
         print("IP 용량 부족:", tim.get_total_ip())
+        lock.release()
         return
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     proxy_ip = tim.get_ip()
+    print(proxy_ip)
+
     try:
         api_client = APIClient(panda_id=tracker_data.panda_id, proxy_ip=proxy_ip)
         loop.run_until_complete(api_client.guest_login())
@@ -138,6 +154,7 @@ def start_view_bot(
                 api_client.jwt_token, api_client.channel, api_client.proxy_ip
             )
         )
+        current_watching.append(tracker_data.panda_id)
         # 실행되면 proxy_ip 용량 차감
         tim.decrease_ip(proxy_ip)
         lock.release()
@@ -149,14 +166,9 @@ def start_view_bot(
             )
         )
     except Exception as e:  # pylint: disable=W0702 W0718
-        print(str(e))
+        print(f"start_view_bot 에러  {str(e)}")
         lock.release()
         return
-    try:
-        current_watching.remove(tracker_data.panda_id)
-    except Exception as e:  # pylint: disable=W0702 W0718
-        pass
-    tim.increase_ip(proxy_ip)
     return
 
 
@@ -187,32 +199,45 @@ def event_thread():
     asyncio.set_event_loop(loop)
     loop.run_until_complete(api_client.login("siveriness01", "Adkflfkd1", ""))
     while True:
-        starting_count = 0
-        remove_count = 0
-        lists = loop.run_until_complete(api_client.get_live_lists())
-        starting_list = ger_starting_list(lists)
-        terminating_list = get_terminated_lists(lists)
-        current_watching.extend([item["panda_id"] for item in starting_list])
-        for starting_item in starting_list:
-            tracker_data = TrackerData(**starting_item)
-            threading.Thread(
-                target=start_view_bot,
-                args=(tracker_data,),
-                daemon=True,
-            ).start()
-            starting_count += 1
-        for terminated_item in terminating_list:
-            current_watching.remove(terminated_item)
-            remove_count += 1
-        print(
-            "가져옴:",
-            len(lists),
-            "새로킨 수:",
-            starting_count,
-            "종료 수:",
-            remove_count,
-        )
-        sleep(300)  # Sleep for 5 minutes
+        try:
+            print("duplicate_lock 상태 출력", duplicate_lock.locked())
+            duplicate_lock.acquire()
+            starting_count = 0
+            remove_count = 0
+            lists = loop.run_until_complete(api_client.get_live_lists())
+            starting_list = ger_starting_list(lists)
+            terminating_list = get_terminated_lists(lists)
+            if len(starting_list) == 0:
+                duplicate_lock.release()
+                pass
+            for starting_item in starting_list:
+                if starting_item == starting_list[-1]:
+                    last_flag = True
+                else:
+                    last_flag = False
+                tracker_data = TrackerData(**starting_item)
+                threading.Thread(
+                    target=start_view_bot,
+                    args=(tracker_data, last_flag),
+                    daemon=True,
+                ).start()
+                starting_count += 1
+            for terminated_item in terminating_list:
+                current_watching.remove(terminated_item)
+                remove_count += 1
+            print(
+                "가져옴:",
+                len(lists),
+                "새로킨 수:",
+                starting_count,
+                "종료 수:",
+                remove_count,
+            )
+            sleep(300)  # Sleep for 5 minutes
+        except Exception as e:  # pylint: disable=W0703
+            print(str(e))
+            with open("example.txt", "w") as file:  # 파일을 쓰기 모드로 오픈
+                file.write("Hello, Python!")  # 파일에 내용 쓰기
 
 
 async def main():
@@ -224,7 +249,7 @@ async def main():
     while True:
         print("현재 감시중인 개수:", len(current_watching))
         print("남은 IP 용량:", tim.get_total_ip())
-        sleep(10)
+        await asyncio.sleep(10)
 
 
 if __name__ == "__main__":
