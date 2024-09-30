@@ -6,8 +6,8 @@ import emoji
 import requests
 from classes.bj_info import BjInfo
 from fastapi import HTTPException
-
 from util.my_util import (
+    TrackerData,
     callback_login_failure,
     delete_bj_manager_by_panda_id,
     logging_error,
@@ -512,3 +512,62 @@ class APIClient:
                 {"error": str(e), "result": result},
             )
             return None
+
+    async def get_live_list(self, offset=0, limit=100):
+        """라이브 리스트를 얻는 함수"""
+        if self.sess_key is None or self.user_idx is None:
+            raise Exception("로그인이 필요합니다")
+        live_list_url = "https://api.pandalive.co.kr/v1/live"
+        dummy_header = self.default_header.copy()
+        data = f"offset={offset}&limit={limit}&isLive=Y&onlyNewBj=N"
+        dummy_header["path"] = "/v1/live"
+        dummy_header["content-length"] = str(len(data))
+        dummy_header["cookie"] = (
+            f"sessKey={self.sess_key}; userLoginIdx={self.user_idx}"
+        )
+        try:
+            result = await self.request_api_call(live_list_url, data, dummy_header)
+        except Exception as e:
+            print(str(e))
+            await logging_error(
+                self.panda_id,
+                "[라이브 리스트 호출 실패]",
+                {"data": str(e)},
+            )
+            return None
+        return result["list"]
+
+    async def get_live_lists(self, isAdult=False) -> list[TrackerData]:
+        """기본으로 성인방송이 아닌 라이브 리스트 가져옴"""
+        tmp = []
+        offset = 0
+        limit = 100
+        lists = await self.get_live_list(offset, limit)
+        tmp.extend(lists)
+        offset += limit + 1
+        while len(lists) == limit:
+            lists = await self.get_live_list(offset, limit)
+            tmp.extend(lists)
+            offset += limit + 1
+
+        # Adult를 제외한다면 필터링 한 리스트를 반납
+        if isAdult == False:
+            ret = []
+            for item in tmp:
+                if (
+                    item["isAdult"] == False
+                    and item["liveType"] != "rec"
+                    and item["type"] == "free"
+                ):
+                    ret.append(
+                        {
+                            "panda_id": item["userId"],
+                            "isAdult": item["isAdult"],
+                            "liveType": item["liveType"],
+                            "playCnt": item["playCnt"],
+                            "totalScoreCnt": item["totalScoreCnt"],
+                            "userIdx": item["userIdx"],
+                        }
+                    )
+            return ret
+        return tmp

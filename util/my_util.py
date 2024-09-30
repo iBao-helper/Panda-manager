@@ -1,5 +1,6 @@
 """ 잡다한 함수로 뺼 것들 모아놓은곳"""
 
+from dataclasses import dataclass
 import emoji
 from pydantic import BaseModel
 import requests
@@ -10,6 +11,16 @@ load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL")
 BACKEND_PORT = os.getenv("BACKEND_PORT")
+
+
+@dataclass
+class TrackerData:
+    panda_id: str
+    isAdult: bool
+    liveType: str
+    playCnt: int
+    totalScoreCnt: int
+    userIdx: int
 
 
 class User(BaseModel):
