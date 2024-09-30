@@ -60,6 +60,18 @@ async def callback_login_failure(panda_id: str):
         return None
 
 
+async def get_all_managers():
+    """모든 매니저 정보 조회"""
+    try:
+        data = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/managers",
+            timeout=5,
+        )
+        return data.json()
+    except:  # pylint: disable=W0702
+        return None
+
+
 async def callback_create_proxy_history(user_pk: int, proxy_ip: str):
     """
     프록시 생성 이력 콜백

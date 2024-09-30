@@ -537,7 +537,7 @@ class APIClient:
             return None
         return result["list"]
 
-    async def get_live_lists(self, isAdult=False) -> list[TrackerData]:
+    async def get_live_lists(self, managers: list, isAdult=False) -> list[TrackerData]:
         """기본으로 성인방송이 아닌 라이브 리스트 가져옴"""
         tmp = []
         offset = 0
@@ -558,15 +558,16 @@ class APIClient:
                 and item["liveType"] != "rec"
                 and item["type"] == "free"
             ):
-                ret.append(
-                    {
-                        "panda_id": item["userId"],
-                        "isAdult": item["isAdult"],
-                        "liveType": item["liveType"],
-                        "playCnt": item["playCnt"],
-                        "totalScoreCnt": item["totalScoreCnt"],
-                        "userIdx": item["userIdx"],
-                    }
-                )
+                if item["userId"] not in managers:
+                    ret.append(
+                        {
+                            "panda_id": item["userId"],
+                            "isAdult": item["isAdult"],
+                            "liveType": item["liveType"],
+                            "playCnt": item["playCnt"],
+                            "totalScoreCnt": item["totalScoreCnt"],
+                            "userIdx": item["userIdx"],
+                        }
+                    )
         sorted_ret = sorted(ret, key=lambda x: x["totalScoreCnt"], reverse=True)
         return sorted_ret

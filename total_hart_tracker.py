@@ -12,7 +12,7 @@ from classes.api_client import APIClient
 from classes.total_ip_manager import TotalIpManager
 import asyncio
 
-from util.my_util import TrackerData, send_hart_history
+from util.my_util import TrackerData, get_all_managers, send_hart_history
 from view import (
     connect_websocket,
     update_jwt_refresh,
@@ -198,13 +198,16 @@ def event_thread():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(api_client.login("siveriness01", "Adkflfkd1", ""))
+    managers = loop.run_until_complete(get_all_managers())
+    managers = [item["panda_id"] for item in managers if item["panda_id"]]
+    print(managers)
     while True:
         try:
             print("duplicate_lock 상태 출력", duplicate_lock.locked())
             duplicate_lock.acquire()
             starting_count = 0
             remove_count = 0
-            lists = loop.run_until_complete(api_client.get_live_lists())
+            lists = loop.run_until_complete(api_client.get_live_lists(managers))
             starting_list = ger_starting_list(lists)
             terminating_list = get_terminated_lists(lists)
             if len(starting_list) == 0:
