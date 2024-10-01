@@ -429,7 +429,7 @@ async def disconnect_proxy(proxy_ip: str):
 
 
 @app.delete("/disconnect/one/{user_id}")
-async def disconnect_proxy(user_id: str):
+async def disconnect_proxy2(user_id: str):
     """게스트 세션 끊기"""
     print(app.ws_dict.keys())
     print(app.thread_lists)

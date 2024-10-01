@@ -105,11 +105,6 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
-    try:
-        current_watching.remove(tracker_data.panda_id)
-    except Exception as e:  # pylint: disable=W0702 W0718
-        print(f"current_watching.remove 에러  {str(e)}")
-    tim.increase_ip(api_client.proxy_ip)
     message = {
         "id": 2,
         "method": 2,
@@ -165,6 +160,7 @@ def start_view_bot(
                 tracker_data=tracker_data,
             )
         )
+        tim.increase_ip(api_client.proxy_ip)
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"start_view_bot 에러  {str(e)}")
         lock.release()
