@@ -138,6 +138,7 @@ def start_view_bot(
         )
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"웹소켓 연결 실패 에러 - {str(e)}")
+        lock.release()
         return
 
     try:
