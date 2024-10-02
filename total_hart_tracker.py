@@ -130,18 +130,13 @@ def start_view_bot(
     lock.acquire()
     if last_flag:
         duplicate_lock.release()
-    print(tracker_data.panda_id, "시작", last_flag)
-    if tim.get_total_ip() <= 0:
-        print("IP 용량 부족:", tim.get_total_ip())
-        lock.release()
-        return
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     proxy_ip = tim.get_ip()
     print(proxy_ip)
 
     try:
-        tim.decrease_ip(proxy_ip)
         current_watching.append(tracker_data.panda_id)
         api_client = APIClient(panda_id=tracker_data.panda_id, proxy_ip=proxy_ip)
         loop.run_until_complete(api_client.guest_login())
@@ -151,6 +146,12 @@ def start_view_bot(
                 api_client.jwt_token, api_client.channel, api_client.proxy_ip
             )
         )
+    except Exception as e:  # pylint: disable=W0702 W0718
+        print(f"웹소켓 연결 실패 에러 - {str(e)}")
+
+    try:
+        current_watching.append(tracker_data.panda_id)
+        tim.decrease_ip(proxy_ip)
         # 실행되면 proxy_ip 용량 차감
         lock.release()
         loop.run_until_complete(
@@ -162,12 +163,15 @@ def start_view_bot(
         )
         current_watching.remove(tracker_data.panda_id)
         tim.increase_ip(api_client.proxy_ip)
+        lock.release()
     except Exception as e:  # pylint: disable=W0702 W0718
-        print(f"start_view_bot 에러  {str(e)}")
-        current_watching.remove(tracker_data.panda_id)
+        print(f"viewbot_start 에러  {str(e)}")
+        try:
+            current_watching.remove(tracker_data.panda_id)
+        except:
+            pass
         tim.increase_ip(api_client.proxy_ip)
         lock.release()
-        return
     return
 
 
@@ -217,6 +221,10 @@ def event_thread():
                     last_flag = True
                 else:
                     last_flag = False
+                # 아이피 부족하면 pass 다음 루프로
+                if tim.get_total_ip() <= 0:
+                    print("IP 용량 부족:", tim.get_total_ip())
+                    continue
                 tracker_data = TrackerData(**starting_item)
                 threading.Thread(
                     target=start_view_bot,

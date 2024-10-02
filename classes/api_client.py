@@ -20,18 +20,19 @@ from util.my_util import (
 class APIClient:
     """API를 호출하는 클래스"""
 
-    def __init__(self, panda_id="로그인 전용 객체", proxy_ip=""):
+    def __init__(self, panda_id="로그인 전용 객체", kinds="pandalive", proxy_ip=""):
         self.panda_id = panda_id
+        self.kinds = kinds
         self.default_header: dict = {
-            "authority": "api.pandalive.co.kr",
+            "authority": f"api.{self.kinds}.co.kr",
             "method": "POST",
             "scheme": "https",
             "accept": "application/json, text/plain, */*",
             "accept-encoding": "gzip, deflate, br",
             "Accept-Language": "ko,ko-KR;q=0.9",
             "content-type": "application/x-www-form-urlencoded",
-            "origin": "https://www.pandalive.co.kr",
-            "referer": "https://www.pandalive.co.kr/",
+            "origin": f"https://www.{self.kinds}.co.kr",
+            "referer": f"https://www.{self.kinds}.co.kr/",
             "sec-ch-ua": '"Not_A Brand";v="99", "Chromium";v="99", "Google Chrome";v="99"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "Windows",
@@ -78,7 +79,7 @@ class APIClient:
         팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함
         비밀번호가 변경되었을 경우 매니저 해제 요청 + 프록시 제거 요청을 보냄
         """
-        login_url = "https://api.pandalive.co.kr/v1/member/login"
+        login_url = f"https://api.{self.kinds}.co.kr/v1/member/login"
         dummy_header = self.default_header.copy()
         data = f"id={login_id}&pw={login_pw}&idSave=N"
         dummy_header["path"] = "/v1/member/login"
@@ -118,7 +119,7 @@ class APIClient:
         """BJ검색 API 호출"""
         if self.sess_key is None or self.user_idx is None:
             raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
-        search_bj_url = "https://api.pandalive.co.kr/v1/member/bj"
+        search_bj_url = f"https://api.{self.kinds}.co.kr/v1/member/bj"
         dummy_header = self.default_header.copy()
         data = f"userId={panda_id}&info=media%20fanGrade%20bookmark"
         dummy_header["path"] = "/v1/member/bj"
@@ -146,7 +147,7 @@ class APIClient:
     async def add_book_mark(self, panda_id):
         """panda_id를 북마크에 추가하는 함수"""
         user_idx = await self.get_user_idx(panda_id)
-        add_bookmark_url = "https://api.pandalive.co.kr/v1/bookmark/add"
+        add_bookmark_url = f"https://api.{self.kinds}.co.kr/v1/bookmark/add"
         dummy_header = self.default_header.copy()
         data = f"userIdx={user_idx}"
         dummy_header["path"] = "/v1/bookmark/add"
@@ -168,7 +169,7 @@ class APIClient:
     async def delete_book_mark(self, panda_id):
         """panda_id를 북마크에서 삭제하는 함수"""
         user_idx = await self.get_user_idx(panda_id)
-        delete_bookmark_url = "https://api.pandalive.co.kr/v1/bookmark/delete"
+        delete_bookmark_url = f"https://api.{self.kinds}.co.kr/v1/bookmark/delete"
         dummy_header = self.default_header.copy()
         data = f"userIdx%5B0%5D={user_idx}"
         dummy_header["path"] = "/v1/bookmark/delete"
@@ -203,7 +204,7 @@ class APIClient:
         """북마크 리스트를 얻는 함수"""
         if self.sess_key is None or self.user_idx is None:
             raise Exception("로그인이 필요합니다")  # pylint: disable=W0719
-        book_mark_url = "https://api.pandalive.co.kr/v1/live/bookmark"
+        book_mark_url = f"https://api.{self.kinds}.co.kr/v1/live/bookmark"
         dummy_header = self.default_header.copy()
         data = "offset=0&limit=200&isLive=&hideOnly=N"
         dummy_header["path"] = "/v1/live/bookmark"
@@ -239,7 +240,7 @@ class APIClient:
                 data={"sess_key": self.sess_key, "user_idx": self.user_idx},
             )
             return None
-        play_url = "https://api.pandalive.co.kr/v1/live/play"
+        play_url = f"https://api.{self.kinds}.co.kr/v1/live/play"
         data = f"action=watch&userId={panda_id}&password=&shareLinkType="
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/live/play"
@@ -277,7 +278,7 @@ class APIClient:
         if self.is_manager is False:
             return None
         room_list_url = (
-            "https://api.pandalive.co.kr/v1/chat/channel_user_list?"
+            f"https://api.{self.kinds}.co.kr/v1/chat/channel_user_list?"
             f"channel={self.channel}&token={self.jwt_token}"
         )
         dummy_header = self.default_header.copy()
@@ -298,7 +299,7 @@ class APIClient:
 
     async def refresh_token(self):
         """토큰 갱신하는 요청"""
-        refresh_token_url = "https://api.pandalive.co.kr/v1/chat/refresh_token"
+        refresh_token_url = f"https://api.{self.kinds}.co.kr/v1/chat/refresh_token"
         data = f"channel={self.channel}&token={self.jwt_token}"
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/refresh_token"
@@ -345,7 +346,7 @@ class APIClient:
                 },
             )
             return None  # pylint: disable=W0719
-        chat_url = "https://api.pandalive.co.kr/v1/chat/message"
+        chat_url = f"https://api.{self.kinds}.co.kr/v1/chat/message"
         data = f"message={quote(message)}&roomid={self.room_id}&chatToken={self.chat_token}&t={int(time.time())}&channel={self.channel}&token={self.jwt_token}"
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/message"
@@ -366,7 +367,7 @@ class APIClient:
 
     async def guest_login(self):
         """게스트 로그인"""
-        guest_login_url = "https://api.pandalive.co.kr/v1/member/login_info"
+        guest_login_url = f"https://api.{self.kinds}.co.kr/v1/member/login_info"
         dummy_header = self.default_header.copy()
         data = {}
         try:
@@ -387,7 +388,7 @@ class APIClient:
 
     async def guest_play(self):
         """방송 시청 API 호출, 아마 방송에 대한 정보를 받는 API일듯"""
-        play_url = "https://api.pandalive.co.kr/v1/live/play"
+        play_url = f"https://api.{self.kinds}.co.kr/v1/live/play"
         data = f"action=watch&userId={self.panda_id}&password=&shareLinkType="
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/live/play"
@@ -414,7 +415,7 @@ class APIClient:
 
     async def guest_refresh_token(self):
         """토큰 갱신하는 요청"""
-        refresh_token_url = "https://api.pandalive.co.kr/v1/chat/refresh_token"
+        refresh_token_url = f"https://api.{self.kinds}.co.kr/v1/chat/refresh_token"
         data = f"channel={self.channel}&token={self.jwt_token}"
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/chat/refresh_token"
@@ -439,7 +440,7 @@ class APIClient:
         팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함
         비밀번호가 변경되었을 경우 매니저 해제 요청 + 프록시 제거 요청을 보냄
         """
-        login_url = "https://api.pandalive.co.kr/v1/member/login"
+        login_url = f"https://api.{self.kinds}.co.kr/v1/member/login"
         dummy_header = self.default_header.copy()
         data = f"id={account.login_id}&pw={account.login_pw}&idSave=N"
         dummy_header["path"] = "/v1/member/login"
@@ -481,7 +482,7 @@ class APIClient:
                 data={"sess_key": self.sess_key, "user_idx": self.user_idx},
             )
             return None
-        play_url = "https://api.pandalive.co.kr/v1/live/play"
+        play_url = f"https://api.{self.kinds}.co.kr/v1/live/play"
         data = f"action=watch&userId={panda_id}&password=&shareLinkType="
         dummy_header = self.default_header.copy()
         dummy_header["path"] = "/v1/live/play"
@@ -517,7 +518,7 @@ class APIClient:
         """라이브 리스트를 얻는 함수"""
         if self.sess_key is None or self.user_idx is None:
             raise Exception("로그인이 필요합니다")
-        live_list_url = "https://api.pandalive.co.kr/v1/live"
+        live_list_url = f"https://api.{self.kinds}.co.kr/v1/live"
         dummy_header = self.default_header.copy()
         data = f"offset={offset}&limit={limit}&isLive=Y&onlyNewBj=N"
         dummy_header["path"] = "/v1/live"
@@ -571,3 +572,41 @@ class APIClient:
                     )
         sorted_ret = sorted(ret, key=lambda x: x["totalScoreCnt"], reverse=True)
         return sorted_ret
+
+    async def wink_member_login(
+        self,
+        login_id,
+        login_pw,
+    ):
+        """
+        팬더서버에 로그인 요청하는 함수, 결과값으로 매니저의 닉네임을 리턴함
+        비밀번호가 변경되었을 경우 매니저 해제 요청 + 프록시 제거 요청을 보냄
+        """
+        login_url = "https://api.winktv.co.kr/v1/member/login"
+        dummy_header = self.default_header.copy()
+        data = f"id={login_id}&pw={login_pw}&idSave=N"
+        dummy_header["path"] = "/v1/member/login"
+        dummy_header["content-length"] = str(len(data))
+        try:
+            response = requests.post(
+                url=login_url, headers=dummy_header, data=data, timeout=5
+            )
+            if response.status_code != 200:
+                raise HTTPException(409, "로그인 실패")
+            result = response.json()
+        except Exception as e:  # pylint: disable=W0703
+            await logging_error(
+                self.panda_id,
+                "[대리접속 - 로그인 실패]",
+                {
+                    "login_id": login_id,
+                    "login_pw": login_pw,
+                    "data": str(e),
+                },
+            )
+            return None  # pylint: disable=W0719 W0707
+        login_info = result["loginInfo"]
+        self.sess_key = login_info["sessKey"]
+        self.user_idx = login_info["userInfo"]["idx"]
+        print(self.sess_key, self.user_idx)
+        return login_info["userInfo"]["nick"]
