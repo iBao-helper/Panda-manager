@@ -31,6 +31,7 @@ class TotalIpManager:
             ("154.26.170.59", 4),
         ]
         self.lock = threading.Lock()
+        self.websockets = []
 
     def sort_ips(self):
         self.ips = sorted(self.ips, key=lambda x: x[1], reverse=True)
@@ -45,9 +46,12 @@ class TotalIpManager:
         return False
 
     def get_ip(self):
+        self.lock.acquire()
         for ip in self.ips:
             if ip[1] > 0:
+                self.lock.release()
                 return ip[0]
+        self.lock.release()
         return None
 
     def decrease_ip(self, ip):

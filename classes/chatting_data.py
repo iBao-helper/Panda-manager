@@ -1,6 +1,5 @@
 """채팅 클래스"""
 
-
 import json
 import pprint
 
@@ -12,7 +11,7 @@ class ChattingData:
         try:
             chatting_data = json.loads(chatting_data)
         except:  # pylint: disable=W0702
-            print(chatting_data)
+            pass
         if "client" in chatting_data["result"]:
             self.type = None
         else:

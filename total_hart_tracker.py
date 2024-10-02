@@ -21,6 +21,7 @@ from view import (
 api_client = APIClient()
 tim = TotalIpManager()
 tim.sort_ips()
+websockets_dict = {}
 
 current_watching = []
 lock = threading.Lock()
@@ -90,12 +91,6 @@ async def viewbot_start(
             except Exception as e:  # pylint: disable=W0718 W0612
                 print(str(e))
                 continue
-            chatting_data = json.loads(data)
-            result = chatting_data.get("result", None)
-            if result is not None:
-                ws_type = result["data"]["data"].get("type", None)
-                if ws_type == "RoomEnd":
-                    break
         except websockets.exceptions.ConnectionClosedOK as e:
             # 정상 종료됨
             break
@@ -105,17 +100,6 @@ async def viewbot_start(
             break
         except Exception as e:  # pylint: disable=W0703
             pass
-    message = {
-        "id": 2,
-        "method": 2,
-        "params": {"channel": str(api_client.channel)},
-    }
-    try:
-        await websocket.send(json.dumps(message))
-        await websocket.close()
-    except Exception as e:
-        print("send 실패")
-        pass
 
 
 def start_view_bot(
@@ -131,16 +115,22 @@ def start_view_bot(
     if last_flag:
         duplicate_lock.release()
 
+    # 아이피 부족하면 pass 다음 루프로
+    if tim.get_total_ip() <= 0:
+        print("IP 용량 부족:", tim.get_total_ip())
+        lock.release()
+        return
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     proxy_ip = tim.get_ip()
     print(proxy_ip)
 
     try:
-        current_watching.append(tracker_data.panda_id)
         api_client = APIClient(panda_id=tracker_data.panda_id, proxy_ip=proxy_ip)
         loop.run_until_complete(api_client.guest_login())
         loop.run_until_complete(api_client.guest_play())
+        print(api_client.channel)
         websocket = loop.run_until_complete(
             connect_websocket(
                 api_client.jwt_token, api_client.channel, api_client.proxy_ip
@@ -148,9 +138,11 @@ def start_view_bot(
         )
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"웹소켓 연결 실패 에러 - {str(e)}")
+        return
 
     try:
         current_watching.append(tracker_data.panda_id)
+        websockets_dict[tracker_data.panda_id] = [websocket, api_client]
         tim.decrease_ip(proxy_ip)
         # 실행되면 proxy_ip 용량 차감
         lock.release()
@@ -196,15 +188,15 @@ def get_terminated_lists(lists) -> list[TrackerData]:
 
 
 def event_thread():
+    global api_client
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(api_client.login("siveriness01", "Adkflfkd1", ""))
     managers = loop.run_until_complete(get_all_managers())
-    managers = [item["panda_id"] for item in managers if item["panda_id"]]
+    managers = [item["panda_id"] for item in managers]
     print(managers)
     while True:
         try:
-            print("duplicate_lock 상태 출력", duplicate_lock.locked())
             duplicate_lock.acquire()
             starting_count = 0
             remove_count = 0
@@ -219,10 +211,6 @@ def event_thread():
                     last_flag = True
                 else:
                     last_flag = False
-                # 아이피 부족하면 pass 다음 루프로
-                if tim.get_total_ip() <= 0:
-                    print("IP 용량 부족:", tim.get_total_ip())
-                    continue
                 tracker_data = TrackerData(**starting_item)
                 threading.Thread(
                     target=start_view_bot,
@@ -231,7 +219,23 @@ def event_thread():
                 ).start()
                 starting_count += 1
             for terminated_item in terminating_list:
-                current_watching.remove(terminated_item)
+                panda_ids = websockets_dict.keys()
+                for panda_id in panda_ids:
+                    if panda_id == terminated_item:
+                        try:
+                            websocket = websockets_dict[panda_id][0]
+                            api_client = websockets_dict[panda_id][1]
+                            message = {
+                                "id": 2,
+                                "method": 2,
+                                "params": {"channel": str(api_client.channel)},
+                            }
+                            loop.run_until_complete(websocket.send(json.dumps(message)))
+                            websockets_dict.pop(panda_id)
+                            current_watching.remove(panda_id)
+                        except:
+                            print("panda_id의 웹소켓이 없음")
+                        break
                 remove_count += 1
             print(
                 "가져옴:",
