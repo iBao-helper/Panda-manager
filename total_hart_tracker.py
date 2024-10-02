@@ -141,6 +141,8 @@ def start_view_bot(
     print(proxy_ip)
 
     try:
+        tim.decrease_ip(proxy_ip)
+        current_watching.append(tracker_data.panda_id)
         api_client = APIClient(panda_id=tracker_data.panda_id, proxy_ip=proxy_ip)
         loop.run_until_complete(api_client.guest_login())
         loop.run_until_complete(api_client.guest_play())
@@ -149,9 +151,7 @@ def start_view_bot(
                 api_client.jwt_token, api_client.channel, api_client.proxy_ip
             )
         )
-        current_watching.append(tracker_data.panda_id)
         # 실행되면 proxy_ip 용량 차감
-        tim.decrease_ip(proxy_ip)
         lock.release()
         loop.run_until_complete(
             viewbot_start(
@@ -163,6 +163,8 @@ def start_view_bot(
         tim.increase_ip(api_client.proxy_ip)
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"start_view_bot 에러  {str(e)}")
+        current_watching.remove(tracker_data.panda_id)
+        tim.increase_ip(api_client.proxy_ip)
         lock.release()
         return
     return
