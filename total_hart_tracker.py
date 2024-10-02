@@ -163,7 +163,6 @@ def start_view_bot(
         )
         current_watching.remove(tracker_data.panda_id)
         tim.increase_ip(api_client.proxy_ip)
-        lock.release()
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"viewbot_start 에러  {str(e)}")
         try:
@@ -171,7 +170,6 @@ def start_view_bot(
         except:
             pass
         tim.increase_ip(api_client.proxy_ip)
-        lock.release()
     return
 
 
