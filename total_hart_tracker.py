@@ -230,6 +230,8 @@ def event_thread():
                             websockets_dict.pop(panda_id)
                             current_watching.remove(panda_id)
                         except:
+                            websockets_dict.pop(panda_id)
+                            current_watching.remove(panda_id)
                             print("panda_id의 웹소켓이 없음")
                         break
                 remove_count += 1
