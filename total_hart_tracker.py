@@ -255,7 +255,9 @@ async def main():
         daemon=True,
     ).start()
     while True:
-        print("현재 감시중인 개수:", len(current_watching))
+        open("current_watching.txt", "w").write(str(current_watching))
+        open("websockets_dict.txt", "w").write(str(websockets_dict))
+        print("현재 감시중인 리스트:", current_watching)
         print("남은 IP 용량:", tim.get_total_ip())
         await asyncio.sleep(10)
 
