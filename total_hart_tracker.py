@@ -90,6 +90,9 @@ async def viewbot_start(
                     print("이런일은 일어나지 않음. ")
             except Exception as e:  # pylint: disable=W0718 W0612
                 print("viewbot_start_while loop detect": str(e))
+                file = open("error.txt", "w")
+                file.writelines(str(e))
+                file.writelines(data)
                 continue
         except websockets.exceptions.ConnectionClosedOK as e:
             # 정상 종료됨
