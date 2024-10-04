@@ -397,7 +397,7 @@ class APIClient:
         # await logging_info(self.panda_id, "[view_play API 결과]", result)
         try:
             result = await self.request_api_call(play_url, data, dummy_header)
-            print(result)
+            # print(result)
             self.chat_token = result["chatServer"]["token"]
             self.jwt_token = result["token"]
             self.channel = result["media"]["userIdx"]

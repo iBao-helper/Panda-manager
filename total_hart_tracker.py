@@ -89,11 +89,7 @@ async def viewbot_start(
                 elif chat.type == "personal":
                     print("이런일은 일어나지 않음. ")
             except Exception as e:  # pylint: disable=W0718 W0612
-                print("viewbot_start_while loop detect:", str(e))
-                file = open("error.txt", "w")
-                file.writelines(str(e))
-                file.writelines(data)
-                continue
+                pass
         except websockets.exceptions.ConnectionClosedOK as e:
             # 정상 종료됨
             break
@@ -102,7 +98,7 @@ async def viewbot_start(
         except websockets.exceptions.ConnectionClosed as e:
             break
         except Exception as e:  # pylint: disable=W0703
-            pass
+            break
 
 
 def start_view_bot(
