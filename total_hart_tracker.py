@@ -81,7 +81,7 @@ async def viewbot_start(
                 if chat.type == "SponCoin":
                     chat_message_class = json.loads(chat.message)
                     await send_hart_history(
-                        bj_name="robots",
+                        bj_name=f"robots - {tracker_data.panda_id}",
                         user_id=chat_message_class["id"],
                         nickname=chat_message_class["nick"],
                         hart_count=chat_message_class["coin"],
