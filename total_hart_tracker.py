@@ -89,7 +89,7 @@ async def viewbot_start(
                 elif chat.type == "personal":
                     print("이런일은 일어나지 않음. ")
             except Exception as e:  # pylint: disable=W0718 W0612
-                print("viewbot_start_while loop detect": str(e))
+                print("viewbot_start_while loop detect:", str(e))
                 file = open("error.txt", "w")
                 file.writelines(str(e))
                 file.writelines(data)
@@ -248,7 +248,7 @@ def event_thread():
             )
             sleep(300)  # Sleep for 5 minutes
         except Exception as e:  # pylint: disable=W0703
-            print("event_trehad detect": str(e))
+            print("event_trehad detect:", str(e))
             with open("example.txt", "w") as file:  # 파일을 쓰기 모드로 오픈
                 file.write("Hello, Python!")  # 파일에 내용 쓰기
 
@@ -262,7 +262,7 @@ async def main():
     while True:
         open("current_watching.txt", "w").write(str(current_watching))
         open("websockets_dict.txt", "w").write(str(websockets_dict))
-        print("현재 감시중인 리스트:", current_watching)
+        print("현재 감시중인 리스트:", len(current_watching))
         print("남은 IP 용량:", tim.get_total_ip())
         await asyncio.sleep(10)
 
