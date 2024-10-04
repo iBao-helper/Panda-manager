@@ -164,7 +164,8 @@ def ger_starting_list(lists) -> list[TrackerData]:
     starting_lists = [
         item for item in lists if item["panda_id"] not in current_watching
     ]
-    return starting_lists
+    ip_count = tim.get_total_ip()
+    return starting_lists[0:ip_count]
 
 
 def get_terminated_lists(lists) -> list[TrackerData]:
