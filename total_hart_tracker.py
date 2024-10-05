@@ -66,11 +66,12 @@ async def viewbot_start(
     websocket: websockets.WebSocketClientProtocol,
     tracker_data: TrackerData,
 ):
+    global tim
     """팬더 매니저 시작"""
     # 닉네임이 변경된 게 있다면 업데이트
     asyncio.create_task(update_jwt_refresh(api_client=api_client, websocket=websocket))
 
-    # asyncio.create_task(self.promotion())
+    tim.decrease_ip(api_client.proxy_ip)
     while tracker_data.panda_id in current_watching:
         try:
             data = await websocket.recv()
@@ -111,12 +112,11 @@ def start_view_bot(
 
     # 마지막 요소라면 중복방지락을 풀어줌
     lock.acquire()
-    if last_flag:
-        duplicate_lock.release()
-
     # 아이피 부족하면 pass 다음 루프로
     if tim.get_total_ip() <= 0:
         print("IP 용량 부족:", tim.get_total_ip())
+        if last_flag:
+            duplicate_lock.release()
         lock.release()
         return
 
@@ -137,14 +137,17 @@ def start_view_bot(
         )
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"웹소켓 연결 실패 에러 - {str(e)}")
+        if last_flag:
+            duplicate_lock.release()
         lock.release()
         return
 
     try:
         current_watching.append(tracker_data.panda_id)
         websockets_dict[tracker_data.panda_id] = [websocket, api_client]
-        tim.decrease_ip(proxy_ip)
         # 실행되면 proxy_ip 용량 차감
+        if last_flag:
+            duplicate_lock.release()
         lock.release()
         loop.run_until_complete(
             viewbot_start(
@@ -153,10 +156,8 @@ def start_view_bot(
                 tracker_data=tracker_data,
             )
         )
-        tim.increase_ip(api_client.proxy_ip)
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"viewbot_start 에러  {str(e)}")
-        tim.increase_ip(api_client.proxy_ip)
     return
 
 
@@ -229,9 +230,11 @@ def event_thread():
                             loop.run_until_complete(websocket.send(json.dumps(message)))
                             websockets_dict.pop(panda_id)
                             current_watching.remove(panda_id)
+                            tim.increase_ip(api_client.proxy_ip)
                         except:
                             websockets_dict.pop(panda_id)
                             current_watching.remove(panda_id)
+                            tim.increase_ip(api_client.proxy_ip)
                             print("panda_id의 웹소켓이 없음")
                         break
                 remove_count += 1
