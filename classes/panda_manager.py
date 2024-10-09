@@ -314,7 +314,8 @@ class PandaManager:
             hart_count=message_class["coin"],
         )
         chat_message = emoji.emojize(chat_message)
-        await self.api_client.send_chatting(chat_message)
+        asyncio.create_task(self.api_client.send_chatting(chat_message))
+        # await self.api_client.send_chatting(chat_message)
 
     async def recommend_handler(self, message_class):
         """추천 핸들러"""
