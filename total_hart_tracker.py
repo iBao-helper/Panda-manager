@@ -82,7 +82,7 @@ async def viewbot_start(
                 if chat.type == "SponCoin":
                     chat_message_class = json.loads(chat.message)
                     await send_hart_history(
-                        bj_name=f"robots - {tracker_data.panda_id}",
+                        bj_name=f"{tracker_data.panda_id}",
                         user_id=chat_message_class["id"],
                         nickname=chat_message_class["nick"],
                         hart_count=chat_message_class["coin"],
@@ -181,6 +181,9 @@ def get_terminated_lists(lists) -> list[TrackerData]:
                 break
         if not finded:
             terminated_lists.append(item)
+    for panda_id in websockets_dict:
+        if not websockets_dict[panda_id][0].open:
+            terminated_lists.append(panda_id)
     return terminated_lists
 
 
@@ -264,6 +267,18 @@ async def main():
         open("websockets_dict.txt", "w").write(str(websockets_dict))
         print("현재 감시중인 리스트:", len(current_watching))
         print("남은 IP 용량:", tim.get_total_ip())
+        connected = 0
+        disconnected = 0
+        disconnected_list = []
+        for panda_id in websockets_dict:
+            if websockets_dict[panda_id][0].open:
+                connected += 1
+            else:
+                disconnected_list.append(panda_id)
+                disconnected += 1
+
+        print(f"웹소켓 연결중: {connected}")
+        print(f"웹소켓 연결끊김: {disconnected}")
         await asyncio.sleep(10)
 
 
