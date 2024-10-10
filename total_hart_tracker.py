@@ -157,6 +157,9 @@ def start_view_bot(
             )
         )
     except Exception as e:  # pylint: disable=W0702 W0718
+        lock.release()
+        if last_flag:
+            duplicate_lock.release()
         print(f"viewbot_start 에러  {str(e)}")
     return
 
