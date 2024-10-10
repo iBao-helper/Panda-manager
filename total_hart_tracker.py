@@ -253,6 +253,7 @@ def event_thread():
             sleep(300)  # Sleep for 5 minutes
         except Exception as e:  # pylint: disable=W0703
             print("event_trehad detect:", str(e))
+            open("error.txt", "a").write(str(e) + "\n")
 
 
 async def main():
