@@ -201,6 +201,7 @@ def event_thread():
             starting_count = 0
             remove_count = 0
             lists = loop.run_until_complete(api_client.get_live_lists(managers))
+            print("받아온 리스트 크기:", len(lists))
             starting_list = ger_starting_list(lists)
             terminating_list = get_terminated_lists(lists)
             if len(starting_list) == 0:
