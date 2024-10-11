@@ -204,6 +204,12 @@ def event_thread():
             starting_count = 0
             remove_count = 0
             lists = loop.run_until_complete(api_client.get_live_lists(managers))
+            # API호출에 에러가 발생한 경우 None을 반환받으면 release하고 10초후 재시도
+            if lists is None:
+                duplicate_lock.release()
+                print("API호출 에러발생. none을 반환받고 10초후 재시도")
+                sleep(10)
+                continue
             print("받아온 리스트 크기:", len(lists))
             starting_list = ger_starting_list(lists)
             terminating_list = get_terminated_lists(lists)

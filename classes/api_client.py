@@ -544,6 +544,10 @@ class APIClient:
         offset = 0
         limit = 100
         lists = await self.get_live_list(offset, limit)
+        # API호출 중 에러가 발생한 경우 None 반환. 이 경우 다시 로그인하고 return
+        if lists is None:
+            await self.login("siveriness01", "Adkflfkd1", "")
+            return None
         tmp.extend(lists)
         offset += limit + 1
         while len(lists) == limit:
