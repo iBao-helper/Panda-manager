@@ -213,11 +213,12 @@ async def viewbot_start(
             if result is not None:
                 ws_type = result["data"]["data"].get("type", None)
                 if ws_type == "RoomEnd":
-                    for key, value in app.ws_dict.items():
-                        if key == random_string:
-                            app.thread_lists.remove(random_string)
-                            del app.ws_dict[key]
-                            break
+                    try:
+                        app.thread_lists.remove(random_string)
+                        del app.ws_dict[random_string]
+                    except Exception as e:
+                        print("삭제 실패", str(e))
+                        pass
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
             await logging_info(
@@ -362,12 +363,12 @@ def start_view_bot(
             return
     random_string = generate_random_string()
     ws_data = WebsocketData(
-        websocket,
-        api_client,
-        request_data,
-        random_string,
-        request_data.proxy_ip,
-        request_data.user_id,
+        websocket=websocket,
+        api_client=api_client,
+        request_data=request_data,
+        random_string=random_string,
+        proxy_ip=request_data.proxy_ip,
+        user_id=request_data.user_id,
     )
     if random_string not in app.ws_dict:
         app.ws_dict[random_string] = ws_data

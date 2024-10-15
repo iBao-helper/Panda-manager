@@ -97,7 +97,11 @@ async def update_room_user_timer(api_client: APIClient):
                 for history_data in history:
                     catched = True
                     message += f"{history_data["date"]} / {history_data['user_name']} -> {history_data['bj_name']} ♥{history_data['count']}\n"
-                await api_client.send_chatting(message)
+                if message != "":
+                    print(message)
+                    await api_client.send_chatting(message)
+                else:
+                    print(f"{user}의 하트 기록이 없습니다.")
             if catched:
                 await api_client.send_chatting(
                     "하트 트래커 테스트 중 - panda-manager.com"
@@ -160,7 +164,10 @@ async def main():
     asyncio.create_task(update_jwt_refresh(api_client, websocket))
     asyncio.create_task(update_room_user_timer(api_client))
     while True:
-        await asyncio.sleep(50)
+        print("Websocket connection status:", websocket.open)
+        if websocket.open == False:
+            break
+        await asyncio.sleep(300)
 
 
 if __name__ == "__main__":
