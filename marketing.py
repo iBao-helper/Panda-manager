@@ -97,15 +97,16 @@ async def update_room_user_timer(api_client: APIClient):
                 for history_data in history:
                     catched = True
                     message += f"{history_data["date"]} / {history_data['user_name']} -> {history_data['bj_name']} ♥{history_data['count']}\n"
+            if catched:
+                print(message)
                 if message != "":
-                    print(message)
                     await api_client.send_chatting(message)
+                    await api_client.send_chatting(
+                        "하트 트래커 테스트 중 - panda-manager.com"
+                    )
                 else:
                     print(f"{user}의 하트 기록이 없습니다.")
-            if catched:
-                await api_client.send_chatting(
-                    "하트 트래커 테스트 중 - panda-manager.com"
-                )
+                    await api_client.send_chatting(f"{user}의 하트 기록이 없습니다.")
             await asyncio.sleep(2)
     except Exception as e:  # pylint: disable=W0702 W0718
         open("error.txt", "a").write(f"update_room_user error\n- {e}\n")
