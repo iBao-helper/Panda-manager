@@ -72,7 +72,7 @@ class APIClient:
         await logging_error(
             self.panda_id, "API 호출 실패", {"response": response.json()}
         )
-        raise Exception(response.json()["message"])  # pylint: disable=W0719
+        raise Exception(response.json())  # pylint: disable=W0719
 
     async def login(self, login_id, login_pw, panda_id):
         """
