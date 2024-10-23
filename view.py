@@ -289,7 +289,7 @@ async def get_account(user_id: str):
     """멤버 아이디 가져오기"""
     response = requests.get(
         url=f"http://{BACKEND_URL}:3000/proxy/member/{user_id}",
-        timeout=5,
+        timeout=30,
     )
     if response.status_code != 200:
         raise HTTPException(
