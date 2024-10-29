@@ -70,7 +70,9 @@ class APIClient:
         if response.status_code == 200:
             return response.json()
         await logging_error(
-            self.panda_id, "API 호출 실패", {"response": response.json()}
+            self.panda_id,
+            "API 호출 실패",
+            {"response": response.json(), "proxy_ip": self.proxy_ip},
         )
         raise Exception(response.json())  # pylint: disable=W0719
 
@@ -357,6 +359,7 @@ class APIClient:
         try:
             result = await self.request_api_call(chat_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
+            print(str(e))
             await logging_error(
                 self.panda_id,
                 "[chatting API 호출 실패]",
