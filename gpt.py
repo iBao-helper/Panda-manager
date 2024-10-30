@@ -68,7 +68,7 @@ def gpt4_omni(question, room_id, chat_token, jwt_token, channel, sess_key, user_
     return True
 
 
-def gpt4_omni_by_api_client(question, api_client: APIClient):
+async def gpt4_omni_by_api_client(question, panda_id: str):
     """GPT3.5 turbo에게 물어보기"""
     completion = client.chat.completions.create(
         model="gpt-4o",
@@ -93,7 +93,13 @@ def gpt4_omni_by_api_client(question, api_client: APIClient):
     )
 
     print(completion.choices[0].message)
-    asyncio.get_event_loop().run_until_complete(
-        api_client.send_chatting(completion.choices[0].message.content)
+    dummy_api_client = APIClient()
+    await dummy_api_client.login(
+        login_id="siveriness01",
+        login_pw="Adkflfkd1",
+        panda_id="chat_bot",
     )
-    return True
+    print(panda_id)
+    await dummy_api_client.play(panda_id)
+    await dummy_api_client.send_chatting(completion.choices[0].message.content)
+    return completion.choices[0].message.content

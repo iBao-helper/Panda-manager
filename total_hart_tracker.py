@@ -12,7 +12,7 @@ from classes.api_client import APIClient
 from classes.total_ip_manager import TotalIpManager
 import asyncio
 
-from gpt import gpt4_omni
+from gpt import gpt4_omni, gpt4_omni_by_api_client
 from util.my_util import TrackerData, get_all_managers, send_hart_history
 from view import (
     connect_websocket,
@@ -67,15 +67,10 @@ async def create_gpt_task(
 ):  # pylint: disable=W0613
     """GPT3.5에게 물어보는 비동기 태스크 만들기"""
     thread = threading.Thread(
-        target=gpt4_omni,
+        target=gpt4_omni_by_api_client,
         args=(
             chat.message.replace("@ ", ""),
-            api_client.room_id,
-            api_client.chat_token,
-            api_client.jwt_token,
-            api_client.channel,
-            api_client.sess_key,
-            api_client.user_idx,
+            api_client,
         ),
     )
     thread.start()
@@ -92,6 +87,8 @@ async def viewbot_start(
     asyncio.create_task(update_jwt_refresh(api_client=api_client, websocket=websocket))
 
     tim.decrease_ip(api_client.proxy_ip)
+    managers = await get_all_managers()
+    managers = [item["panda_id"] for item in managers]
     while tracker_data.panda_id in current_watching:
         try:
             data = await websocket.recv()
@@ -109,17 +106,19 @@ async def viewbot_start(
                     )
                 elif chat.type == "personal":
                     print("이런일은 일어나지 않음. ")
-                elif chat.type == "chatter" or chat.type == "manager":
+                elif (
+                    chat.type == "chatter"
+                    or chat.type == "manager"
+                    or chat.type == "bj"
+                ):
                     splits = chat.message.split(" ")
-                    if splits[0] == "@":
-                        dummy_api_client = APIClient()
-                        await dummy_api_client.login(
-                            login_id="siveriness01",
-                            login_pw="Adkflfkd1",
-                            panda_id={api_client.panda_id},
+                    if splits[0] == "@" and api_client.panda_id not in managers:
+
+                        asyncio.create_task(
+                            gpt4_omni_by_api_client(
+                                chat.message.replace("@ ", ""), tracker_data.panda_id
+                            )
                         )
-                        await dummy_api_client.play(panda_id={api_client.panda_id})
-                        await create_gpt_task(chat, dummy_api_client)
             except Exception as e:  # pylint: disable=W0718 W0612
                 pass
         except websockets.exceptions.ConnectionClosedOK as e:
@@ -223,9 +222,10 @@ def get_terminated_lists(lists) -> list[TrackerData]:
 
 def event_thread():
     global api_client
+    first = True
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(api_client.login("siveriness01", "Adkflfkd1", ""))
+    loop.run_until_complete(api_client.login("42papawolf", "Ehdrn0990!PD", ""))
     managers = loop.run_until_complete(get_all_managers())
     managers = [item["panda_id"] for item in managers]
     print(managers)
@@ -303,7 +303,7 @@ async def main():
         daemon=True,
     ).start()
     while True:
-        print("현재 감시중인 리스트:", len(current_watching))
+        print("현재 감시중인 리스트:", current_watching)
         print("남은 IP 용량:", tim.get_total_ip())
         connected = 0
         disconnected = 0

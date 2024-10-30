@@ -8,7 +8,7 @@ async def main():
     await api_client.login(
         login_id="siveriness01", login_pw="Adkflfkd1", panda_id="chat_bot"
     )
-    await api_client.play(panda_id="aaa983")
+    await api_client.play(panda_id="eunha99")
     await api_client.send_chatting("유령이야 껄껄")
 
 
