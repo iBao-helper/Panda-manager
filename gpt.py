@@ -1,9 +1,12 @@
 """oepnAI 사용 예제"""
 
+import asyncio
 import time
 from urllib.parse import quote
 from openai import OpenAI
 import requests
+
+from classes.api_client import APIClient
 
 client = OpenAI()
 
@@ -62,4 +65,35 @@ def gpt4_omni(question, room_id, chat_token, jwt_token, channel, sess_key, user_
         requests.post(url=chat_url, headers=dummy_header, data=data, timeout=5)
     except:  # pylint: disable=W0703 W0612
         return None  # pylint: disable=W0719 W0707
+    return True
+
+
+def gpt4_omni_by_api_client(question, api_client: APIClient):
+    """GPT3.5 turbo에게 물어보기"""
+    completion = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": "Answer questions as if you were talking to a close friend.",
+            },
+            {
+                "role": "system",
+                "content": "Just answer the questions asked and don't use flowery language.",
+            },
+            {
+                "role": "system",
+                "content": "Keep your answers short and simple.",
+            },
+            {
+                "role": "user",
+                "content": question,
+            },
+        ],
+    )
+
+    print(completion.choices[0].message)
+    asyncio.get_event_loop().run_until_complete(
+        api_client.send_chatting(completion.choices[0].message.content)
+    )
     return True
