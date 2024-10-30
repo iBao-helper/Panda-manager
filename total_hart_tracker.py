@@ -12,6 +12,7 @@ from classes.api_client import APIClient
 from classes.total_ip_manager import TotalIpManager
 import asyncio
 
+from gpt import gpt4_omni
 from util.my_util import TrackerData, get_all_managers, send_hart_history
 from view import (
     connect_websocket,
@@ -61,6 +62,25 @@ async def update_jwt_refresh(
         await asyncio.sleep(60 * 20)
 
 
+async def create_gpt_task(
+    chat: ChattingData, api_client: APIClient
+):  # pylint: disable=W0613
+    """GPT3.5에게 물어보는 비동기 태스크 만들기"""
+    thread = threading.Thread(
+        target=gpt4_omni,
+        args=(
+            chat.message.replace("@ ", ""),
+            api_client.room_id,
+            api_client.chat_token,
+            api_client.jwt_token,
+            api_client.channel,
+            api_client.sess_key,
+            api_client.user_idx,
+        ),
+    )
+    thread.start()
+
+
 async def viewbot_start(
     api_client: APIClient,
     websocket: websockets.WebSocketClientProtocol,
@@ -89,6 +109,17 @@ async def viewbot_start(
                     )
                 elif chat.type == "personal":
                     print("이런일은 일어나지 않음. ")
+                elif chat.type == "chatter" or chat.type == "manager":
+                    splits = chat.message.split(" ")
+                    if splits[0] == "@":
+                        dummy_api_client = APIClient()
+                        await dummy_api_client.login(
+                            login_id="siveriness01",
+                            login_pw="Adkflfkd1",
+                            panda_id={api_client.panda_id},
+                        )
+                        await dummy_api_client.play(panda_id={api_client.panda_id})
+                        await create_gpt_task(chat, dummy_api_client)
             except Exception as e:  # pylint: disable=W0718 W0612
                 pass
         except websockets.exceptions.ConnectionClosedOK as e:
