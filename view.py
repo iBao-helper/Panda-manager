@@ -213,12 +213,6 @@ async def viewbot_start(
             if result is not None:
                 ws_type = result["data"]["data"].get("type", None)
                 if ws_type == "RoomEnd":
-                    try:
-                        app.thread_lists.remove(random_string)
-                        del app.ws_dict[random_string]
-                    except Exception as e:
-                        print("삭제 실패", str(e))
-                        pass
                     break
         except websockets.exceptions.ConnectionClosedOK as e:
             await logging_info(
@@ -266,23 +260,14 @@ async def viewbot_start(
         print("send 실패")
         pass
 
-    exist = False
-    # 해당 인스턴스가 모두 삭제되었을 경우 백엔드에 해당 인스턴스의 종료 요청을 보냄
-    for key, value in app.ws_dict.items():
-        if value.api_client.proxy_ip == proxy_ip:
-            exist = True
-            break
-    if not exist:
-        await reqeust_delete_point(
-            user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
-        )
-        await request_increase_ip(proxy_ip=proxy_ip)
-        print("ip is deleted in dict. len")
-        return
-
-    if proxy_ip not in app.ws_dict:
-
-        return
+    app.thread_lists.remove(random_string)
+    del app.ws_dict[random_string]
+    await reqeust_delete_point(
+        user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
+    )
+    await request_increase_ip(proxy_ip=proxy_ip)
+    print("ip is deleted in dict. len")
+    return
 
 
 async def get_account(user_id: str):
