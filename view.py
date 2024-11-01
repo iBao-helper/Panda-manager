@@ -203,7 +203,7 @@ async def viewbot_start(
             api_client=api_client, websocket=websocket, random_string=random_string
         )
     )
-    await callback_create_proxy_history(user_pk=account.user_pk, proxy_ip=proxy_ip)
+    await callback_create_proxy_history(user_id=user_id, proxy_ip=proxy_ip)
     # asyncio.create_task(self.promotion())
     while random_string in app.thread_lists:
         try:
