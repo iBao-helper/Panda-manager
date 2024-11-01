@@ -258,7 +258,6 @@ async def viewbot_start(
             panda_id=api_client.panda_id, description="view 에러 - await send", data=e
         )
         print("send 실패")
-        pass
 
     app.thread_lists.remove(random_string)
     del app.ws_dict[random_string]
