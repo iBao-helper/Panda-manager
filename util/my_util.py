@@ -84,7 +84,7 @@ async def get_all_managers():
         return None
 
 
-async def callback_create_proxy_history(user_pk: int, proxy_ip: str):
+async def callback_create_proxy_history(user_id: str, proxy_ip: str):
     """
     프록시 생성 이력 콜백
     - 프록시 생성 이력을 생성한다
@@ -92,7 +92,7 @@ async def callback_create_proxy_history(user_pk: int, proxy_ip: str):
     try:
         requests.post(
             url=f"http://{BACKEND_URL}:{BACKEND_PORT}/user/callback/manager-connect",
-            json={"user_pk": user_pk, "proxy_ip": proxy_ip},
+            json={"user_id": user_id, "proxy_ip": proxy_ip},
             timeout=5,
         )
     except:  # pylint: disable=W0702
