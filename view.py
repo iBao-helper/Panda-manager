@@ -452,7 +452,10 @@ async def disconnect_proxy_by_ip(user_id: str):
     copy_dict = app.ws_dict.copy()
     for key, value in copy_dict.items():
         if value.user_id == user_id:
-            app.thread_lists.remove(value.random_string)
+            try:
+                app.thread_lists.remove(value.random_string)
+            except:
+                pass
     print(app.ws_dict.keys())
     print(app.thread_lists)
     return JSONResponse(
