@@ -317,7 +317,7 @@ class APIClient:
             await logging_error(
                 self.panda_id,
                 "[refresh_token API 호출 실패]",
-                {"data": str(e)},
+                {"data": str(e), "proxy_ip": self.proxy_ip},
             )
             return None  # pylint: disable=W0719 W0707
         return result
