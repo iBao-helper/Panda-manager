@@ -259,8 +259,11 @@ async def viewbot_start(
         )
         print("send 실패")
 
-    app.thread_lists.remove(random_string)
-    del app.ws_dict[random_string]
+    try:
+        app.thread_lists.remove(random_string)
+        del app.ws_dict[random_string]
+    except:
+        print("이미 삭제됨")
     await reqeust_delete_point(
         user_id=user_id, login_id=account.login_id, proxy_ip=proxy_ip
     )
