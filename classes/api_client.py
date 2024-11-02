@@ -575,6 +575,7 @@ class APIClient:
                             "playCnt": item["playCnt"],
                             "totalScoreCnt": item["totalScoreCnt"],
                             "userIdx": item["userIdx"],
+                            "userNick": item["userNick"],
                         }
                     )
         sorted_ret = sorted(ret, key=lambda x: x["totalScoreCnt"], reverse=True)

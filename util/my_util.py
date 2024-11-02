@@ -21,6 +21,7 @@ class TrackerData:
     playCnt: int
     totalScoreCnt: int
     userIdx: int
+    userNick: str
 
 
 class User(BaseModel):

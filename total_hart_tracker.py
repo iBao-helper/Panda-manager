@@ -98,8 +98,10 @@ async def viewbot_start(
                     continue
                 if chat.type == "SponCoin":
                     chat_message_class = json.loads(chat.message)
+                    # print(tracker_data.userNick)
                     await send_hart_history(
-                        bj_name=f"{tracker_data.panda_id}",
+                        bj_name=tracker_data.userNick,
+                        # bj_name=f"{tracker_data.panda_id}",
                         user_id=chat_message_class["id"],
                         nickname=chat_message_class["nick"],
                         hart_count=chat_message_class["coin"],
@@ -120,15 +122,20 @@ async def viewbot_start(
                             )
                         )
             except Exception as e:  # pylint: disable=W0718 W0612
+                print(f"viewbot_start 에러 {str(e)}")
                 pass
         except websockets.exceptions.ConnectionClosedOK as e:
+            print(f"viewbot_start 에러 {str(e)}")
             # 정상 종료됨
             break
         except websockets.exceptions.ConnectionClosedError as e:
+            print(f"viewbot_start 에러 {str(e)}")
             break
         except websockets.exceptions.ConnectionClosed as e:
+            print(f"viewbot_start 에러 {str(e)}")
             break
         except Exception as e:  # pylint: disable=W0703
+            print(f"viewbot_start 에러 {str(e)}")
             break
 
 
