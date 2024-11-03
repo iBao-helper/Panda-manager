@@ -105,7 +105,7 @@ async def gpt4_omni_by_api_client(question, panda_id: str):
         messages.append(
             {
                 "role": "system",
-                "content": f'If the question includes " ", it is asking for the number of sponsorships.',
+                "content": f'If the question includes " ", it is asking for the number of donations.',
             },
         )
     print(messages)
