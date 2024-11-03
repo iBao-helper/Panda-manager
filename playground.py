@@ -5,7 +5,7 @@ from gpt import gpt4_omni_by_api_client
 
 async def main():
     """docstring"""
-    question = '"❥오로지✿⁀➷꽁들짝"는 몇개 쏨?'
+    question = '"미키™"는 몇개 쏨?'
     await gpt4_omni_by_api_client(question, panda_id="1")
 
 
