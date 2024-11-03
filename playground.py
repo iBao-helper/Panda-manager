@@ -1,15 +1,12 @@
 import asyncio
 from classes.api_client import APIClient
+from gpt import gpt4_omni_by_api_client
 
 
 async def main():
     """docstring"""
-    api_client = APIClient()
-    await api_client.login(
-        login_id="siveriness01", login_pw="Adkflfkd1", panda_id="chat_bot"
-    )
-    await api_client.play(panda_id="eunha99")
-    await api_client.send_chatting("유령이야 껄껄")
+    question = '"❥오로지✿⁀➷꽁들짝"는 몇개 쏨?'
+    await gpt4_omni_by_api_client(question, panda_id="1")
 
 
 asyncio.run(main())

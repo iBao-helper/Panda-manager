@@ -102,6 +102,12 @@ async def gpt4_omni_by_api_client(question, panda_id: str):
                 "content": f"The result of the search is the number of donations, and the number of donations is {hart_count}",
             },
         )
+        messages.append(
+            {
+                "role": "system",
+                "content": f"If the question includes, it is asking for the number of sponsorships.",
+            },
+        )
     print(messages)
     messages.append(
         {
