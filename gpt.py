@@ -5,8 +5,9 @@ import time
 from urllib.parse import quote
 from openai import OpenAI
 import requests
-
 from classes.api_client import APIClient
+from util.my_util import get_sum_hart_history
+import re
 
 client = OpenAI()
 
@@ -70,26 +71,48 @@ def gpt4_omni(question, room_id, chat_token, jwt_token, channel, sess_key, user_
 
 async def gpt4_omni_by_api_client(question, panda_id: str):
     """GPT3.5 turbo에게 물어보기"""
+    match = re.search(r'"([^"]*)"', question)
+    messages = []
+    messages.append(
+        {
+            "role": "system",
+            "content": "Answer questions as if you were talking to a close friend.",
+        },
+    )
+    messages.append(
+        {
+            "role": "system",
+            "content": "Just answer the questions asked and don't use flowery language.",
+        },
+    )
+    messages.append(
+        {
+            "role": "system",
+            "content": "Keep your answers short and simple.",
+        },
+    )
+
+    if match:
+        nickname = match.group(1)
+        nickname.replace(" ", "")
+        hart_count = await get_sum_hart_history(user_name=nickname)
+        messages.append(
+            {
+                "role": "system",
+                "content": f"The result of the search is the number of donations, and the number of donations is {hart_count}",
+            },
+        )
+    print(messages)
+    messages.append(
+        {
+            "role": "user",
+            "content": question,
+        },
+    )
+
     completion = client.chat.completions.create(
         model="gpt-4o",
-        messages=[
-            {
-                "role": "system",
-                "content": "Answer questions as if you were talking to a close friend.",
-            },
-            {
-                "role": "system",
-                "content": "Just answer the questions asked and don't use flowery language.",
-            },
-            {
-                "role": "system",
-                "content": "Keep your answers short and simple.",
-            },
-            {
-                "role": "user",
-                "content": question,
-            },
-        ],
+        messages=messages,
     )
 
     print(completion.choices[0].message)

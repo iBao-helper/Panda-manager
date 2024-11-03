@@ -115,10 +115,11 @@ async def viewbot_start(
                 ):
                     splits = chat.message.split(" ")
                     if splits[0] == "@" and api_client.panda_id not in managers:
-
                         asyncio.create_task(
                             gpt4_omni_by_api_client(
-                                chat.message.replace("@ ", ""), tracker_data.panda_id
+                                chat.message.replace("@ ", ""),
+                                tracker_data.panda_id,
+                                chat.nickname,
                             )
                         )
             except Exception as e:  # pylint: disable=W0718 W0612

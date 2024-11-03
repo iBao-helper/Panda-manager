@@ -565,3 +565,15 @@ async def request_delete_view_bot(panda_id: str):
         )
     except:  # pylint: disable=W0702
         return None
+
+
+async def get_sum_hart_history(user_name: str):
+    """하트 총 내역 조회"""
+    try:
+        response = requests.get(
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/bot2/{user_name}",
+            timeout=5,
+        )
+        return response.text
+    except:  # pylint: disable=W0702
+        return None
