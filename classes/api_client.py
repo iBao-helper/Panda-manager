@@ -296,7 +296,12 @@ class APIClient:
             )
             tmp = response.json()["list"]
             return tmp
-        except:  # pylint: disable= W0702
+        except Exception as e:  # pylint: disable= W0702
+            await logging_error(
+                self.panda_id,
+                "[room_list API 호출 실패]",
+                {"data": str(e)},
+            )
             return None
 
     async def refresh_token(self):
