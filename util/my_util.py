@@ -157,7 +157,7 @@ async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
             json={
                 "nickname": emoji.emojize(nickname),
                 "user_id": emoji.emojize(user_id),
-                "bj_name=": emoji.emojize(bj_name),
+                "bj_name": emoji.emojize(bj_name),
                 "count": hart_count,
             },
             timeout=5,
