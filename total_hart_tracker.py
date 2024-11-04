@@ -122,7 +122,9 @@ async def viewbot_start(
                             )
                         )
             except Exception as e:  # pylint: disable=W0718 W0612
-                print(f"viewbot_start 에러 {str(e)}")
+                print(f"{str(e)}")
+                print(chat)
+                print(chat.message)
                 pass
         except websockets.exceptions.ConnectionClosedOK as e:
             print(f"viewbot_start 에러 {str(e)}")
