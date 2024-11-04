@@ -153,7 +153,7 @@ async def send_hart_history(user_id: str, nickname: str, bj_name, hart_count):
     """하트 내역 전송"""
     try:
         requests.post(
-            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history/tracker",
+            url=f"http://{BACKEND_URL}:{BACKEND_PORT}/bj/hart-history",
             json={
                 "nickname": emoji.emojize(nickname),
                 "user_id": emoji.emojize(user_id),
