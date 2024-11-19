@@ -105,13 +105,13 @@ async def gpt4_omni_by_api_client(question, panda_id: str):
         messages.append(
             {
                 "role": "system",
-                "content": f'If the question includes " ", it is asking for the number of donations.',
+                "content": f'If the number of donations is over 100,000, it is "개큰손", if it is over 50,000, it is "큰손", if it is over 10,000, it is "중손", if it is over 3,000, it is "작은손", if it is 1 or more, it is "조막손", and if it is 0, it is "ㅋ건빵ㅋ".',
             },
         )
         messages.append(
             {
                 "role": "system",
-                "content": f'If the number of donations is over 100,000, it is "개큰손", if it is over 50,000, it is "큰손", if it is over 10,000, it is "중손", if it is over 3,000, it is "작은손", if it is 1 or more, it is "애기손", and if it is 0, it is "ㅋ건빵ㅋ".',
+                "content": f"Please answer one of the following: “빅큰손”, “큰손”, “중손”, “작은손”, “조막손”, or “영원한☆건빵”.",
             },
         )
     print(messages)
