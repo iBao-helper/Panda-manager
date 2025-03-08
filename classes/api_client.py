@@ -54,7 +54,7 @@ class APIClient:
 
     async def request_api_call(self, url, data, headers):
         """API 호출하는 함수"""
-        if self.proxy_ip == "":
+        if self.proxy_ip == "" or "/v1/member/login" in url:
             response = requests.post(url=url, headers=headers, data=data, timeout=5)
         else:
             response = requests.post(
@@ -89,6 +89,7 @@ class APIClient:
         try:
             result = await self.request_api_call(login_url, data, dummy_header)
         except Exception as e:  # pylint: disable=W0703
+            print(str(e))
             await logging_error(
                 self.panda_id,
                 "[로그인 실패]",
@@ -567,8 +568,8 @@ class APIClient:
         ret = []
         for item in tmp:
             if (
-                item["isAdult"] == False
-                and item["liveType"] != "rec"
+                # item["isAdult"] == False
+                item["liveType"] != "rec"
                 and item["type"] == "free"
             ):
                 if item["userId"] not in managers:
@@ -623,3 +624,33 @@ class APIClient:
         self.user_idx = login_info["userInfo"]["idx"]
         print(self.sess_key, self.user_idx)
         return login_info["userInfo"]["nick"]
+
+    async def dump(self):
+        """현재 객체의 정보를 출력하는 함수"""
+        login_url = "https://api.pandalive.co.kr/v1/fan/rank"
+        dummy_header = self.default_header.copy()
+        data = f"0&limit=100&fromUserSearch=&noCache=true&type=day&date=2024-12-01&userIdx=25637561"
+        dummy_header["path"] = "/v1/fan/rank"
+        dummy_header["content-length"] = str(len(data))
+        try:
+            response = requests.post(
+                url=login_url, headers=dummy_header, data=data, timeout=5
+            )
+            if response.status_code != 200:
+                raise HTTPException(409, "로그인 실패")
+            result = response.json()
+            parsed_data = []
+            for item in result["list"]:
+                parsed_data.append(
+                    {
+                        "rank": item["rank"],
+                        "userId": item["userId"],
+                        "userNick": item["userNick"],
+                        "fanLevel": item["fanLevel"],
+                    }
+                )
+            for item in parsed_data:
+                print(item)
+        except Exception as e:  # pylint: disable=W0703
+            return None  # pylint: disable=W0719 W0707
+        return None

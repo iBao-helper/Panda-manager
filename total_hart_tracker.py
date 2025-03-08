@@ -145,6 +145,8 @@ async def viewbot_start(
 
 def start_view_bot(
     tracker_data: TrackerData,
+    account_id: str,
+    account_pw: str,
     last_flag: Optional[bool] = False,
 ):
     """매니저 쓰레드 함수"""
@@ -164,12 +166,14 @@ def start_view_bot(
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     proxy_ip = tim.get_ip()
-    print(proxy_ip)
+    print(proxy_ip, account_id, account_pw)
 
     try:
         api_client = APIClient(panda_id=tracker_data.panda_id, proxy_ip=proxy_ip)
-        loop.run_until_complete(api_client.guest_login())
-        loop.run_until_complete(api_client.guest_play())
+        loop.run_until_complete(
+            api_client.login(account_id, account_pw, tracker_data.panda_id)
+        )
+        loop.run_until_complete(api_client.member_play(tracker_data.panda_id))
         print(api_client.channel)
         websocket = loop.run_until_complete(
             connect_websocket(
@@ -185,7 +189,7 @@ def start_view_bot(
 
     try:
         current_watching.append(tracker_data.panda_id)
-        websockets_dict[tracker_data.panda_id] = [websocket, api_client]
+        websockets_dict[tracker_data.panda_id] = [websocket, api_client, account_id]
         # 실행되면 proxy_ip 용량 차감
         if last_flag:
             duplicate_lock.release()
@@ -213,7 +217,7 @@ def ger_starting_list(lists) -> list[TrackerData]:
     return starting_lists[0:ip_count]
 
 
-def get_terminated_lists(lists) -> list[TrackerData]:
+def get_terminated_lists(lists) -> list[str]:
     terminated_lists = []
     # 감시중인 리스트에 있으면서
     for item in current_watching:
@@ -223,7 +227,7 @@ def get_terminated_lists(lists) -> list[TrackerData]:
             if item == list_item["panda_id"]:
                 finded = True
                 break
-        if not finded:
+        if not finded and not list_item["panda_id"] in terminated_lists:
             terminated_lists.append(item)
     for panda_id in websockets_dict:
         if not websockets_dict[panda_id][0].open:
@@ -264,12 +268,17 @@ def event_thread():
                 else:
                     last_flag = False
                 tracker_data = TrackerData(**starting_item)
+                account = tim.get_account()
+                if account is None:
+                    duplicate_lock.release()
+                    break
                 threading.Thread(
                     target=start_view_bot,
-                    args=(tracker_data, last_flag),
+                    args=(tracker_data, account[0], account[1], last_flag),
                     daemon=True,
                 ).start()
                 starting_count += 1
+            print("terminating_list:", len(terminating_list))
             for terminated_item in terminating_list:
                 panda_ids = websockets_dict.keys()
                 for panda_id in panda_ids:
@@ -283,13 +292,16 @@ def event_thread():
                                 "params": {"channel": str(api_client.channel)},
                             }
                             loop.run_until_complete(websocket.send(json.dumps(message)))
+                            tim.set_state_true(websockets_dict[panda_id][2])
                             websockets_dict.pop(panda_id)
                             current_watching.remove(panda_id)
                             tim.increase_ip(api_client.proxy_ip)
                         except:
+                            tim.set_state_true(websockets_dict[panda_id][2])
                             websockets_dict.pop(panda_id)
                             current_watching.remove(panda_id)
                             tim.increase_ip(api_client.proxy_ip)
+
                             print("panda_id의 웹소켓이 없음")
                         break
                 remove_count += 1
@@ -313,6 +325,8 @@ async def main():
         target=event_thread,
         daemon=True,
     ).start()
+    print(len(tim.account))
+    print(len(tim.ips))
     while True:
         print("현재 감시중인 리스트:", current_watching)
         print("남은 IP 용량:", tim.get_total_ip())
