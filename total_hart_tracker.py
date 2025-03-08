@@ -182,6 +182,7 @@ def start_view_bot(
         )
     except Exception as e:  # pylint: disable=W0702 W0718
         print(f"웹소켓 연결 실패 에러 - {str(e)}")
+        tim.set_state_true(account_id)
         if last_flag:
             duplicate_lock.release()
         lock.release()
@@ -258,6 +259,7 @@ def event_thread():
                 continue
             print("받아온 리스트 크기:", len(lists))
             starting_list = ger_starting_list(lists)
+            print("시작할 크기: ", len(starting_list))
             terminating_list = get_terminated_lists(lists)
             if len(starting_list) == 0:
                 duplicate_lock.release()
@@ -270,6 +272,7 @@ def event_thread():
                 tracker_data = TrackerData(**starting_item)
                 account = tim.get_account()
                 if account is None:
+                    print("계정 부족 계정 부족 계정 부족 계정 부족")
                     duplicate_lock.release()
                     break
                 threading.Thread(
