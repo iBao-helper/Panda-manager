@@ -64,6 +64,8 @@ class TotalIpManager:
             ["uum011", "aass1212!", False],
             ["toc001", "aass1212!", False],
             ["cvc011", "aass1212!", False],
+            ["ott011", "aass1212!", False],
+            ["zim011", "aass1212!", False],
         ]
         self.lock = threading.Lock()
         self.websockets = []
